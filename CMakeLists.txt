@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 2.8.4)
-project(webswitch)
+cmake_minimum_required(VERSION 3.2)
+project(WebSwitch)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES hello_world.c)
-add_executable(webswitch ${SOURCE_FILES})
+set(SOURCE_FILES
+    code/hello_world.c)
+
+add_executable(WebSwitch ${SOURCE_FILES})

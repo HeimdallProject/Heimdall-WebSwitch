@@ -4,9 +4,11 @@ project(WebSwitch)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
 
 set(SOURCE_FILES
+    code/helper.h
     code/hello_world.c)
 
 set(SOURCE_FILES_APACHE
+    code/helper.h
     code/apache_status.c)
 
 add_executable(WebSwitch ${SOURCE_FILES})

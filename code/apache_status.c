@@ -14,10 +14,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include "helper.h"
+#include "connection.h"
 
 /*
  * ---------------------------------------------------------------------------
- * Structure:  apache_server_status
+ * Structure  : apache_server_status
  * Description: This struct collect all data about the state of a Apace server.
  *
  * Data:
@@ -51,18 +52,64 @@ struct apache_server_status {
 
 /*
  * ---------------------------------------------------------------------------
- * Function:     retrieve_apache_status
- * Description:  This function retrieve the HTML page of the given URL. It
- *               save the page into status_page.
+ * Function   : retrieve_apache_status
+ * Description: This function retrieve the HTML page of the given URL. It
+ *              save the page into status_page.
  *
- * Param:
+ * Param      :
  *   url        : The URL of the page to retrieve.
  *   status_page: The pointer in which save the page retrieved.
  *
- * Return:       STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  * ---------------------------------------------------------------------------
  */
 int retrieve_apache_status(char *url, char **status_page) {
+
+    int sockfd;
+    sockfd = create_client_socket(TCP, "5.196.1.149", 80);
+
+    fprintf(stdout, "Connected to server..\n");
+
+    int bytes, sent, received, total;
+    char message[1024],response[4096];
+
+    /* fill in the parameters */
+    sprintf(message, "GET /server-status?auto HTTP/1.1\nHost: www.laziobus.it\n\n");
+    printf("Request:\n%s\n",message);
+
+    /* send the request */
+    total = (int) strlen(message);
+    sent = 0;
+    do {
+        bytes = (int) write(sockfd,message+sent, (size_t) (total-sent));
+        if (bytes < 0)
+            fprintf(stderr,"ERROR writing message to socket");
+        if (bytes == 0)
+            break;
+        sent+=bytes;
+    } while (sent < total);
+
+    /* receive the response */
+    memset(response,0,sizeof(response));
+    total = sizeof(response)-1;
+    received = 0;
+    do {
+        bytes = (int) read(sockfd,response-received, (size_t) (total-received));
+        if (bytes < 0)
+            fprintf(stderr,"ERROR reading response from socket");
+        if (bytes == 0)
+            break;
+        received+=bytes;
+    } while (received < total);
+
+    if (received == total)
+        fprintf(stderr,"ERROR storing complete response from socket");
+
+    /* close the socket */
+    close(sockfd);
+
+    /* process response */
+    printf("Response:\n%s\n", response);
 
     *status_page = "Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................";
 
@@ -71,24 +118,24 @@ int retrieve_apache_status(char *url, char **status_page) {
 
 /*
  * ---------------------------------------------------------------------------
- * Function:     parse_apache_status
- * Description:  This function parse the HTML page given in order to
- *               get all the info about Apache server.
+ * Function   : parse_apache_status
+ * Description: This function parse the HTML page given in order to
+ *              get all the info about Apache server.
  *
- * Param:
+ * Param      :
  *   status_page  : The pointer in which is saved the page to parse.
  *   server_status: The struct in which save the data parsed.
  *
- * Return:       STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  * ---------------------------------------------------------------------------
  */
 int parse_apache_status(char **status_page, struct apache_server_status* server_status) {
 
     char *to_parse = strdup(*status_page);  // The string to parse
-    char *delim = ":";  // First delimiter
-    char *sub_delim = "\n";  // Second delimiter
+    char *delim = ":";                      // First delimiter
+    char *sub_delim = "\n";                 // Second delimiter
     char *str1, *str2, *token, *sub_token;  // Useful string
-    char *save_ptr1, *save_ptr2;  // Useful pointer
+    char *save_ptr1, *save_ptr2;            // Useful pointer
     int j, i;
 
     for (j = 1, i = 0, str1 = to_parse; ; j++, str1 = NULL) {
@@ -218,21 +265,37 @@ int parse_apache_status(char **status_page, struct apache_server_status* server_
 
 /*
  * ---------------------------------------------------------------------------
- * Function:     print_apache_status
- * Description:  This function print the status stored into
- *               apache_server_status struct.
+ * Function   : print_apache_status
+ * Description: This function print the status stored into
+ *              apache_server_status struct.
  *
- * Param:
- *   server_status : The pointer of the struct to print.
+ * Param      :
+ *   server_status: The pointer of the struct to print.
  *
  * ---------------------------------------------------------------------------
  */
 void print_apache_status(struct apache_server_status* server_status) {
-    fprintf(stdout, "Status of Apache server at URL: %s\n\nTotal Accesses: %d\nTotal kBytes: %d\nCPULoad: %f\nUptime: "
-            "%d\nReqPerSec: %f\nBytesPerSec: %f\nBytesPerReq: %f\nBusyWorkers: %d\nIdleWorkers: %d", server_status->url,
-            server_status->total_accesses, server_status->total_kBytes, server_status->cpu_load, server_status->uptime,
-            server_status->req_per_sec, server_status->bytes_per_sec, server_status->bytes_per_req,
-            server_status->busy_workers, server_status->idle_workers);
+    fprintf(stdout,
+            "Status of Apache server at URL: %s\n\n"
+            "Total Accesses: %d\n"
+            "Total kBytes: %d\n"
+            "CPULoad: %f\n"
+            "Uptime: %d\n"
+            "ReqPerSec: %f\n"
+            "BytesPerSec: %f\n"
+            "BytesPerReq: %f\n"
+            "BusyWorkers: %d\n"
+            "IdleWorkers: %d",
+            server_status->url,
+            server_status->total_accesses,
+            server_status->total_kBytes,
+            server_status->cpu_load,
+            server_status->uptime,
+            server_status->req_per_sec,
+            server_status->bytes_per_sec,
+            server_status->bytes_per_req,
+            server_status->busy_workers,
+            server_status->idle_workers);
 }
 
 int main(int argc, char *argv[]) {
@@ -267,7 +330,7 @@ int main(int argc, char *argv[]) {
     status_retrieve = retrieve_apache_status(server_status->url, status_page);
 
     int status_parse;
-    if (status_retrieve == STATUS_OK) {  // If retrieved
+    if (status_retrieve == STATUS_OK) {                                  // If retrieved
         status_parse = parse_apache_status(status_page, server_status);  // Parse status_page and put into server_status
     } else {
         fprintf(stderr, "Error in retriving status page, please retry.\n");
@@ -277,7 +340,7 @@ int main(int argc, char *argv[]) {
     // Free memory used for status_page
     free(status_page);
 
-    if (status_parse == STATUS_OK) {  // If parsed
+    if (status_parse == STATUS_OK) {         // If parsed
         print_apache_status(server_status);  // Print server_status
     } else {
         fprintf(stderr, "Error in parsing status page, please retry.\n");

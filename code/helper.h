@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <err.h>
+#include <ctype.h>
+
 
 #define STATUS_OK     0  // Macro for status ok
 #define STATUS_ERROR -1  // Macro for status error
@@ -64,7 +66,7 @@ int str_to_int(char *string) {
  * ---------------------------------------------------------------------------
  * Function   : str_to_float
  * Description: This function converts a string into a float value using the
- *              C command strotof.
+ *              C command strtof.
  *
  * Param      :
  *   string:    The string to convert.
@@ -85,4 +87,26 @@ float str_to_float(char *string) {
     }
 
     return value;
+}
+
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : str_to_lower
+ * Description: This function converts a string into the same string with all
+ *              the chars as lowercase letters using C command tolower
+ *
+ * Param      :
+ *   string:    The string to convert.
+ *
+ * Return     : None
+ * ---------------------------------------------------------------------------
+ */
+char *str_to_lower(char *string) {
+    int i;
+    for (i = 0; string[i]; i++) {
+        string[i] = (char) tolower(string[i]);
+    }
+
+    return string;
 }

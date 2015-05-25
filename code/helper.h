@@ -7,13 +7,6 @@
 // ===========================================================================
 //
 
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <err.h>
-#include <ctype.h>
-
-
 #define STATUS_OK     0  // Macro for status ok
 #define STATUS_ERROR -1  // Macro for status error
 
@@ -47,20 +40,7 @@ struct message {
  * Return     : The converted value or STATUS_ERROR in case of error.
  * ---------------------------------------------------------------------------
  */
-int str_to_int(char *string) {
-
-    char *pointer;
-    int value;
-
-    errno = 0;
-    value = (int) strtol(string, &pointer, 0);
-    if (errno != 0 || *pointer != '\0') {
-        fprintf(stderr, "Invalid number\n");
-        return STATUS_ERROR;
-    }
-
-    return value;
-}
+int str_to_int(char *string);
 
 /*
  * ---------------------------------------------------------------------------
@@ -74,20 +54,7 @@ int str_to_int(char *string) {
  * Return     : The converted value or STATUS_ERROR in case of error.
  * ---------------------------------------------------------------------------
  */
-float str_to_float(char *string) {
-
-    char *pointer;
-    float value;
-
-    errno = 0;
-    value = strtof(string, &pointer);
-    if (errno != 0 || *pointer != '\0') {
-        fprintf(stderr, "Invalid number\n");
-        return STATUS_ERROR;
-    }
-
-    return value;
-}
+float str_to_float(char *string);
 
 
 /*
@@ -102,11 +69,4 @@ float str_to_float(char *string) {
  * Return     : None
  * ---------------------------------------------------------------------------
  */
-char *str_to_lower(char *string) {
-    int i;
-    for (i = 0; string[i]; i++) {
-        string[i] = (char) tolower(string[i]);
-    }
-
-    return string;
-}
+char *str_to_lower(char *string);

@@ -13,62 +13,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "helper.h"
 #include "connection.h"
+#include "apache_status.h"
 
-/*
- * ---------------------------------------------------------------------------
- * Structure  : apache_server_status
- * Description: This struct collect all data about the state of a Apace server.
- *
- * Data:
- *   url           : The URL of the server status page.
- *   total_accesses: A total number of accesses served.
- *   total_kBytes  : A total number of byte count served.
- *   cpu_load      : The current percentage CPU used by each worker and in total
- *                   by all workers combined
- *   uptime        : The time the server was started/restarted and the time it
- *                   has been running for.
- *   req_per_sec   : Averages giving the number of requests per second, the
- *                   number of bytes served per second and the average number
- *                   of bytes per request.
- *   bytes_per_sec : The number of bytes served per second.
- *   bytes_per_req : The average number of bytes per request.
- *   busy_workers  : The number of worker serving requests.
- *   idle_workers  : The number of idle worker.
- */
-struct apache_server_status {
-    char *url;
-    int total_accesses;
-    int total_kBytes;
-    float cpu_load;
-    int uptime;
-    float req_per_sec;
-    float bytes_per_sec;
-    float bytes_per_req;
-    int busy_workers;
-    int idle_workers;
-};
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : retrieve_apache_status
- * Description: This function retrieve the HTML page of the given URL. It
- *              save the page into status_page.
- *
- * Param      :
- *   url        : The URL of the page to retrieve.
- *   status_page: The pointer in which save the page retrieved.
- *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
- * ---------------------------------------------------------------------------
- */
 int retrieve_apache_status(char *url, char **status_page) {
 
     int sockfd;
     sockfd = create_client_socket(TCP, "5.196.1.149", 80);
 
-    fprintf(stdout, "Connected to server..\n");
+    fprintf(stdout, "Connected to server at URL: %s\n", url);
 
     int bytes, sent, received, total;
     char message[1024],response[4096];
@@ -83,7 +38,7 @@ int retrieve_apache_status(char *url, char **status_page) {
     do {
         bytes = (int) write(sockfd,message+sent, (size_t) (total-sent));
         if (bytes < 0)
-            fprintf(stderr,"ERROR writing message to socket");
+            fprintf(stderr, "ERROR writing message to socket");
         if (bytes == 0)
             break;
         sent+=bytes;
@@ -96,14 +51,14 @@ int retrieve_apache_status(char *url, char **status_page) {
     do {
         bytes = (int) read(sockfd,response-received, (size_t) (total-received));
         if (bytes < 0)
-            fprintf(stderr,"ERROR reading response from socket");
+            fprintf(stderr, "ERROR reading response from socket");
         if (bytes == 0)
             break;
         received+=bytes;
     } while (received < total);
 
     if (received == total)
-        fprintf(stderr,"ERROR storing complete response from socket");
+        fprintf(stderr, "ERROR storing complete response from socket");
 
     /* close the socket */
     close(sockfd);
@@ -116,19 +71,6 @@ int retrieve_apache_status(char *url, char **status_page) {
     return STATUS_OK;
 }
 
-/*
- * ---------------------------------------------------------------------------
- * Function   : parse_apache_status
- * Description: This function parse the HTML page given in order to
- *              get all the info about Apache server.
- *
- * Param      :
- *   status_page  : The pointer in which is saved the page to parse.
- *   server_status: The struct in which save the data parsed.
- *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
- * ---------------------------------------------------------------------------
- */
 int parse_apache_status(char **status_page, struct apache_server_status* server_status) {
 
     char *to_parse = strdup(*status_page);  // The string to parse
@@ -263,17 +205,6 @@ int parse_apache_status(char **status_page, struct apache_server_status* server_
     return STATUS_OK;
 }
 
-/*
- * ---------------------------------------------------------------------------
- * Function   : print_apache_status
- * Description: This function print the status stored into
- *              apache_server_status struct.
- *
- * Param      :
- *   server_status: The pointer of the struct to print.
- *
- * ---------------------------------------------------------------------------
- */
 void print_apache_status(struct apache_server_status* server_status) {
     fprintf(stdout,
             "Status of Apache server at URL: %s\n\n"

@@ -85,7 +85,7 @@
 /*
  * this struct will be used to retrieve the request headers info desired
  */
-
+// TODO make it a type (and if we want a pointer to struct in order to hide itself)
 struct http_request {
     char *status;                                       // whether the request can be handled
     char *req_type;                                     // type of the request

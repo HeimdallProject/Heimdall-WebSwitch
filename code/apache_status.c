@@ -19,24 +19,24 @@
 #include "apache_status.h"
 
 int retrieve_apache_status(char *url, char **status_page) {
-
+    // TODO improve with @andrea creating a helper function to retrieve HTTP page
     int sockfd;
-    sockfd = create_client_socket(TCP, "5.196.1.149", 80);
+    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) return STATUS_ERROR;
 
     fprintf(stdout, "Connected to server at URL: %s\n", url);
 
     int bytes, sent, received, total;
-    char message[1024],response[4096];
+    char message[1024], response[4096];
 
-    /* fill in the parameters */
+    // Fill in the parameters TODO use the new http_request struct
     sprintf(message, "GET /server-status?auto HTTP/1.1\nHost: www.laziobus.it\n\n");
-    printf("Request:\n%s\n",message);
+    printf("Request:\n%s\n", message);
 
-    /* send the request */
+    // Send the request
     total = (int) strlen(message);
     sent = 0;
     do {
-        bytes = (int) write(sockfd,message+sent, (size_t) (total-sent));
+        bytes = (int) write(sockfd, message+sent, (size_t) (total-sent));
         if (bytes < 0)
             fprintf(stderr, "ERROR writing message to socket");
         if (bytes == 0)
@@ -44,9 +44,9 @@ int retrieve_apache_status(char *url, char **status_page) {
         sent+=bytes;
     } while (sent < total);
 
-    /* receive the response */
-    memset(response,0,sizeof(response));
-    total = sizeof(response)-1;
+    // Receive the response
+    memset(response, 0, sizeof(response));
+    total = sizeof(response) - 1;
     received = 0;
     do {
         bytes = (int) read(sockfd,response-received, (size_t) (total-received));
@@ -54,25 +54,26 @@ int retrieve_apache_status(char *url, char **status_page) {
             fprintf(stderr, "ERROR reading response from socket");
         if (bytes == 0)
             break;
-        received+=bytes;
+        received += bytes;
     } while (received < total);
 
     if (received == total)
         fprintf(stderr, "ERROR storing complete response from socket");
 
-    /* close the socket */
+    // Close the socket
     close(sockfd);
 
-    /* process response */
+    // Print the response
     printf("Response:\n%s\n", response);
 
+    //TODO read and manage header and put in status page only the content of the http response
     *status_page = "Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................";
 
     return STATUS_OK;
 }
 
 int parse_apache_status(char **status_page, struct apache_server_status* server_status) {
-
+    // TODO: improve with @alessio
     char *to_parse = strdup(*status_page);  // The string to parse
     char *delim = ":";                      // First delimiter
     char *sub_delim = "\n";                 // Second delimiter

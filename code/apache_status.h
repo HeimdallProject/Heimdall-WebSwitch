@@ -31,6 +31,7 @@
  *   busy_workers  : The number of worker serving requests.
  *   idle_workers  : The number of idle worker.
  */
+// TODO make it a type (and if we want a pointer to struct in order to hide itself)
 struct apache_server_status {
     char *url;
     int total_accesses;

@@ -2,7 +2,7 @@
 //============================================================================
 // Name       : connection.c
 // Author     : Claudio Pastorini
-// Version    : 0.1
+// Version    : 0.2
 // Description: Code file for our client/server project with simple socket's
 //              functions.
 // ============================================================================
@@ -18,96 +18,113 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "helper.h"
 #include "connection.h"
 
-int create_socket(int type) {
+int create_socket(const int type, int *sockfd) {
 
-    int sockfd;
     if (type == 0) {  // TCP
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-            perror("Error in socket()");
-            exit(EXIT_FAILURE);
+        if ((*sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+            // TODO manage errno perror("Error in socket()");
+            return STATUS_ERROR;
         }
     } else if (type == 1) {  // UDP
-        if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-            perror("Error in socket()");
-            exit(EXIT_FAILURE);
+        if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+            // TODO manage errno perror("Error in socket()");
+            return STATUS_ERROR;
         }
     } else {
         fprintf(stderr, "Usage create_socket_and_bind(<type>), <type> = 0 for TCP <type> = 1 for UDP\n");
-        exit(EXIT_FAILURE);
+        return STATUS_ERROR;
     }
 
-    return sockfd;
+    return STATUS_OK;
 }
 
-int create_server_socket(int type, int port) {
+int create_server_socket(const int type, const int port, int *sockfd) {
 
-    int sockfd;
-    sockfd = create_socket(type);
+    if (create_socket(type, sockfd) == STATUS_ERROR) return STATUS_ERROR;
 
     struct sockaddr_in addr;
 
     memset((void *) &addr, 0, sizeof(addr));   // Set all memory to 0
     addr.sin_family = AF_INET;                 // Set IPV4 family
     addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Waiting a connection on all server's IP addresses
-    addr.sin_port = htons(port);    // Waiting a connection on PORT
+    addr.sin_port = htons(port);               // Waiting a connection on PORT
 
-    if (bind(sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        perror("Error in bind()");
-        exit(EXIT_FAILURE);
+    if (bind(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+        // TODO manage errno perror("Error in bind()");
+        return STATUS_ERROR;
     }
 
-    return sockfd;
+    return STATUS_OK;
 }
 
-int create_client_socket(int type, char *ip, int port) {
+int create_client_socket(const int type, const char *ip, const int port, int *sockfd) {
 
-    int sockfd;
-    sockfd = create_socket(type);
+    if (create_socket(type, sockfd) == STATUS_ERROR) return STATUS_ERROR;
 
     struct sockaddr_in addr;
 
-    memset((void *) &addr, 0, sizeof(addr));  // Set all memory to 0
-    addr.sin_family = AF_INET;                // Set IPV4 family
-    addr.sin_port = (in_port_t) htons((uint16_t) port);	  // Set server connection on specified PORT
+    memset((void *) &addr, 0, sizeof(addr));              // Set all memory to 0
+    addr.sin_family = AF_INET;                            // Set IPV4 family
+    addr.sin_port = (in_port_t) htons((uint16_t) port);   // Set server connection on specified PORT
 
     if (inet_pton(AF_INET, ip, &addr.sin_addr) == -1) {
-        perror("Error in inet_pthon()");
-        exit(EXIT_FAILURE);
+        // TODO manage errno perror("Error in inet_pthon()");
+        return STATUS_ERROR;
     }
 
-    if (connect(sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        perror("Error in connect()");
-        exit(EXIT_FAILURE);
+    if (connect(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+        // TODO manage errno perror("Error in connect()");
+        return STATUS_ERROR;
     }
 
-    return sockfd;
+    return STATUS_OK;
 }
 
-void listen_to(int sockfd, int backlog) {
+int listen_to(const int sockfd, const int backlog) {
 
     if (listen(sockfd, backlog) == -1) {
-        perror("Error in listen()");
-        exit(EXIT_FAILURE);
-    }
-}
-
-int create_connection(int sockfd) {
-
-    int connection;
-    if ((connection = accept(sockfd, (struct sockaddr *)NULL, NULL)) == -1) {
-        perror("Error in accept()");
-        exit(EXIT_FAILURE);
+        // TODO manage errno perror("Error in listen()");
+        return STATUS_ERROR;
     }
 
-    return connection;
+    return STATUS_OK;
 }
 
-void close_connection(int connection) {
+int accept_connection(const int sockfd, int *connection) {
+
+    if ((*connection = accept(sockfd, (struct sockaddr *)NULL, NULL)) == -1) {
+        // TODO manage errno perror("Error in accept()");
+        return STATUS_ERROR;
+    }
+
+    return STATUS_OK;
+}
+
+int close_connection(const int connection) {
 
     if (close(connection) == -1) {
-        perror("Error in close()");
-        exit(EXIT_FAILURE);
+        // TODO manage errno perror("Error in close()");
+        return STATUS_ERROR;
     }
+
+    return STATUS_OK;
 }
+
+/*
+int get_server_url(const char *ip, char *url) {
+// TODO complete
+    char *host, service;
+
+    */
+/*if (getnameinfo() != 0) {
+        // TODO manage error that are listed in man
+        return STATUS_ERROR;
+    }*//*
+
+
+
+    return STATUS_OK;
+}*/

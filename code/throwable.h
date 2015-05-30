@@ -19,6 +19,7 @@
  *  status      : Error level, 0 or -1 see macro in this .h.
  *  message     : The error message.
  *  stack_trace : Contains all function name where error occurs.
+ * ---------------------------------------------------------------------------
  */
 typedef struct throwable {
     int status;

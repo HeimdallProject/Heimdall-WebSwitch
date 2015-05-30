@@ -22,7 +22,7 @@ Throwable *new_throwable();
  */
 Throwable *singleton_throwable = NULL;
 
-Throwable *create(int status, char *msg, char *function_name) {
+Throwable *create_throwable(int status, char *msg, char *function_name) {
 
     Throwable *throwable = new_throwable();
     throwable->message = msg;
@@ -53,22 +53,11 @@ Throwable *new_throwable() {
     }
 
     // Set "methods"
-    throwable->create = create;
+    throwable->create = create_throwable;
 
     return throwable;
 }
 
-/*
- * ---------------------------------------------------------------------------
- * Function     : get_throwable
- * Description  : Return singleton instance of Throwable object, if this instance is not already created
- *                this function call automatically new_throwable() for instantiate the object itself.
- *
- * Param        :
- *
- * Return       : Pointer to object Throwable.
- * ---------------------------------------------------------------------------
- */
 Throwable *get_throwable() {
 
     if (singleton_throwable == NULL) {
@@ -84,6 +73,7 @@ Throwable *get_throwable() {
  *  Main function, for test and example usage.
  * ---------------------------------------------------------------------------
  */
+/*
 int main() {
 
     Throwable Throwable = *get_throwable();
@@ -92,4 +82,4 @@ int main() {
     log.print_throwable(Throwable.create(STATUS_ERROR, "Ciao ciccio", "main()"));
 
     return EXIT_SUCCESS;
-}
+}*/

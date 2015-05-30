@@ -9,6 +9,8 @@ set(SOURCE_FILES_MAIN
 set(SOURCE_FILES_APACHE
     code/helper.c
     code/connection.c
+    code/log.c
+    code/throwable.c
     code/apache_status.c)
 
 set(SOURCE_FILES_REQUEST

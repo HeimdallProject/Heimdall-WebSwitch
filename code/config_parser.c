@@ -34,7 +34,7 @@ Config *singleton_config = NULL;
  * Return       : new string.
  * ---------------------------------------------------------------------------
  */
-char *sub_string(char array[], int from, __unused int to){
+char *sub_string(char array[], int from, int to){
 
     int count = 0;
     while (1){

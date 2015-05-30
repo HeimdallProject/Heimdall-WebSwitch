@@ -29,7 +29,6 @@
  *  i                               : Pointer to info function.
  *  e                               : Pointer to error function.
  *  print_throwable                 : Pointer to print throwable function.
- *  print_apache_server_status:     : Pointer to print apache server status function.
  * ---------------------------------------------------------------------------
  */
 typedef struct log {
@@ -37,7 +36,6 @@ typedef struct log {
     void (*i)(char* tag, char *msg);
     void (*e)(char* tag, char *msg);
     void (*print_throwable)(Throwable *throwable);
-    void (*print_apache_server_status)(ApacheServerStatus *apacheServerStatus);
 } Log;
 
 /*

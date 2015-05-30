@@ -17,15 +17,13 @@
  * Structure    : typedef struct throwable
  * Description  : This struct collect all functions pointers and attributes for messages.
  *
- * Functions:
- *  d           : Pointer to debug function.
- *  i           : Pointer to info function.
- *  e           : Pointer to error function.
- *
  * Data:
  *  status      : Error level, 0 or -1 see macro in this .h.
  *  message     : The error message.
  *  stack_trace : Contains all function name where error occurs.
+ *
+ * Functions:
+ *  create  : Pointer to create_throwable function.
  * ---------------------------------------------------------------------------
  */
 typedef struct throwable {
@@ -34,3 +32,16 @@ typedef struct throwable {
     char *stack_trace;
     struct throwable* (*create)(int status, char *tag, char *msg);
 } Throwable;
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : get_throwable
+ * Description  : Return singleton instance of Throwable object, if this instance is not already created
+ *                this function call automatically new_throwable() for instantiate the object itself.
+ *
+ * Param        :
+ *
+ * Return       : Pointer to object Throwable.
+ * ---------------------------------------------------------------------------
+ */
+Throwable *get_throwable();

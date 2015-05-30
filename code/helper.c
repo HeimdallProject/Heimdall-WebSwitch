@@ -61,4 +61,4 @@ char *timestamp() {
     return asctime(localtime(&ltime));
 }
 
-//TODO fare funzione che rimuove \n, da usare in timestamp
+//TODO fare funzione che rimuove (che fa il replace) \n, da usare in timestamp

@@ -24,14 +24,14 @@ Throwable *singleton_throwable = NULL;
 
 Throwable *create(int status, char *msg, char *function_name) {
 
-    Throwable *thr = new_throwable();
-    thr->message        = msg;
-    thr->status         = status;
+    Throwable *throwable = new_throwable();
+    throwable->message = msg;
+    throwable->status = status;
 
     // TODO fare funzione append in helper
-    thr->stack_trace    = function_name;
+    throwable->stack_trace = function_name;
 
-    return thr;
+    return throwable;
 }
 
 /*
@@ -46,16 +46,16 @@ Throwable *create(int status, char *msg, char *function_name) {
  */
 Throwable *new_throwable() {
 
-    Throwable *thr = malloc(sizeof(Throwable));
-    if (thr == NULL) {
+    Throwable *throwable = malloc(sizeof(Throwable));
+    if (throwable == NULL) {
         fprintf(stderr, "Memory allocation error in new_throwable().\n");
         exit(EXIT_FAILURE);
     }
 
     // Set "methods"
-    thr->create = create;
+    throwable->create = create;
 
-    return thr;
+    return throwable;
 }
 
 /*
@@ -88,8 +88,8 @@ int main() {
 
     Throwable Throwable = *get_throwable();
 
-    Log *v = get_log();
-    v->print_throwable(Throwable.create(STATUS_OK, "Ciao ciccio", "main()"));
+    Log log = *get_log();
+    log.print_throwable(Throwable.create(STATUS_ERROR, "Ciao ciccio", "main()"));
 
     return EXIT_SUCCESS;
 }

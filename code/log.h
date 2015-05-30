@@ -10,6 +10,7 @@
 //
 
 #include "throwable.h"
+#include "apache_status.h"
 
 #define DEBUG_LEVEL   2  // Macro for debug message level
 #define INFO_LEVEL    3  // Macro for info message level
@@ -24,16 +25,19 @@
  * Description  : This struct collect all functions pointers for logging.
  *
  * Functions:
- *  d           : Pointer to debug function.
- *  i           : Pointer to info function.
- *  e           : Pointer to error function.
+ *  d                               : Pointer to debug function.
+ *  i                               : Pointer to info function.
+ *  e                               : Pointer to error function.
+ *  print_throwable                 : Pointer to print throwable function.
+ *  print_apache_server_status:     : Pointer to print apache server status function.
  * ---------------------------------------------------------------------------
  */
 typedef struct log {
     void (*d)(char* tag, char *msg);
     void (*i)(char* tag, char *msg);
     void (*e)(char* tag, char *msg);
-    void (*print_throwable) (Throwable *thr);
+    void (*print_throwable)(Throwable *throwable);
+    void (*print_apache_server_status)(ApacheServerStatus *apacheServerStatus);
 } Log;
 
 /*

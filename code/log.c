@@ -95,13 +95,49 @@ void e(char* tag, char *msg) {
  * Return       : void.
  * ---------------------------------------------------------------------------
  */
-void print_throwable (Throwable *thr) {
+void print_throwable(Throwable *thr) {
 
     if (thr->status == STATUS_OK) {
-        fprintf(stdout, "Status %d \n Message: %s \n, Stack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
+        fprintf(stdout, "Status %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
     } else {
-        fprintf(stderr, "Status %d \n Message: %s \n, Stack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
+        fprintf(stderr, "Status %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
     }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : print_apache_server_status
+ * Description  : Used for print human-readable object ApacheServerStatus.
+ *
+ * Param        :
+ *   ApacheServerStatus  : Pointer to object ApacheServerStatus.
+ *
+ * Return       : void.
+ * ---------------------------------------------------------------------------
+ */
+void print_apache_server_status(ApacheServerStatus *server_status) {
+
+    fprintf(stdout,
+            "Status of Apache server at URL: %s\n\n"
+                    "Total Accesses: %d\n"
+                    "Total kBytes: %d\n"
+                    "CPULoad: %f\n"
+                    "Uptime: %d\n"
+                    "ReqPerSec: %f\n"
+                    "BytesPerSec: %f\n"
+                    "BytesPerReq: %f\n"
+                    "BusyWorkers: %d\n"
+                    "IdleWorkers: %d",
+            server_status->url,
+            server_status->total_accesses,
+            server_status->total_kBytes,
+            server_status->cpu_load,
+            server_status->uptime,
+            server_status->req_per_sec,
+            server_status->bytes_per_sec,
+            server_status->bytes_per_req,
+            server_status->busy_workers,
+            server_status->idle_workers);
 }
 
 /*
@@ -111,7 +147,7 @@ void print_throwable (Throwable *thr) {
  *
  * Param        :
  *
- * Return       : Pointer to objec Log.
+ * Return       : Pointer to object Log.
  * ---------------------------------------------------------------------------
  */
 Log *new_log() {
@@ -127,6 +163,7 @@ Log *new_log() {
     log->i = i;
     log->e = e;
     log->print_throwable = print_throwable;
+    log->print_apache_server_status = print_apache_server_status;
 
     return log;
 }
@@ -139,7 +176,7 @@ Log *new_log() {
  *
  * Param        :
  *
- * Return       : Pointer to objec Log.
+ * Return       : Pointer to object Log.
  * ---------------------------------------------------------------------------
  */
 Log *get_log() {

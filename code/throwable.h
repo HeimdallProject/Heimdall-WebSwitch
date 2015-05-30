@@ -32,5 +32,5 @@ typedef struct throwable {
     int status;
     char *message;
     char *stack_trace;
-    struct throwable* (*create)(int status, char* tag, char *msg);
+    struct throwable* (*create)(int status, char *tag, char *msg);
 } Throwable;

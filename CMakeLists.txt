@@ -7,8 +7,8 @@ set(SOURCE_FILES_MAIN
     code/main.c)
 
 set(SOURCE_FILES_APACHE
-    code/connection.c
     code/helper.c
+    code/connection.c
     code/apache_status.c)
 
 set(SOURCE_FILES_REQUEST

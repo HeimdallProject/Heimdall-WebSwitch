@@ -30,9 +30,15 @@
  *   bytes_per_req : The average number of bytes per request.
  *   busy_workers  : The number of worker serving requests.
  *   idle_workers  : The number of idle worker.
+ *
+ * Functions:
+ *  parse_apache_status     : Pointer to parse apache status function.
+ *  destroy                 : Pointer to destroy function.
  */
 typedef struct apache_server_status {
+    struct apache_server_status *self;
     char *url;
+    char *status_page;
     int total_accesses;
     int total_kBytes;
     float cpu_load;
@@ -42,6 +48,10 @@ typedef struct apache_server_status {
     float bytes_per_req;
     int busy_workers;
     int idle_workers;
+    int (*retrieve)(struct apache_server_status *self);
+    int (*parse)(struct apache_server_status *self);
+    void (*destroy)(void *self);
+    void (*set_url)(struct apache_server_status *self, char *url);
 } ApacheServerStatus;
 
 /*
@@ -57,7 +67,7 @@ typedef struct apache_server_status {
  * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  * ---------------------------------------------------------------------------
  */
-int retrieve_apache_status(char *url, char **status_page);
+int retrieve_apache_status(ApacheServerStatus *self);
 
 /*
  * ---------------------------------------------------------------------------
@@ -72,17 +82,4 @@ int retrieve_apache_status(char *url, char **status_page);
  * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  * ---------------------------------------------------------------------------
  */
-int parse_apache_status(char **status_page, ApacheServerStatus *server_status);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : print_apache_status
- * Description: This function print the status stored into
- *              apache_server_status struct.
- *
- * Param      :
- *   server_status: The pointer of the struct to print.
- *
- * ---------------------------------------------------------------------------
- */
-void print_apache_status(ApacheServerStatus *server_status);
+int parse_apache_status(ApacheServerStatus *self);

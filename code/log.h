@@ -27,6 +27,7 @@
  *  d           : Pointer to debug function.
  *  i           : Pointer to info function.
  *  e           : Pointer to error function.
+ * ---------------------------------------------------------------------------
  */
 typedef struct log {
     void (*d)(char* tag, char *msg);

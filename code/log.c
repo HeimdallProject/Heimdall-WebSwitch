@@ -14,8 +14,24 @@
 #include "log.h"
 #include "helper.h"
 
+/*
+ * ---------------------------------------------------------------------------
+ * Description  : Global variable, singleton instance of Log
+ */
 Log *singleton_log = NULL;
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : i
+ * Description  : Used for print and/or write information messages to log.
+ *
+ * Param        :
+ *   tag        : String that indicates where this log.
+ *   msg        : Information message.
+ *
+ * Return       : void.
+ * ---------------------------------------------------------------------------
+ */
 void i(char* tag, char *msg) {
 
     if (INFO_LEVEL >= PRINT_LEVEL) {
@@ -25,6 +41,18 @@ void i(char* tag, char *msg) {
     //TODO scrivere sul file se variabile è settata nel config
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : d
+ * Description  : Used for print and/or write debug messages to log.
+ *
+ * Param        :
+ *   tag        : String that indicates where this log.
+ *   msg        : Debug message.
+ *
+ * Return       : void.
+ * ---------------------------------------------------------------------------
+ */
 void d(char* tag, char *msg) {
 
     if (DEBUG_LEVEL >= PRINT_LEVEL) {
@@ -34,6 +62,18 @@ void d(char* tag, char *msg) {
     //TODO scrivere sul file se variabile è settata nel config
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : e
+ * Description  : Used for print and/or write error messages to log.
+ *
+ * Param        :
+ *   tag        : String that indicates where this log.
+ *   msg        : Error message.
+ *
+ * Return       : void.
+ * ---------------------------------------------------------------------------
+ */
 void e(char* tag, char *msg) {
 
     if (ERROR_LEVEL >= PRINT_LEVEL) {
@@ -43,6 +83,17 @@ void e(char* tag, char *msg) {
     //TODO scrivere sul file se variabile è settata nel config
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : print_throwable
+ * Description  : Used for print human-readable object Throwable.
+ *
+ * Param        :
+ *   Throwable  : Pointer to object Throwable.
+ *
+ * Return       : void.
+ * ---------------------------------------------------------------------------
+ */
 void print_throwable (Throwable *thr) {
 
     if (thr->status == STATUS_OK) {
@@ -52,6 +103,16 @@ void print_throwable (Throwable *thr) {
     }
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : new_log
+ * Description  : Alloc and initialize object Log.
+ *
+ * Param        :
+ *
+ * Return       : Pointer to objec Log.
+ * ---------------------------------------------------------------------------
+ */
 Log *new_log() {
 
     Log *log = malloc(sizeof(Log));
@@ -69,6 +130,17 @@ Log *new_log() {
     return log;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : get_log
+ * Description  : Return singleton instance of Log object, if this instance is not already created
+ *                this function call automatically new_log() for instantiate the object itself.
+ *
+ * Param        :
+ *
+ * Return       : Pointer to objec Log.
+ * ---------------------------------------------------------------------------
+ */
 Log *get_log() {
 
     if (singleton_log == NULL) {

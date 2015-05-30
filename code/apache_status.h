@@ -31,8 +31,7 @@
  *   busy_workers  : The number of worker serving requests.
  *   idle_workers  : The number of idle worker.
  */
-// TODO make it a type (and if we want a pointer to struct in order to hide itself)
-struct apache_server_status {
+typedef struct apache_server_status {
     char *url;
     int total_accesses;
     int total_kBytes;
@@ -43,7 +42,7 @@ struct apache_server_status {
     float bytes_per_req;
     int busy_workers;
     int idle_workers;
-};
+} ApacheServerStatus;
 
 /*
  * ---------------------------------------------------------------------------
@@ -73,7 +72,7 @@ int retrieve_apache_status(char *url, char **status_page);
  * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  * ---------------------------------------------------------------------------
  */
-int parse_apache_status(char **status_page, struct apache_server_status* server_status);
+int parse_apache_status(char **status_page, ApacheServerStatus *server_status);
 
 /*
  * ---------------------------------------------------------------------------
@@ -86,4 +85,4 @@ int parse_apache_status(char **status_page, struct apache_server_status* server_
  *
  * ---------------------------------------------------------------------------
  */
-void print_apache_status(struct apache_server_status* server_status);
+void print_apache_status(ApacheServerStatus *server_status);

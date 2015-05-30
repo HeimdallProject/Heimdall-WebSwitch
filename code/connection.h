@@ -15,19 +15,6 @@
 //TODO create struct for HTTP response
 //TODO create wrapper for getnameinfo, better version of gethostbyname
 /*
- * Function   : create_socket
- * Description: This function creates a TCP or UDP socket.
- *
- * Param      :
- *   type:    The type of the socket, 0 for TCP, 1 per UDP.
- *   sockfd:  The pointer of the int where save the file
- *            description.
- *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
- */
-int create_socket(const int type, int *sockfd);
-
-/*
  * Function   : create_server_socket
  * Description: This function creates a TCP or a UDP server
  *              bound at specified port.

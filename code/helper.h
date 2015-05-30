@@ -13,13 +13,6 @@
 #define TRUE  1  // Macro for true
 #define FALSE 0  // Macro for false
 
-// TODO define a way to return message error
-#define VERBOSE_LEVEL 2  // Macro for verbose message level
-#define DEBUG_LEVEL   3  // Macro for debug message level
-#define INFO_LEVEL    4  // Macro for info message level
-#define WARN_LEVEL    5  // Macro for warn message level
-#define ERROR_LEVEL   6  // Macro for error message level
-
 /*
  *
  */
@@ -70,3 +63,6 @@ float str_to_float(char *string);
  * ---------------------------------------------------------------------------
  */
 char *str_to_lower(char *string);
+
+//TODO commenti!
+char *timestamp();

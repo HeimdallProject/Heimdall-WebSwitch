@@ -1,9 +1,8 @@
 #include "stdlib.h"
 #include "stdio.h"
+#include "throwable.h"
 
 int main() {
-
-    printf("Hello World!\n");
 
     return EXIT_SUCCESS;
 }

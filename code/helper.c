@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "helper.h"
+#include "time.h"
 
 
 int str_to_int(char *string) {
@@ -52,3 +53,12 @@ char *str_to_lower(char *string) {
 
     return string;
 }
+
+char *timestamp() {
+
+    time_t ltime; /* calendar time */
+    ltime=time(NULL); /* get current cal time */
+    return asctime(localtime(&ltime));
+}
+
+//TODO fare funzione che rimuove \n, da usare in timestamp

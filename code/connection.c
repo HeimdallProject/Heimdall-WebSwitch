@@ -21,6 +21,17 @@
 #include "helper.h"
 #include "connection.h"
 
+/*
+ * Function   : create_socket
+ * Description: This function creates a TCP or UDP socket.
+ *
+ * Param      :
+ *   type:    The type of the socket, 0 for TCP, 1 per UDP.
+ *   sockfd:  The pointer of the int where save the file
+ *            description.
+ *
+ * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ */
 int create_socket(const int type, int *sockfd) {
 
     if (type == 0) {  // TCP

@@ -17,6 +17,7 @@
 /*
  * ---------------------------------------------------------------------------
  * Description  : Global variable, singleton instance of Log
+ * ---------------------------------------------------------------------------
  */
 Log *singleton_log = NULL;
 
@@ -138,7 +139,7 @@ Log *new_log() {
  *
  * Param        :
  *
- * Return       : Pointer to objec Log.
+ * Return       : Pointer to object Log.
  * ---------------------------------------------------------------------------
  */
 Log *get_log() {

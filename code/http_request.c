@@ -25,9 +25,9 @@
 #include "helper.h"
 #include "http_request.h"
 
-HTTPRequest *get_header(char *req_line, HTTPRequest *http) {
-    char delimiter = ':';
+struct http_request *get_header(char *req_line, HTTPRequest *http) {
 
+    char delimiter = ':';
     char *header = NULL;
     char *header_data = NULL;
     int i;
@@ -87,7 +87,8 @@ HTTPRequest *get_header(char *req_line, HTTPRequest *http) {
     return http;
 }
 
-HTTPRequest *get_request(char *req_line, HTTPRequest *http, int len) {
+struct http_request *get_request(char *req_line, HTTPRequest *http, int len) {
+
     char delimiter = ' ';
 
     http->req_type = malloc(sizeof(char) * (REQ_UNIT + 1));
@@ -129,9 +130,10 @@ HTTPRequest *get_request(char *req_line, HTTPRequest *http, int len) {
     return http;
 }
 
-HTTPRequest *read_request_headers(char *buffer, HTTPRequest *http) {
-    char endline = '\n';
+__unused
+struct http_request *read_request_headers(char *buffer, HTTPRequest *http) {
 
+    char endline = '\n';
     int start = 0;
     int i;
     for (i = 0; buffer[i]; i++) {

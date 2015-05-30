@@ -23,7 +23,8 @@
  * Path to config file to be parsed
  * ---------------------------------------------------------------------------
  */
-#define CONFIG_FILE "/Users/Andrea/MEGAsync/Sviluppo/Projects_C/Config_Parser/config.conf"
+//TODO impostare percorso relativo e non assoluto!
+#define CONFIG_FILE "/Users/Andrea/MEGAsync/Sviluppo/Progetto_IIW/Webswitch/heimdall_config.conf"
 
 /*
  * ---------------------------------------------------------------------------

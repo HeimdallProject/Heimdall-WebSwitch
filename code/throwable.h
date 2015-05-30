@@ -1,5 +1,12 @@
 //
-// Created by Andrea Cerra on 30/05/15.
+//============================================================================
+// Name             : throwable.h
+// Author           : Andrea Cerra e Claudio Pastorini
+// Version          : 0.1
+// Data Created     : 30/05/2015
+// Last modified    : 30/05/2015
+// Description      : This header file contains all the stuffs useful in order to create and manage Throwable object.
+// ===========================================================================
 //
 
 #define STATUS_OK     0  // Macro for status ok

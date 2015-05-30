@@ -1,11 +1,11 @@
 //
 //============================================================================
-// Name             : log.c
+// Name             : throwable.c
 // Author           : Andrea Cerra e Claudio Pastorini
 // Version          : 0.1
 // Data Created     : 30/05/2015
 // Last modified    : 30/05/2015
-// Description      : This file contains all the stuffs useful in order instantiate the object Throwable
+// Description      : This file contains all the stuffs useful in order to create and manage Throwable object.
 // ===========================================================================
 //
 
@@ -15,6 +15,11 @@
 
 Throwable *new_throwable();
 
+/*
+ * ---------------------------------------------------------------------------
+ * Description  : Global variable, singleton instance of Throwable
+ * ---------------------------------------------------------------------------
+ */
 Throwable *singleton_throwable = NULL;
 
 Throwable *create(int status, char *msg, char *function_name) {
@@ -29,6 +34,16 @@ Throwable *create(int status, char *msg, char *function_name) {
     return thr;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : new_throwable
+ * Description  : Alloc and initialize object Throwable.
+ *
+ * Param        :
+ *
+ * Return       : Pointer to object Throwable.
+ * ---------------------------------------------------------------------------
+ */
 Throwable *new_throwable() {
 
     Throwable *thr = malloc(sizeof(Throwable));
@@ -43,6 +58,17 @@ Throwable *new_throwable() {
     return thr;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : get_throwable
+ * Description  : Return singleton instance of Throwable object, if this instance is not already created
+ *                this function call automatically new_throwable() for instantiate the object itself.
+ *
+ * Param        :
+ *
+ * Return       : Pointer to object Throwable.
+ * ---------------------------------------------------------------------------
+ */
 Throwable *get_throwable() {
 
     if (singleton_throwable == NULL) {
@@ -53,7 +79,11 @@ Throwable *get_throwable() {
     return singleton_throwable;
 }
 
-
+/*
+ * ---------------------------------------------------------------------------
+ *  Main function, for test and example usage.
+ * ---------------------------------------------------------------------------
+ */
 int main() {
 
     Throwable Throwable = *get_throwable();

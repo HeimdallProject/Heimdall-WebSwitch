@@ -26,7 +26,8 @@ set(SOURCE_FILES_THROWABLE
     code/helper.c)
 
 set(SOURCE_FILES_CONFIG
-    code/config_parser.c)
+    code/config_parser.c
+    heimdall_config.conf)
 
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
 add_executable(ApacheStatus ${SOURCE_FILES_APACHE})

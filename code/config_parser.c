@@ -106,7 +106,7 @@ void parse_config_file(const char *path, Config *config){
  *
  * Param        :
  *
- * Return       : Pointer to objec Log.
+ * Return       : Pointer to object Config.
  * ---------------------------------------------------------------------------
  */
 Config *new_config () {

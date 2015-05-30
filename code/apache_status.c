@@ -72,7 +72,7 @@ int retrieve_apache_status(char *url, char **status_page) {
     return STATUS_OK;
 }
 
-int parse_apache_status(char **status_page, struct apache_server_status* server_status) {
+int parse_apache_status(char **status_page, ApacheServerStatus *server_status) {
     // TODO: improve with @alessio
     char *to_parse = strdup(*status_page);  // The string to parse
     char *delim = ":";                      // First delimiter
@@ -206,7 +206,7 @@ int parse_apache_status(char **status_page, struct apache_server_status* server_
     return STATUS_OK;
 }
 
-void print_apache_status(struct apache_server_status* server_status) {
+void print_apache_status(ApacheServerStatus *server_status) {
     fprintf(stdout,
             "Status of Apache server at URL: %s\n\n"
             "Total Accesses: %d\n"
@@ -239,8 +239,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Create struct and alloc memory for apache_server_status
-    struct apache_server_status *server_status;
-    server_status = malloc(1 * sizeof(struct apache_server_status));
+    ApacheServerStatus *server_status;
+    server_status = malloc(1 * sizeof(ApacheServerStatus));
     if (server_status == NULL) {
         fprintf(stderr, "Memory allocation error.\n");
         return EXIT_FAILURE;

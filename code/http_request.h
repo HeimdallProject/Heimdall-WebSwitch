@@ -85,8 +85,7 @@
 /*
  * this struct will be used to retrieve the request headers info desired
  */
-// TODO make it a type (and if we want a pointer to struct in order to hide itself)
-struct http_request {
+typedef struct http_request {
     char *status;                                       // whether the request can be handled
     char *req_type;                                     // type of the request
     char *req_protocol;                                 // accepted only HTTP/1.1
@@ -97,7 +96,7 @@ struct http_request {
     char *req_content_type;                             // content type info
     char *req_content_len;
     char *req_upgrade;                                  // no protocol upgrade are allowed
-};
+} HTTPRequest;
 
 
 /*

@@ -130,6 +130,7 @@ struct http_request *get_request(char *req_line, struct http_request *http, int 
     return http;
 }
 
+__unused
 struct http_request *read_request_headers(char *buffer, struct http_request *http) {
 
     char endline = '\n';

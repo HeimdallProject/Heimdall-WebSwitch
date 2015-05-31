@@ -2,12 +2,14 @@
 //============================================================================
 // Name             : throwable.h
 // Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.1
+// Version          : 0.2
 // Data Created     : 30/05/2015
-// Last modified    : 30/05/2015
+// Last modified    : 31/05/2015
 // Description      : This header file contains all the stuffs useful in order to create and manage Throwable object.
 // ===========================================================================
 //
+#ifndef THROWABLE_H
+#define THROWABLE_H
 
 #define STATUS_OK     0  // Macro for status ok
 #define STATUS_ERROR -1  // Macro for status error
@@ -27,10 +29,13 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct throwable {
+    struct throwable* self;
     int status;
     char *message;
     char *stack_trace;
-    struct throwable* (*create)(int status, char *tag, char *msg);
+
+    struct throwable* (*create)(int status, char *msg, char *stack_trace);
+    struct throwable* (*thrown)(struct throwable* self, char *stack_trace);
 } Throwable;
 
 /*
@@ -45,3 +50,5 @@ typedef struct throwable {
  * ---------------------------------------------------------------------------
  */
 Throwable *get_throwable();
+
+#endif

@@ -2,7 +2,7 @@
 //============================================================================
 // Name       : utils.h
 // Author     : Claudio Pastorini
-// Version    : 0.1
+// Version    : 0.2
 // Description: Header file with some useful macro and functions.
 // ===========================================================================
 //
@@ -15,34 +15,26 @@
 #include "time.h"
 
 
-int str_to_int(char *string) {
+Throwable *str_to_int(char *string, int *value) {
 
     char *pointer;
-    int value;
 
     errno = 0;
-    value = (int) strtol(string, &pointer, 0);
-    if (errno != 0 || *pointer != '\0') {
-        fprintf(stderr, "Invalid number\n");
-        return STATUS_ERROR;
-    }
+    *value = (int) strtol(string, &pointer, 0);
+    if (errno != 0 || *pointer != '\0') (*get_throwable()).create(STATUS_ERROR, "", "str_to_int");
 
-    return value;
+    return (*get_throwable()).create(STATUS_OK, "", "str_to_int");
 }
 
-float str_to_float(char *string) {
+Throwable *str_to_float(char *string, float *value) {
 
     char *pointer;
-    float value;
 
     errno = 0;
-    value = strtof(string, &pointer);
-    if (errno != 0 || *pointer != '\0') {
-        fprintf(stderr, "Invalid number\n");
-        return STATUS_ERROR;
-    }
+    *value = strtof(string, &pointer);
+    if (errno != 0 || *pointer != '\0') (*get_throwable()).create(STATUS_ERROR, "", "str_to_float");
 
-    return value;
+    return (*get_throwable()).create(STATUS_OK, "", "str_to_float");
 }
 
 char *str_to_lower(char *string) {
@@ -56,9 +48,10 @@ char *str_to_lower(char *string) {
 
 char *timestamp() {
 
-    time_t ltime; /* calendar time */
-    ltime=time(NULL); /* get current cal time */
-    return asctime(localtime(&ltime));
+    time_t current_time;
+    current_time = time(NULL);
+
+    return asctime(localtime(&current_time));
 }
 
 //TODO fare funzione che rimuove (che fa il replace) \n, da usare in timestamp

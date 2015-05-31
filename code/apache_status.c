@@ -19,6 +19,7 @@
 #include <errno.h>
 #include "helper.h"
 #include "connection.h"
+#include "apache_status.h"
 #include "log.h"
 
 /*
@@ -35,11 +36,11 @@
  */
 Throwable *parse_apache_status(ApacheServerStatus *self) {
     // TODO: improve with @alessio
-    char *to_parse = strdup(self->status_page);  // The string to parse
-    char *delim = ":";                      // First delimiter
-    char *sub_delim = "\n";                 // Second delimiter
-    char *str1, *str2, *token, *sub_token;  // Useful string
-    char *save_ptr1, *save_ptr2;            // Useful pointer
+    char *to_parse = strdup(self->status_page); // The string to parse
+    char *delim = ":";                          // First delimiter
+    char *sub_delim = "\n";                     // Second delimiter
+    char *str1, *str2, *token, *sub_token;      // Useful strings
+    char *save_ptr1, *save_ptr2;                // Useful pointers
     int j, i;
 
     for (j = 1, i = 0, str1 = to_parse; ; j++, str1 = NULL) {
@@ -56,67 +57,49 @@ Throwable *parse_apache_status(ApacheServerStatus *self) {
             i++;
             if (i % 2 == 0) {
                 switch (i) {
-                    case 2: {  // Total Accesses
-                        int total_accesses = str_to_int(sub_token);
-
-                        if (total_accesses == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->total_accesses = total_accesses;
+                    case 2: {  // total_accesses
+                        Throwable total_access_throwable = *str_to_int(sub_token, &(self->total_accesses));
+                        if (total_access_throwable.status == STATUS_ERROR) return total_access_throwable.thrown(total_access_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 4: {  // Total kBytes
-                        int total_kBytes = str_to_int(sub_token);
-
-                        if (total_kBytes == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->total_kBytes = total_kBytes;
+                    case 4: {  // total_kBytes
+                        Throwable total_kBytes_throwable = *str_to_int(sub_token, &(self->total_kBytes));
+                        if (total_kBytes_throwable.status == STATUS_ERROR) return total_kBytes_throwable.thrown(total_kBytes_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 6: {  // CPULoad
-                        float cpu_load = str_to_float(sub_token);
-
-                        if (cpu_load == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->cpu_load = cpu_load;
+                    case 6: {  // cpu_load
+                        Throwable cpu_load_throwable = *str_to_float(sub_token, &(self->cpu_load));
+                        if (cpu_load_throwable.status == STATUS_ERROR) return cpu_load_throwable.thrown(cpu_load_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 8: {  // Uptime
-                        int uptime = str_to_int(sub_token);
-
-                        if (uptime == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->uptime = uptime;
+                    case 8: {  // uptime
+                        Throwable uptime_throwable = *str_to_int(sub_token, &(self->uptime));
+                        if (uptime_throwable.status == STATUS_ERROR) return uptime_throwable.thrown(uptime_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 10: {  // ReqPerSec
-                        float req_per_sec = str_to_float(sub_token);
-
-                        if (req_per_sec == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->req_per_sec = req_per_sec;
+                    case 10: {  // req_per_sec
+                        Throwable req_per_sec_throwable = *str_to_float(sub_token, &(self->req_per_sec));
+                        if (req_per_sec_throwable.status == STATUS_ERROR) return req_per_sec_throwable.thrown(req_per_sec_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 12: {  // BytesPerSec
-                        float bytes_per_sec = str_to_float(sub_token);
-
-                        if (bytes_per_sec == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->bytes_per_sec = bytes_per_sec;
+                    case 12: {  // bytes_per_sec
+                        Throwable bytes_per_sec_throwable = *str_to_float(sub_token, &(self->bytes_per_sec));
+                        if (bytes_per_sec_throwable.status == STATUS_ERROR) return bytes_per_sec_throwable.thrown(bytes_per_sec_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 14: {  // BytesPerReq
-                        float bytes_per_req = str_to_float(sub_token);
-
-                        if (bytes_per_req == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->bytes_per_req = bytes_per_req;
+                    case 14: {  // bytes_per_req
+                        Throwable bytes_per_req_throwable = *str_to_float(sub_token, &(self->bytes_per_req));
+                        if (bytes_per_req_throwable.status == STATUS_ERROR) return bytes_per_req_throwable.thrown(bytes_per_req_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 16: {  // BusyWorkers
-                        int busy_workers = str_to_int(sub_token);
-
-                        if (busy_workers == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->busy_workers = busy_workers;
+                    case 16: {  // busy_workers
+                        Throwable busy_workers_throwable = *str_to_int(sub_token, &(self->busy_workers));
+                        if (busy_workers_throwable.status == STATUS_ERROR) return busy_workers_throwable.thrown(busy_workers_throwable.self, "parse_apache_status");
                         break;
                     }
-                    case 18: {  // IdleWorkers
-                        int idle_workers = str_to_int(sub_token);
-
-                        if (idle_workers == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Unable to parse", "parse_apache_status");
-                        self->idle_workers = idle_workers;
+                    case 18: {  // idle_workers
+                        Throwable idle_workers_throwable = *str_to_int(sub_token, &(self->idle_workers));
+                        if (idle_workers_throwable.status == STATUS_ERROR) return idle_workers_throwable.thrown(idle_workers_throwable.self, "parse_apache_status");
                         break;
                     }
                     default:
@@ -143,8 +126,9 @@ Throwable *parse_apache_status(ApacheServerStatus *self) {
  * ---------------------------------------------------------------------------
  */
 void destroy_apache_status(void *self) {
-    free(((ApacheServerStatus *) self)->url);
-    free(((ApacheServerStatus *) self)->status_page);
+    free(((ApacheServerStatus *) self)->url);           // Free space for URL
+    free(((ApacheServerStatus *) self)->status_page);   // Free space for status page
+    free(((ApacheServerStatus *) self)->string);        // Free space for to_string
     free(self);
 }
 
@@ -271,7 +255,7 @@ Throwable *set_url_apache_status(ApacheServerStatus *self, char *url) {
  * Return     : The pointer of the string.
  * ---------------------------------------------------------------------------
  */
-char *to_string_apache_status(ApacheServerStatus *self) {  // TODO doubt about this memory management
+char *to_string_apache_status(ApacheServerStatus *self) {
     char *string = malloc(sizeof(char) * 64000);  // TODO i do not know how many space
     snprintf(string, 64000,
              "Status of Apache server at URL: %s\n\n"
@@ -294,6 +278,8 @@ char *to_string_apache_status(ApacheServerStatus *self) {  // TODO doubt about t
              self->bytes_per_req,
              self->busy_workers,
              self->idle_workers);
+
+    self->string = string;  //  Save pointer in the struct in order to free after
     return string;
 }
 
@@ -341,15 +327,15 @@ int main(int argc, char *argv[]) {
     // Retrieve status
     Throwable *retrieve_throwable = server_status.retrieve(server_status.self);
     if ((*retrieve_throwable).status == STATUS_ERROR) {
-        Log.print_throwable(retrieve_throwable);
-        exit(EXIT_FAILURE);
+        Log.t(retrieve_throwable);
+        exit(EXIT_FAILURE);     // Or throw again
     }
 
     // Parse
     Throwable *parse_throwable = server_status.parse(server_status.self);
     if ((*parse_throwable).status == STATUS_ERROR) {
-        Log.print_throwable(retrieve_throwable);
-        exit(EXIT_FAILURE);
+        Log.t(retrieve_throwable);
+        exit(EXIT_FAILURE);     // Or throw again
     }
 
     Log.i(TAG_APACHE_STATUS, server_status.to_string(server_status.self));

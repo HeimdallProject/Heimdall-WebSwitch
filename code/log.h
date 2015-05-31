@@ -21,21 +21,21 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Structure    : typedef struct log
- * Description  : This struct collect all functions pointers for logging.
+ * Structure        : typedef struct log
+ * Description      : This struct collect all functions pointers for logging.
  *
  * Functions:
- *  d                               : Pointer to debug function.
- *  i                               : Pointer to info function.
- *  e                               : Pointer to error function.
- *  print_throwable                 : Pointer to print throwable function.
+ *  d       : Pointer to debug function.
+ *  i       : Pointer to info function.
+ *  e       : Pointer to error function.
+ *  t       : Pointer to print throwable function.
  * ---------------------------------------------------------------------------
  */
 typedef struct log {
     void (*d)(char* tag, char *msg);
     void (*i)(char* tag, char *msg);
     void (*e)(char* tag, char *msg);
-    void (*print_throwable)(Throwable *throwable);
+    void (*t)(Throwable *throwable);
 } Log;
 
 /*

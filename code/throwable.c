@@ -2,9 +2,9 @@
 //============================================================================
 // Name             : throwable.c
 // Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.1
+// Version          : 0.2
 // Data Created     : 30/05/2015
-// Last modified    : 30/05/2015
+// Last modified    : 31/05/2015
 // Description      : This file contains all the stuffs useful in order to create and manage Throwable object.
 // ===========================================================================
 //
@@ -22,14 +22,48 @@ Throwable *new_throwable();
  */
 Throwable *singleton_throwable = NULL;
 
-Throwable *create_throwable(int status, char *msg, char *function_name) {
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : thrown_throwable
+ * Description  : Thrown a Throwable adding into the stack_trace the name of
+ *                the new function.
+ *
+ * Param        :
+ *  self                : The pointer to the Throwable.
+ *  stack_trace         : The name of the function that use this Throwable.
+ *
+ * Return       : Pointer to object Throwable.
+ * ---------------------------------------------------------------------------
+ */
+Throwable* thrown_throwable(Throwable *self, char *stack_trace) {
+    // TODO fare funzione append in helper
+    self->message = stack_trace;
+    return self;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : create_throwable
+ * Description  : Create a son of singleton Throwable and put all info in.
+ *
+ * Param        :
+ *  status              : The status code of Throwable, 0 for all ok, -1 otherwise.
+ *  msg                 : The message of Throwable.
+ *  stack_trace         : The name of the function that use this Throwable.
+ *
+ * Return       : Pointer to object Throwable.
+ * ---------------------------------------------------------------------------
+ */
+Throwable *create_throwable(int status, char *msg, char *stack_trace) {
 
     Throwable *throwable = new_throwable();
+    throwable->self = throwable;
     throwable->message = msg;
     throwable->status = status;
 
-    // TODO fare funzione append in helper
-    throwable->stack_trace = function_name;
+    // Set "methods"
+    throwable->stack_trace = stack_trace;
+    throwable->thrown = thrown_throwable;
 
     return throwable;
 }

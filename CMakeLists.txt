@@ -23,7 +23,6 @@ set(SOURCE_FILES_LOG
 
 set(SOURCE_FILES_THROWABLE
     code/throwable.c
-    code/throwable.h
     code/log.c
     code/helper.c)
 

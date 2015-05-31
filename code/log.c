@@ -128,7 +128,7 @@ Log *new_log() {
     log->d = d;
     log->i = i;
     log->e = e;
-    log->print_throwable = print_throwable;
+    log->t = print_throwable;
 
     return log;
 }

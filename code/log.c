@@ -98,9 +98,9 @@ void e(char* tag, char *msg) {
 void print_throwable(Throwable *thr) {
 
     if (thr->status == STATUS_OK) {
-        fprintf(stdout, "Status %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
+        fprintf(stdout, "Status: %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
     } else {
-        fprintf(stderr, "Status %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
+        fprintf(stderr, "Status: %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
     }
 }
 

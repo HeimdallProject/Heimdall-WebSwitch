@@ -4,7 +4,7 @@
 // Author           : Claudio Pastorini
 // Version          : 0.3
 // Data Created     : 09/05/2015
-// Last modified    : 30/05/2015
+// Last modified    : 01/06/2015
 // Description      : This header file contains all the stuffs useful in order to
 //                    reads the status of an Apache server.
 //                    For other info read:
@@ -13,7 +13,6 @@
 //
 #ifndef APACHE_STATUS_H
 #define APACHE_STATUS_H
-
 
 #define TAG_APACHE_STATUS "APACHE_STATUS"  // Macro for log message
 
@@ -45,7 +44,7 @@
  *  retrieve   : Pointer to retrieve_apache_status function.
  *  parse      : Pointer to parse_apache_status function.
  *  set_url    : Pointer to set_url function.
- *  to_string  :
+ *  to_string  : Pointer to to_string function.
  *  destroy    : Pointer to destroy function.
  */
 typedef struct apache_server_status {

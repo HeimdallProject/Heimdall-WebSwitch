@@ -18,6 +18,11 @@
 // ============================================================================
 //
 
+#ifndef HTTP_REQUEST_H
+#define HTTP_REQUEST_H
+
+#define TAG_HTTP_REQUEST        "HTTP_REQUEST"
+
 /*
  * this macros will be used to retrieve the necessary info from the HTTP request
  * along as the maximum header field
@@ -86,16 +91,24 @@
  * this struct will be used to retrieve the request headers info desired
  */
 typedef struct http_request {
+    struct http_request *self;                          // autoreferencing the struct
     char *status;                                       // whether the request can be handled
     char *req_type;                                     // type of the request
     char *req_protocol;                                 // accepted only HTTP/1.1
     char *req_resource;                                 // resource locator
-    char *req_accept;                                   // accepting content infos
-    char *req_from;                                     // client and request generic infos
+    char *req_accept;                                   // accepting content info
+    char *req_from;                                     // client and request generic info
     char *req_host;
     char *req_content_type;                             // content type info
     char *req_content_len;
     char *req_upgrade;                                  // no protocol upgrade are allowed
+
+    Throwable *(*get_header)(char *req_line, struct http_request *http);
+    Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
+    Throwable *(*read_request_headers)(char *buffer, struct http_request *http);
+    Throwable *(*make_simple_request)(void *self, char *result);
+    void (*set_simple_request)(void *self, char *request_type, char *request_resource, char *request_protocol);
+    void (*destroy)(void *self);
 } HTTPRequest;
 
 
@@ -113,7 +126,7 @@ typedef struct http_request {
  *   struct http_request
  * ---------------------------------------------------------------------------
  */
-struct http_request *get_header(char *req_line, struct http_request *http);
+Throwable *get_header(char *req_line, struct http_request *http);
 
 /*
  * ---------------------------------------------------------------------------
@@ -127,7 +140,7 @@ struct http_request *get_header(char *req_line, struct http_request *http);
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-struct http_request *get_request(char *req_line, struct http_request *http, int len);
+Throwable *get_request(char *req_line, struct http_request *http, int len);
 
 /*
  * ---------------------------------------------------------------------------
@@ -148,4 +161,66 @@ struct http_request *get_request(char *req_line, struct http_request *http, int 
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-struct http_request *read_request_headers(char *buffer, struct http_request *http);
+Throwable *read_request_headers(char *buffer, struct http_request *http);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : set_simple_request
+ * Description: This function will set the params for a very simple
+ *              HTTP request using only:
+ *
+ *              METHOD RESOURCE HTTP/1.1
+ *              [ blank line ]
+ *
+ *
+ * Param      :
+ *   self:  the HTTPRequest struct pointer
+ *   request_type: the method
+ *   request_resource: the universal resource locator
+ *   request_protocol: the protocol to be used
+ *
+ * Return     :
+ *   Throwable pointer
+ * ---------------------------------------------------------------------------
+ */
+void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : make_simple_request
+ * Description: This function will use the setted params to make a simple request
+ *              allocating the sufficient memory for the result string
+ * Param      :
+ *   self:  the HTTPRequest struct pointer
+ *   result: the pointer to the string will be used for result string
+ *           properly formatted
+ *
+ * Return     :
+ *   Throwable pointer
+ * ---------------------------------------------------------------------------
+ */
+Throwable *make_simple_request(void *self, char *result);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : destroy_http_request
+ * Description: This function will be used to free the memory allocated
+ *              for the structure
+ * Param      :
+ * Return     :
+ * ---------------------------------------------------------------------------
+ */
+void destroy_http_request(void *self);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : new_http_request
+ * Description: This function can be used to create the HTTPRequest struct
+ *
+ * Param      :
+ * Return     :
+ *   struct http_request pointer
+ * ---------------------------------------------------------------------------
+ */
+HTTPRequest *new_http_request(void);
+#endif

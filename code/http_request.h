@@ -34,6 +34,10 @@
 #define PROTOCOL                "HTTP/1.1"
 #define KNOWN                   1
 #define UNKNOWN                 0
+
+#define RQST                    0
+#define RESP                    1
+
 /*
  -----------------------------------------------------------------------------
  *
@@ -87,26 +91,37 @@
 #define VIA                     "via"
 #define WARNING                 "warning"
 
+#define INTERNAL_ERROR          "500"
+
+
+#include "throwable.h"
+
 /*
- * this struct will be used to retrieve the request headers info desired
+ * ---------------------------------------------------------------------------
+ * Structure        : typedef struct http_request
+ * Description      : This struct collect all attributes and functions pointers to
+ *                    manage, retrieving or creating, HTTP requests
+ * ---------------------------------------------------------------------------
  */
 typedef struct http_request {
     struct http_request *self;                          // autoreferencing the struct
-    char *status;                                       // whether the request can be handled
-    char *req_type;                                     // type of the request
-    char *req_protocol;                                 // accepted only HTTP/1.1
-    char *req_resource;                                 // resource locator
-    char *req_accept;                                   // accepting content info
-    char *req_from;                                     // client and request generic info
+    char *status;                          // whether the request can be handled
+    char *req_type;                         // type of the request
+    char *req_protocol;                          // accepted only HTTP/1.1
+    char *resp_code;
+    char *resp_msg;
+    char *req_resource;                         // resource locator
+    char *req_accept;                         // accepting content info
+    char *req_from;                          // client and request generic info
     char *req_host;
-    char *req_content_type;                             // content type info
+    char *req_content_type;                          // content type info
     char *req_content_len;
-    char *req_upgrade;                                  // no protocol upgrade are allowed
+    char *req_upgrade;                         // no protocol upgrade are allowed
 
     Throwable *(*get_header)(char *req_line, struct http_request *http);
     Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
-    Throwable *(*read_request_headers)(char *buffer, struct http_request *http);
-    Throwable *(*make_simple_request)(void *self, char *result);
+    Throwable *(*read_headers)(char *buffer, struct http_request *http, int type);
+    Throwable *(*make_simple_request)(void *self, char **result);
     void (*set_simple_request)(void *self, char *request_type, char *request_resource, char *request_protocol);
     void (*destroy)(void *self);
 } HTTPRequest;
@@ -144,6 +159,20 @@ Throwable *get_request(char *req_line, struct http_request *http, int len);
 
 /*
  * ---------------------------------------------------------------------------
+ * Function   : get_response
+ * Description: This function is used to find which response has been sent back
+ *
+ * Param      :
+ *   string: the line of the HTTP response header currently read by the web switch
+ *
+ * Return     :
+ *   struct http_request pointer
+ * ---------------------------------------------------------------------------
+ */
+Throwable *get_response(char *req_line, HTTPRequest *http, int len);
+
+/*
+ * ---------------------------------------------------------------------------
  * Function   : read_request_headers
  * Description: This function will be used to read the request headers.
  *              Pay attention: it is based this HTTP request format:
@@ -156,12 +185,14 @@ Throwable *get_request(char *req_line, struct http_request *http, int len);
  *
  * Param      :
  *   buffer:  the buffer into which has been stored the request
+ *   http_request struct
+ *   type:    integer 0 for REQT and 1 for RESP
  *
  * Return     :
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *read_request_headers(char *buffer, struct http_request *http);
+Throwable *read_headers(char *buffer, struct http_request *http, int type);
 
 /*
  * ---------------------------------------------------------------------------
@@ -199,7 +230,7 @@ void set_simple_request(void *self, char *request_type, char *request_resource, 
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *make_simple_request(void *self, char *result);
+Throwable *make_simple_request(void *self, char **result);
 
 /*
  * ---------------------------------------------------------------------------

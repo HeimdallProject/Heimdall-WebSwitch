@@ -109,7 +109,7 @@ Throwable *get_request(char *req_line, HTTPRequest *http, int len) {
     int counter = 1;
     int start = 0;
     int i;
-    for (i = 0; i < len; i ++) {
+    for (i = 0; i < len; i++) {
         if (req_line[i] == delimiter) {
             switch (counter) {
                 case 1:
@@ -133,7 +133,51 @@ Throwable *get_request(char *req_line, HTTPRequest *http, int len) {
     return (*get_throwable()).create(STATUS_OK, NULL, "get_header_http_request");
 }
 
-Throwable *read_request_headers(char *buffer, HTTPRequest *http) {
+
+Throwable *get_response(char *req_line, HTTPRequest *http, int len) {
+    char delimiter = ' ';
+
+    http->resp_code = malloc(sizeof(char) * (REQ_UNIT + 1));
+    if (http->resp_code == NULL)
+        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+
+    http->req_protocol = malloc(sizeof(char) * (strlen(PROTOCOL) + 1));
+    if (http->req_protocol == NULL)
+        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+
+    http->resp_msg = malloc(sizeof(char) * (len - REQ_UNIT - strlen(PROTOCOL) - 2 + 1));
+    if (http->resp_msg == NULL)
+        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+
+    int counter = 1;
+    int start = 0;
+    int i;
+    for (i = 0; i < len; i++) {
+        if (req_line[i] == delimiter) {
+            switch (counter) {
+                case 1:
+                    req_line[i] = '\0';
+                    http->req_protocol = &req_line[start];
+                    start = i + 1;
+                    counter++;
+                    break;
+                case 2:
+                    req_line[i] = '\0';
+                    http->resp_code = &req_line[start];
+                    start = i + 1;
+                    http->resp_msg = &req_line[start];
+                    return (*get_throwable()).create(STATUS_OK, NULL, "get_header_http_response");
+                default:
+                    break;
+            }
+        }
+    }
+
+    return (*get_throwable()).create(STATUS_OK, NULL, "get_header_http_response");
+}
+
+
+Throwable *read_headers(char *buffer, HTTPRequest *http, int type) {
 
     char endline = '\n';
     int start = 0;
@@ -143,11 +187,20 @@ Throwable *read_request_headers(char *buffer, HTTPRequest *http) {
         if (buffer[i] == endline) {
             buffer[i] = '\0';
             if (start == 0) {
-                if (get_request(buffer, http, i - start + i)->is_an_error)
-                    return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+                switch (type) {
+                    case RQST:
+                        if (get_request(buffer, http, i)->is_an_error)
+                            return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+                        break;
+                    case RESP:
+                        if (get_response(buffer, http, i)->is_an_error)
+                            return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+                        break;
+                    default:
+                        break;
+                }
                 start = i + 1;
             } else {
-                fprintf(stdout, "HEADERS: %s\n", buffer + start);
                 if (get_header(buffer + start, http)->is_an_error)
                     return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
                 start = i + 1;
@@ -168,7 +221,7 @@ void set_simple_request(void *self, char *request_type, char *request_resource, 
     ((HTTPRequest *) self)->req_resource = request_resource;
 }
 
-Throwable *make_simple_request(void *self, char *result) {
+Throwable *make_simple_request(void *self, char **result) {
     // checking if params are set
     if (((HTTPRequest *) self)->req_type == NULL     ||
         ((HTTPRequest *) self)->req_protocol == NULL ||
@@ -180,17 +233,17 @@ Throwable *make_simple_request(void *self, char *result) {
     int result_size = (int) strlen(((HTTPRequest *) self)->req_type)     + 1 +
                       (int) strlen(((HTTPRequest *) self)->req_protocol) + 1 +
                       (int) strlen(((HTTPRequest *) self)->req_resource);
-    result = malloc(sizeof(char) * result_size + 2);
-    if (result == NULL)
+    *result = malloc(sizeof(char) * result_size + 2);
+    if (*result == NULL)
         return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request)");
 
     // creating the simple request
-    int s = sprintf(result, "%s %s %s\n\n", ((HTTPRequest *) self)->req_type,
+    int s = sprintf(*result, "%s %s %s\n\n", ((HTTPRequest *) self)->req_type,
                                           ((HTTPRequest *) self)->req_resource,
                                           ((HTTPRequest *) self)->req_protocol);
-    if (s < 0)
-        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request");
-    return (*get_throwable()).create(STATUS_OK, NULL, "make_simple_request");
+
+    return s < 0 ? (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request") :
+                   (*get_throwable()).create(STATUS_OK, NULL, "make_simple_request");
 }
 
 void destroy_http_request(void *self) {
@@ -219,27 +272,26 @@ HTTPRequest *new_http_request(void) {
     http->self = http;
 
     // functions pointers initialization
-    http->get_header = get_header;
-    http->get_request = get_request;
-    http->read_request_headers = read_request_headers;
-    http->make_simple_request = make_simple_request;
-    http->set_simple_request = set_simple_request;
-    http->destroy = destroy_http_request;
+    http->get_header            = get_header;
+    http->get_request           = get_request;
+    http->read_headers          = read_headers;
+    http->make_simple_request   = make_simple_request;
+    http->set_simple_request    = set_simple_request;
+    http->destroy               = destroy_http_request;
 
     return http;
 }
 
 // use cases
-int main(int argc, char *argv[]) {
+/*int main(int argc, char *argv[]) {
     if (argc != 1) {
         fprintf(stderr, "Error in usage: %s\n", argv[0]);
     }
     HTTPRequest *http = new_http_request();
     http->set_simple_request(http->self, "POST", "/index.html", "HTTP/1.1");
 
-    char *res = NULL;
-    http->make_simple_request(http->self, res);
-    fprintf(stdout, "performed: %s \n\n", res);
+    char *res;
+    http->make_simple_request(http->self, &res);
 
     return 0;
-}
+}*/

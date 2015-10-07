@@ -105,18 +105,18 @@
  */
 typedef struct http_request {
     struct http_request *self;                          // autoreferencing the struct
-    char *status;                          // whether the request can be handled
-    char *req_type;                         // type of the request
-    char *req_protocol;                          // accepted only HTTP/1.1
+    char *status;                                       // whether the request can be handled
+    char *req_type;                                     // type of the request
+    char *req_protocol;                                 // accepted only HTTP/1.1
     char *resp_code;
     char *resp_msg;
-    char *req_resource;                         // resource locator
-    char *req_accept;                         // accepting content info
-    char *req_from;                          // client and request generic info
+    char *req_resource;                                 // resource locator
+    char *req_accept;                                   // accepting content info
+    char *req_from;                                     // client and request generic info
     char *req_host;
-    char *req_content_type;                          // content type info
+    char *req_content_type;                             // content type info
     char *req_content_len;
-    char *req_upgrade;                         // no protocol upgrade are allowed
+    char *req_upgrade;                                  // no protocol upgrade are allowed
 
     Throwable *(*get_header)(char *req_line, struct http_request *http);
     Throwable *(*get_request)(char *req_line, struct http_request *http, int len);

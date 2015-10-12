@@ -1,12 +1,19 @@
 //
-// Created by Odysseus on 07/10/15.
+//============================================================================
+// Name             : http_client.c
+// Author           : Claudio Pastorini and Alessio Moretti
+// Version          : 0.1
+// Data Created     : 07/10/2015
+// Last modified    : 12/10/2015
+// Description      : This header file contains all the stuffs useful in order to
+//                    create a simple HTTP Client.
+// ===========================================================================
 //
+#ifndef HTTP_CLIENT_H
+#define HTTP_CLIENT_H
 
-#ifndef WEBSWITCH_HTTP_CLIENT_H
-#define WEBSWITCH_HTTP_CLIENT_H
+#define TAG_HTTP_CLIENT "HTTP_CLIENT"  // Macro for log message
 
-#include "throwable.h"
-#include "http_request.h"
 /*
  * ---------------------------------------------------------------------------
  * Structure        : typedef struct http_client
@@ -16,14 +23,16 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct http_client {
-    struct http_client  *self;                                   // autoreferencing the struct
+    struct http_client *self;
     struct http_request *request;                                // the http_request struct to manage connections
+    // TODO: create struct http_response check also in http_client
+    //struct http_response *response;
 
-    Throwable *(*set_request)(struct http_request *req);
-    struct http_request *(*get_request)(void);
-    Throwable *(*make_request)(void);
-    // TODO: create struct http_response
-    Throwable *(*get_response)(struct http_response *resp);
+    Throwable *(*set_request)(struct http_client *self, struct http_request *req);
+    struct http_request *(*get_request)(struct http_client *self, void);
+    Throwable *(*make_request)(struct http_client *self, void);
+    //Throwable *(*get_response)(struct http_client *self);
+    void (*destroy)(void *self);
 } HTTPClient;
 
 /*
@@ -38,4 +47,4 @@ typedef struct http_client {
  */
 HTTPRequest *new_http_client(void);
 
-#endif //WEBSWITCH_HTTP_CLIENT_H
+#endif

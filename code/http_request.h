@@ -219,7 +219,7 @@ void set_simple_request(void *self, char *request_type, char *request_resource, 
 /*
  * ---------------------------------------------------------------------------
  * Function   : make_simple_request
- * Description: This function will use the setted params to make a simple request
+ * Description: This function will use the set params to make a simple request
  *              allocating the sufficient memory for the result string
  * Param      :
  *   self:  the HTTPRequest struct pointer

@@ -208,7 +208,7 @@ Throwable *retrieve_apache_status(ApacheServerStatus *self) {
  *   self   : The pointer to the ApacheServerStatus.
  *   url    : The URL of the ApacheServerStatus.
  *
- * Return     : None.
+ * Return     : A Throwable.
  * ---------------------------------------------------------------------------
  */
 Throwable *set_url_apache_status(ApacheServerStatus *self, char *url) {

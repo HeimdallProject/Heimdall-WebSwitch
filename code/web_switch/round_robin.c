@@ -18,9 +18,9 @@
 #include <stdio.h>
 
 #include "round_robin.h"
-#include "connection.h"
-#include "http_request.h"
-#include "helper.h"
+#include "../web_switch/connection.h"
+#include "../web_switch/http_request.h"
+#include "../utils/helper.h"
 
 
 // server broken reentering routine

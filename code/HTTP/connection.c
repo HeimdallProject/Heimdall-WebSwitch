@@ -18,8 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "helper.h"
 #include "connection.h"
+#include "../utils/log.h"
 
 /*
  * Function   : create_socket
@@ -139,3 +139,91 @@ int get_server_url(const char *ip, char *url) {
 
     return STATUS_OK;
 }*/
+
+int send_request(int *sockfd, HTTPRequest *request) {
+    int bytes, sent, total;
+    char *message;
+
+    (*request).make_simple_request(request->self, &message);
+    (*get_log()).d(TAG_HTTP_REQUEST, message);
+
+    total = (int) strlen(message);
+    sent = 0;
+    do {
+        bytes = (int) write(*sockfd, message+sent, (size_t) (total-sent));
+        if (bytes < 0) {
+            fprintf(stderr, "ERROR writing message to socket");
+            return EXIT_FAILURE;
+        }
+        if (bytes == 0)
+            break;
+        sent+=bytes;
+    } while (sent < total);
+
+    return EXIT_SUCCESS;
+}
+
+int receive_response(int *sockfd) {
+    int bytes, total, received;
+    char response[4096];
+
+    memset(response, 0, sizeof(response));
+    total = sizeof(response) - 1;
+    received = 0;
+    do {
+        bytes = (int) read(*sockfd,response-received, (size_t) (total-received));
+        if (bytes < 0) {
+            fprintf(stderr, "ERROR reading response from socket");
+            return EXIT_FAILURE;
+        }
+        if (bytes == 0)
+            break;
+        received += bytes;
+    } while (received < total);
+
+    if (received == total)
+        fprintf(stderr, "ERROR storing complete response from socket");
+
+    // Close the socket
+    close(*sockfd);
+
+    (*get_log()).d("CONNECTION", response);
+    
+    return EXIT_SUCCESS;
+}
+/*
+ * ---------------------------------------------------------------------------
+ *  Main function, for test and example usage.
+ * ---------------------------------------------------------------------------
+ */
+int main() {
+
+/*    int n = 1; // Number of arguments
+    if (argc != n + 1 || strcmp(argv[1], "--help") == 0) {
+        fprintf(stderr, "Usage %s <URL>\n", argv[0]);
+        return EXIT_FAILURE;
+    }*/
+
+    Log Log = (*get_log());
+
+    // Initialize server_status
+    HTTPRequest http_request = *new_http_request();
+
+    // Set simple request
+    http_request.set_simple_request(http_request.self, "GET", "/", "HTTP/1.1", "laziobus.it");
+
+    int sockfd;
+    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) {
+        Log.e("Errore", "niente client socket!");
+        exit(EXIT_FAILURE);
+    }
+
+    send_request(&sockfd, &http_request);
+
+    receive_response(&sockfd);
+
+    // Destroy the object
+    http_request.destroy(http_request.self);
+
+    return EXIT_SUCCESS;
+}

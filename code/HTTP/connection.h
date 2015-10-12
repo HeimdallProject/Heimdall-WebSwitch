@@ -8,6 +8,8 @@
 // ============================================================================
 //
 
+#include "http_request.h"
+
 #define TCP 0
 #define UDP 1
 
@@ -89,3 +91,23 @@ int close_connection(const int connection);
  * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  */
 int get_server_url(const char *ip, char *url);
+
+/*
+ * Function   : send_request
+ * Description:
+ *
+ * Param      :
+ *
+ * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ */
+int send_request(int *sockfd, HTTPRequest *request);
+
+/*
+ * Function   : receive_response
+ * Description:
+ *
+ * Param      :
+ *
+ * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ */
+int receive_response(int *sockfd);

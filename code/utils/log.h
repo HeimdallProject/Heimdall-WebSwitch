@@ -10,7 +10,7 @@
 //
 
 #include "throwable.h"
-#include "apache_status.h"
+#include "../web_switch/apache_status.h"
 
 #define DEBUG_LEVEL   2  // Macro for debug message level
 #define INFO_LEVEL    3  // Macro for info message level

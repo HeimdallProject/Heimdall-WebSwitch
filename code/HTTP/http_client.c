@@ -8,7 +8,7 @@
 //
 
 #include "http_client.h"
-#include "log.h"
+#include "../utils/log.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -74,6 +74,11 @@ HTTPResponse *get_response_http_client(HTTPClient *self) {
  * ---------------------------------------------------------------------------
  */
 void make_request_http_client(HTTPClient *self) {
+
+    send_request();
+    receive_response();
+
+
 }
 
 /*

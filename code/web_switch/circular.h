@@ -5,7 +5,7 @@
 #ifndef WEBSWITCH_CIRCULAR_H
 #define WEBSWITCH_CIRCULAR_H
 
-#include "throwable.h"
+#include "../utils/throwable.h"
 
 #define BUFFER_PROGRESS_OK          0
 #define BUFFER_PROGRESS_STOP       -1

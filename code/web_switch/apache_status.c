@@ -17,10 +17,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include "helper.h"
-#include "connection.h"
+#include "../utils/helper.h"
+#include "../HTTP/connection.h"
 #include "apache_status.h"
-#include "log.h"
+#include "../utils/log.h"
+#include "../utils/throwable.h"
 
 /*
  * ---------------------------------------------------------------------------

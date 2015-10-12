@@ -20,7 +20,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include "circular.h"
-#include "helper.h"
+#include "../utils/helper.h"
 
 // initializing the singleton
 Circular *singleton_circular = NULL;

@@ -94,7 +94,7 @@
 #define INTERNAL_ERROR          "500"
 
 
-#include "throwable.h"
+#include "../utils/throwable.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ typedef struct http_request {
     Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
     Throwable *(*read_headers)(char *buffer, struct http_request *http, int type);
     Throwable *(*make_simple_request)(void *self, char **result);
-    void (*set_simple_request)(void *self, char *request_type, char *request_resource, char *request_protocol);
+    void (*set_simple_request)(void *self, char *request_type, char *request_resource, char *request_protocol, char *request_host);
     void (*destroy)(void *self);
 } HTTPRequest;
 
@@ -214,7 +214,7 @@ Throwable *read_headers(char *buffer, struct http_request *http, int type);
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol);
+void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol, char *request_host);
 
 /*
  * ---------------------------------------------------------------------------

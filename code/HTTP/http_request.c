@@ -24,9 +24,10 @@
 #include <stdio.h>
 #include <sys/errno.h>
 
-#include "helper.h"
 #include "http_request.h"
-#include "log.h"
+#include "../utils/throwable.h"
+#include "../utils/helper.h"
+#include "../utils/log.h"
 
 Throwable *get_header(char *req_line, HTTPRequest *http) {
 
@@ -214,33 +215,38 @@ Throwable *read_headers(char *buffer, HTTPRequest *http, int type) {
     return (*get_throwable()).create(STATUS_OK, NULL, "get_header_http_request");
 }
 
-void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol) {
+void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol, char *request_host) {
     // setting the params for a simple http request
     ((HTTPRequest *) self)->req_type = request_type;
     ((HTTPRequest *) self)->req_protocol = request_protocol;
     ((HTTPRequest *) self)->req_resource = request_resource;
+    ((HTTPRequest *) self)->req_host = request_host;
 }
 
 Throwable *make_simple_request(void *self, char **result) {
     // checking if params are set
     if (((HTTPRequest *) self)->req_type == NULL     ||
         ((HTTPRequest *) self)->req_protocol == NULL ||
-        ((HTTPRequest *) self)->req_resource == NULL) {
+        ((HTTPRequest *) self)->req_resource == NULL ||
+        ((HTTPRequest *) self)->req_host == NULL) {
         return (*get_throwable()).create(STATUS_ERROR, "Trying to create a simple http request with no params set", "make_simple_request");
     }
 
     // allocating the memory necessary for the result char buffer
     int result_size = (int) strlen(((HTTPRequest *) self)->req_type)     + 1 +
                       (int) strlen(((HTTPRequest *) self)->req_protocol) + 1 +
-                      (int) strlen(((HTTPRequest *) self)->req_resource);
+                      (int) strlen(((HTTPRequest *) self)->req_resource) + 1 +
+                      (int) strlen(((HTTPRequest *) self)->req_host);
     *result = malloc(sizeof(char) * result_size + 2);
     if (*result == NULL)
         return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request)");
 
     // creating the simple request
-    int s = sprintf(*result, "%s %s %s\n\n", ((HTTPRequest *) self)->req_type,
-                                          ((HTTPRequest *) self)->req_resource,
-                                          ((HTTPRequest *) self)->req_protocol);
+    int s = sprintf(*result, "%s %s %s\nHost: %s\n\n",
+                    ((HTTPRequest *) self)->req_type,
+                    ((HTTPRequest *) self)->req_resource,
+                    ((HTTPRequest *) self)->req_protocol,
+                    ((HTTPRequest *) self)->req_host);
 
     return s < 0 ? (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request") :
                    (*get_throwable()).create(STATUS_OK, NULL, "make_simple_request");

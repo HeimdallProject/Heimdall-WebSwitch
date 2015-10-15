@@ -25,7 +25,6 @@
 #include <sys/errno.h>
 
 #include "http_request.h"
-#include "../utils/throwable.h"
 #include "../utils/helper.h"
 #include "../utils/log.h"
 
@@ -44,10 +43,13 @@ Throwable *get_header(char *req_line, HTTPRequest *http) {
         }
     }
 
+    // check for data presence -> correctly handled req_line retrieval
     if ((header == NULL) || (header_data) == NULL) {
         return NULL;
     }
 
+    // following a comparison between headers which can be useful for perform
+    // a request (forwarding packets is the final goal)
     if (strcmp(header, ACCEPT) == 0) {
         http->req_accept = malloc(sizeof(char) * strlen(header_data));
         if (http->req_accept == NULL)
@@ -95,6 +97,7 @@ Throwable *get_request(char *req_line, HTTPRequest *http, int len) {
 
     char delimiter = ' ';
 
+    // allocating the request units
     http->req_type = malloc(sizeof(char) * (REQ_UNIT + 1));
     if (http->req_type == NULL)
         return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
@@ -107,6 +110,7 @@ Throwable *get_request(char *req_line, HTTPRequest *http, int len) {
     if (http->req_resource == NULL)
         return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
 
+    // retrieving request params, not headers
     int counter = 1;
     int start = 0;
     int i;
@@ -136,6 +140,7 @@ Throwable *get_request(char *req_line, HTTPRequest *http, int len) {
 
 
 Throwable *get_response(char *req_line, HTTPRequest *http, int len) {
+
     char delimiter = ' ';
 
     http->resp_code = malloc(sizeof(char) * (REQ_UNIT + 1));
@@ -215,44 +220,42 @@ Throwable *read_headers(char *buffer, HTTPRequest *http, int type) {
     return (*get_throwable()).create(STATUS_OK, NULL, "get_header_http_request");
 }
 
-void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol, char *request_host) {
+void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol) {
+
     // setting the params for a simple http request
     ((HTTPRequest *) self)->req_type = request_type;
     ((HTTPRequest *) self)->req_protocol = request_protocol;
     ((HTTPRequest *) self)->req_resource = request_resource;
-    ((HTTPRequest *) self)->req_host = request_host;
 }
 
 Throwable *make_simple_request(void *self, char **result) {
+
     // checking if params are set
     if (((HTTPRequest *) self)->req_type == NULL     ||
         ((HTTPRequest *) self)->req_protocol == NULL ||
-        ((HTTPRequest *) self)->req_resource == NULL ||
-        ((HTTPRequest *) self)->req_host == NULL) {
+        ((HTTPRequest *) self)->req_resource == NULL) {
         return (*get_throwable()).create(STATUS_ERROR, "Trying to create a simple http request with no params set", "make_simple_request");
     }
 
     // allocating the memory necessary for the result char buffer
     int result_size = (int) strlen(((HTTPRequest *) self)->req_type)     + 1 +
                       (int) strlen(((HTTPRequest *) self)->req_protocol) + 1 +
-                      (int) strlen(((HTTPRequest *) self)->req_resource) + 1 +
-                      (int) strlen(((HTTPRequest *) self)->req_host);
+                      (int) strlen(((HTTPRequest *) self)->req_resource);
     *result = malloc(sizeof(char) * result_size + 2);
     if (*result == NULL)
         return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request)");
 
     // creating the simple request
-    int s = sprintf(*result, "%s %s %s\nHost: %s\n\n",
-                    ((HTTPRequest *) self)->req_type,
-                    ((HTTPRequest *) self)->req_resource,
-                    ((HTTPRequest *) self)->req_protocol,
-                    ((HTTPRequest *) self)->req_host);
+    int s = sprintf(*result, "%s %s %s\n\n", ((HTTPRequest *) self)->req_type,
+                                          ((HTTPRequest *) self)->req_resource,
+                                          ((HTTPRequest *) self)->req_protocol);
 
     return s < 0 ? (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request") :
                    (*get_throwable()).create(STATUS_OK, NULL, "make_simple_request");
 }
 
 void destroy_http_request(void *self) {
+
     // freeing the memory allocated for all the http request handling
     free(((HTTPRequest *) self)->status);
     free(((HTTPRequest *) self)->req_type);
@@ -268,6 +271,7 @@ void destroy_http_request(void *self) {
 }
 
 HTTPRequest *new_http_request(void) {
+
     HTTPRequest *http = malloc(sizeof(HTTPRequest));
     if (http == NULL) {
         (*get_log()).e(TAG_HTTP_REQUEST, "Memory allocation error in new_http_request\n");

@@ -122,7 +122,7 @@ typedef struct http_request {
     Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
     Throwable *(*read_headers)(char *buffer, struct http_request *http, int type);
     Throwable *(*make_simple_request)(void *self, char **result);
-    void (*set_simple_request)(void *self, char *request_type, char *request_resource, char *request_protocol, char *request_host);
+    void (*set_simple_request)(void *self, char *request_type, char *request_resource, char *request_protocol);
     void (*destroy)(void *self);
 } HTTPRequest;
 
@@ -214,12 +214,12 @@ Throwable *read_headers(char *buffer, struct http_request *http, int type);
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol, char *request_host);
+void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol);
 
 /*
  * ---------------------------------------------------------------------------
  * Function   : make_simple_request
- * Description: This function will use the set params to make a simple request
+ * Description: This function will use the setted params to make a simple request
  *              allocating the sufficient memory for the result string
  * Param      :
  *   self:  the HTTPRequest struct pointer

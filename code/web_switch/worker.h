@@ -11,4 +11,18 @@
 #ifndef WEBSWITCH_WORKER_H
 #define WEBSWITCH_WORKER_H
 
+#include "../utils/helper.h"
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : start_worker
+ * Description: This function runs the main loop into which the worker operates
+ *              managing the connection between the client and the remote machine
+ *
+ * Param      :
+ * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
+ * ---------------------------------------------------------------------------
+ */
+int start_worker();
+
 #endif //WEBSWITCH_WORKER_H

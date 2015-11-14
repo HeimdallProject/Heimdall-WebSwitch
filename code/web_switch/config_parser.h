@@ -1,11 +1,11 @@
 //
 //============================================================================
-// Name             : config_parser.h
+// Name             : config_parser.c
 // Author           : Andrea Cerra
-// Version          : 0.1
+// Version          : 0.2
 // Data Created     : 30/05/2015
-// Last modified    : 30/05/2015
-// Description      : This file contains some configuration for parsing a config file
+// Last modified    : 14/11/2015
+// Description      : This file contains all the stuffs useful in order to create an object Config from a config file
 // ===========================================================================
 //
 
@@ -20,14 +20,6 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Path to config file to be parsed
- * ---------------------------------------------------------------------------
- */
-//TODO impostare percorso relativo e non assoluto!
-#define CONFIG_FILE "/Users/Andrea/MEGAsync/Sviluppo/Progetto_IIW/Webswitch/heimdall_config.conf"
-
-/*
- * ---------------------------------------------------------------------------
  * Escape character used in config file, 'space' by default
  * ---------------------------------------------------------------------------
  */
@@ -35,24 +27,24 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Structure    : typedef struct config
- * Description  : This struct collect all attributes for the Config object.
+ * Function         : new_config
+ * Description      : Return instance of Config singleton.
  *
- * Data         : Variables config file.
+ * Param            :
+ *
+ * Return           : Config typedef.
  * ---------------------------------------------------------------------------
  */
-typedef struct config{
-    char *variabile_a;
-} Config;
+int init_config(const char *path, void config_handler(char *key, char *value, void *p_config), void *ptr_config);
 
 /*
  * ---------------------------------------------------------------------------
  * Function     : get_config
- * Description  : Return instance of Config singleton.
+ * Description  : Return pointer of Config singleton.
  *
  * Param        :
  *
- * Return       : Config typedef.
+ * Return       : void pointer.
  * ---------------------------------------------------------------------------
  */
-Config *get_config();
+void *get_config();

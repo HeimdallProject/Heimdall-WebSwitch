@@ -195,7 +195,7 @@ Throwable *retrieve_apache_status(ApacheServerStatus *self) {
     (*get_log()).d(TAG_APACHE_STATUS, response);*/
 
     //TODO read and manage header and put in status page only the content of the http response
-    self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPUaLoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
+    self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .12a5764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
 
     return (*get_throwable()).create(STATUS_OK, NULL, "retrieve_apache_status");
 }

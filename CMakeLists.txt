@@ -4,9 +4,8 @@ project(WebSwitch)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")
 
 set(SOURCE_FILES_MAIN
-    code/main.c
-    code/web_switch/config_parser.c
-    heimdall_config.conf)
+        code/main.c
+        code/web_switch/config_parser.c)
 
 set(SOURCE_FILES_APACHE
         code/utils/helper.c

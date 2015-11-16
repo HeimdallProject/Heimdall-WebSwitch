@@ -1,11 +1,25 @@
 #include <string.h>
 #include "stdlib.h"
 #include "stdio.h"
-
 #include "web_switch/config_parser.h"
 
-// Config init began //
 
+/*
+ * ---------------------------------------------------------------------------
+ *
+ * Program macro
+ *
+ * ---------------------------------------------------------------------------
+ */
+
+#define CONFIGFILE 'config/file/path'
+
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : Config struct
+ * Description      : This struct collect all config value from config file.
+ * ---------------------------------------------------------------------------
+ */
 typedef struct config{
     char *handling_mode;
     char *max_worker;
@@ -22,9 +36,15 @@ typedef struct config{
     char *timeout_request;
 } Config;
 
-void config_handler(char *key, char *value, void *p_config) {
-
-    // printf("%s - %s", key, value);
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : config_handler
+ * Description  : Callback function, see config_parser.c for more information.
+ *
+ * Return       : 0 if ok, -1 if error.
+ * ---------------------------------------------------------------------------
+ */
+int config_handler(char *key, char *value, void *p_config) {
 
     Config* config = (Config *)p_config;
 
@@ -54,10 +74,19 @@ void config_handler(char *key, char *value, void *p_config) {
         config->server_config = value;
     else if (strcmp(key, "timeout_request") == 0)
         config->timeout_request = value;
+    else
+        return -1;  /* unknown key, error */
+
+    return 0;
 }
 
-// Config init end //
-
+/*
+ * ---------------------------------------------------------------------------
+ *
+ * MAIN PROGRAM
+ *
+ * ---------------------------------------------------------------------------
+ */
 int main() {
 
     /*Config *config  = malloc(sizeof(Config));
@@ -66,7 +95,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    if(init_config("./heimdall_config.conf", &config_handler, config) == -1){
+    if(init_config(CONFIGFILE, &config_handler, config) == -1){
         fprintf(stderr, "Error while trying to parsing a config file.");
         return EXIT_FAILURE;
     }
@@ -83,13 +112,11 @@ int main() {
     printf("timeout_worker: %s\n",config->timeout_worker);
     printf("killer_time: %s\n",config->killer_time);
     printf("server_config: %s\n",config->server_config);
-    printf("timeout_request: %s\n",config->timeout_request);
+    printf("timeout_request: %s\n",config->timeout_request);*/
 
 
-     for further access in config please use:
-     Config *config1 = get_config();
-
-     */
+    /*for further access in config please use:
+     Config *config1 = get_config(); */
 
     return EXIT_SUCCESS;
 }

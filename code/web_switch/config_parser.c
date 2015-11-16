@@ -2,15 +2,14 @@
 //============================================================================
 // Name             : config_parser.c
 // Author           : Andrea Cerra
-// Version          : 0.2
+// Version          : 0.3
 // Data Created     : 30/05/2015
-// Last modified    : 14/11/2015
-// Description      : This file contains all the stuffs useful in order to create an object Config from a config file
+// Last modified    : 16/11/2015
+// Description      : Simple C Config Parser
 // ===========================================================================
 //
 
 #include "config_parser.h"
-#include <stdlib.h>
 
 /*
  * ---------------------------------------------------------------------------
@@ -21,18 +20,18 @@ void *singleton_config = NULL;
 
 /*
  * ---------------------------------------------------------------------------
- * Function     : sub_string
- * Description  : Used for get a substring from string.
+ * Function     : _get
+ * Description  : Used for get key and value from a line.
  *
  * Param        :
- *   array[]    :
- *   from       :
- *   to         :
+ *   array[]    : line string.
+ *   from       : from value start.
+ *   to         : escape character where function stop.
  *
- * Return       : new string.
+ * Return       : string.
  * ---------------------------------------------------------------------------
  */
-char *get_value(char array[], int value_start_from, char escape){
+char *_get(char array[], int from, char escape){
 
     int count = 0;
     while (1) {
@@ -44,8 +43,8 @@ char *get_value(char array[], int value_start_from, char escape){
     char *subset = malloc(sizeof(char*));
 
     int j = 0;
-    for(j = 0; j < count; ++j, ++value_start_from){
-        subset[j] = array[value_start_from];
+    for(j = 0; j < count; ++j, ++from){
+        subset[j] = array[from];
     }
 
     return subset;
@@ -53,16 +52,18 @@ char *get_value(char array[], int value_start_from, char escape){
 
 /*
  * ---------------------------------------------------------------------------
- * Function     : new_config
+ * Function     : init_config
  * Description  : Parse config file and call callback function for return values.
  *
- * Param        :
- *   path       : Path to file be parsed
+ * Param            :
+ *   path           : Path to file be parsed.
+ *   config_handler : Callback function, return to main key, value and config reference.
+ *   ptr_config     : Pointer to struct.
  *
  * Return       :
  * ---------------------------------------------------------------------------
  */
-int init_config(const char *path, void config_handler(char *, char *, void *), void *ptr_config) {
+int init_config(const char *path, int config_handler(char *key, char *value, void *p_config), void *ptr_config) {
 
     singleton_config = ptr_config;
 
@@ -87,10 +88,13 @@ int init_config(const char *path, void config_handler(char *, char *, void *), v
         while (string[i] != ESCAPE_CHARACTER)
             ++i;
 
-        char *value = get_value(string, i, '\0');
-        char *key = get_value(string, 0, ESCAPE_CHARACTER);
+        char *value = _get(string, i, '\0');
+        char *key = _get(string, 0, ESCAPE_CHARACTER);
 
-        config_handler(key, value, ptr_config);
+        if(config_handler(key, value, ptr_config) == -1){
+            fprintf(stderr, "Error config parser, no key '%s' found in Config. \n", key);
+            return -1;
+        }
 
     }
 

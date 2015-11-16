@@ -10,6 +10,7 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 
 /*
  * ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@
  * Return           : Config typedef.
  * ---------------------------------------------------------------------------
  */
-int init_config(const char *path, void config_handler(char *key, char *value, void *p_config), void *ptr_config);
+int init_config(const char *path, int config_handler(char *key, char *value, void *p_config), void *ptr_config);
 
 /*
  * ---------------------------------------------------------------------------

@@ -1,6 +1,9 @@
 #include <string.h>
 #include "stdlib.h"
 #include "stdio.h"
+
+#include "utils/log.h"
+#include "web_switch/thread_pool.h"
 #include "web_switch/config_parser.h"
 
 
@@ -12,7 +15,8 @@
  * ---------------------------------------------------------------------------
  */
 
-#define CONFIGFILE 'config/file/path'
+#define CONFIGFILE "../heimdall_config.conf"
+#define TAG_MAIN "MAIN"
 
 /*
  * ---------------------------------------------------------------------------
@@ -45,6 +49,8 @@ typedef struct config{
  * ---------------------------------------------------------------------------
  */
 int config_handler(char *key, char *value, void *p_config) {
+
+    printf("Key %s %d\n", key,strcmp(key, "handling_mode"));
 
     Config* config = (Config *)p_config;
 
@@ -89,18 +95,27 @@ int config_handler(char *key, char *value, void *p_config) {
  */
 int main() {
 
+    /* Init Log */
+    Log log = *get_log();
+    log.d(TAG_MAIN, "Start main programm");
+    log.d(TAG_MAIN, "Start Log");
+
+    /* Init Config */
+
     /*Config *config  = malloc(sizeof(Config));
     if (config == NULL) {
-        fprintf(stderr, "Memory allocation error in init_config.\n");
-        return EXIT_FAILURE;
+        log.d(TAG_MAIN, "Error in malloc(sizeof(Config))");
+        exit(EXIT_FAILURE);
     }
 
     if(init_config(CONFIGFILE, &config_handler, config) == -1){
-        fprintf(stderr, "Error while trying to parsing a config file.");
-        return EXIT_FAILURE;
+        log.d(TAG_MAIN, "Error in init_config");
+        exit(EXIT_FAILURE);
     }
 
-    printf("handling_mode: %s\n",config->handling_mode);
+    log.d(TAG_MAIN, "Config started");*/
+
+    /*printf("handling_mode: %s\n",config->handling_mode);
     printf("max_worker: %s\n",config->max_worker);
     printf("max_thread_for_worker: %s\n",config->max_thread_for_worker);
     printf("algorithm_selection: %s\n",config->algorithm_selection);
@@ -114,9 +129,15 @@ int main() {
     printf("server_config: %s\n",config->server_config);
     printf("timeout_request: %s\n",config->timeout_request);*/
 
-
     /*for further access in config please use:
      Config *config1 = get_config(); */
 
-    return EXIT_SUCCESS;
+    // Creazione del thread Pool
+    ThreadPool *th_pool = init_thread_pool();
+    if (th_pool == NULL){
+        log.d(TAG_MAIN, "Error in init_thread_pool()");
+        exit(EXIT_FAILURE);
+    }
+    
+    exit(EXIT_SUCCESS);
 }

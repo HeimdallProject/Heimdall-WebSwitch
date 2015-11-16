@@ -14,6 +14,9 @@
 #include "log.h"
 #include "helper.h"
 
+/*
+ *  See .h for more information.
+ */
 Throwable *new_throwable();
 
 /*
@@ -124,6 +127,9 @@ Throwable *new_throwable() {
     return throwable;
 }
 
+/*
+ *  See .h for more information
+ */
 Throwable *get_throwable() {
 
     if (singleton_throwable == NULL) {

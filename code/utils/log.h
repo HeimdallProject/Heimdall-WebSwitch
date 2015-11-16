@@ -8,6 +8,8 @@
 // Description      : This header file contains all the stuffs useful in order to print / write log file.
 // ===========================================================================
 //
+#ifndef LOG_H
+#define LOG_H
 
 #include "throwable.h"
 #include "../web_switch/apache_status.h"
@@ -49,3 +51,5 @@ typedef struct log {
  * ---------------------------------------------------------------------------
  */
 Log *get_log();
+
+#endif

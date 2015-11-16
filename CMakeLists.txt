@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.2)
 project(WebSwitch)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")
+FIND_PACKAGE (Threads)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -pthread")
 
 set(SOURCE_FILES_MAIN
         code/main.c
-        code/web_switch/config_parser.c)
+        code/web_switch/config_parser.c
+        code/utils/log.c
+        code/utils/helper.c
+        code/utils/throwable.c
+        code/web_switch/thread_pool.c)
 
 set(SOURCE_FILES_APACHE
         code/utils/helper.c

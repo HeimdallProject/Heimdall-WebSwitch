@@ -28,12 +28,15 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Function         : new_config
- * Description      : Return instance of Config singleton.
+ * Function     : init_config
+ * Description  : Parse config file and call callback function for return values.
  *
  * Param            :
+ *   path           : Path to file be parsed.
+ *   config_handler : Callback function, return to main key, value and config reference.
+ *   ptr_config     : Pointer to struct.
  *
- * Return           : Config typedef.
+ * Return       :
  * ---------------------------------------------------------------------------
  */
 int init_config(const char *path, int config_handler(char *key, char *value, void *p_config), void *ptr_config);
@@ -41,11 +44,11 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
 /*
  * ---------------------------------------------------------------------------
  * Function     : get_config
- * Description  : Return pointer of Config singleton.
+ * Description  : Return singleton config pointer.
  *
  * Param        :
  *
- * Return       : void pointer.
+ * Return       : Pointer to object Config.
  * ---------------------------------------------------------------------------
  */
 void *get_config();

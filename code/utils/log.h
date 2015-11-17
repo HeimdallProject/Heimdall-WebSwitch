@@ -10,9 +10,15 @@
 //
 #ifndef LOG_H
 #define LOG_H
+#define _GNU_SOURCE
 
 #include "throwable.h"
 #include "../web_switch/apache_status.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "helper.h"
+#include <stdarg.h>
+#include <string.h>
 
 #define DEBUG_LEVEL   2  // Macro for debug message level
 #define INFO_LEVEL    3  // Macro for info message level
@@ -34,11 +40,11 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct log {
-    void (*d)(char* tag, char *msg);
-    void (*i)(char* tag, char *msg);
-    void (*e)(char* tag, char *msg);
+    int (*d)(const char* tag, const char *format, ...);
+    int (*i)(const char* tag, const char *format, ...);
+    int (*e)(const char* tag, const char *format, ...);
     void (*t)(Throwable *throwable);
-} Log;
+} Log, *LogPtr;
 
 /*
  * ---------------------------------------------------------------------------

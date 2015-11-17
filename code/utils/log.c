@@ -9,35 +9,52 @@
 // ===========================================================================
 //
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "log.h"
-#include "helper.h"
 
 /*
  * ---------------------------------------------------------------------------
  * Description  : Global variable, singleton instance of Log
  * * ---------------------------------------------------------------------------
  */
-Log *singleton_log = NULL;
+static Log *singleton_log = NULL;
 
 /*
  * ---------------------------------------------------------------------------
  * Function     : i
  * Description  : Used for print and/or write information messages to log.
+ *                Use it like a printf.
  *
  * Param        :
  *   tag        : String that indicates where this log.
  *   msg        : Information message.
+ *   ...        : params.
  *
- * Return       : void.
+ * Return       : If successful, the total number of characters written is returned 
+ *                otherwise a negative number is returned.
  * ---------------------------------------------------------------------------
  */
-void i(char* tag, char *msg) {
+static int i(const char* tag, const char *format, ...) {
+
+    int byte_read = 0;
 
     if (INFO_LEVEL >= PRINT_LEVEL) {
-        fprintf(stdout, "%s I/%s - %s\n", timestamp(), tag, msg);
+
+        char *formatted_str;
+
+        va_list arg;
+        va_start (arg, format);
+        byte_read = vasprintf(&formatted_str, format, arg);
+        va_end (arg);
+
+        char *output; 
+        byte_read = asprintf(&output, "%s %s D/ - %s", timestamp(), tag, formatted_str);
+
+        free(formatted_str);
+
+        printf("%s \n", output);
     }
+
+    return byte_read;
 
     //TODO scrivere sul file se variabile è settata nel config
 }
@@ -46,40 +63,82 @@ void i(char* tag, char *msg) {
  * ---------------------------------------------------------------------------
  * Function     : d
  * Description  : Used for print and/or write debug messages to log.
+ *                Use it like a printf.
  *
  * Param        :
  *   tag        : String that indicates where this log.
- *   msg        : Debug message.
+ *   msg        : Information message.
+ *   ...        : params.
  *
- * Return       : void.
+ * Return       : If successful, the total number of characters written is returned 
+ *                otherwise a negative number is returned.
  * ---------------------------------------------------------------------------
  */
-void d(char* tag, char *msg) {
-
-    if (DEBUG_LEVEL >= PRINT_LEVEL) {
-        fprintf(stdout, "%s D/%s - %s\n", timestamp(), tag, msg);
-    }
+static int d(const char* tag, const char *format, ...) {
 
     //TODO scrivere sul file se variabile è settata nel config
+
+    int byte_read = 0;
+
+    if (DEBUG_LEVEL >= PRINT_LEVEL) {
+
+        char *formatted_str;
+
+        va_list arg;
+        va_start (arg, format);
+        byte_read = vasprintf(&formatted_str, format, arg);
+        va_end (arg);
+
+        char *output; 
+        byte_read = asprintf(&output, "%s %s D/ - %s", timestamp(), tag, formatted_str);
+
+        free(formatted_str);
+
+        printf("%s \n", output);
+    }
+
+    return byte_read;
 }
 
 /*
  * ---------------------------------------------------------------------------
  * Function     : e
  * Description  : Used for print and/or write error messages to log.
+ *                Use it like a printf.
  *
  * Param        :
  *   tag        : String that indicates where this log.
- *   msg        : Error message.
+ *   msg        : Information message.
+ *   ...        : params.
  *
- * Return       : void.
+ * Return       : If successful, the total number of characters written is returned 
+ *                otherwise a negative number is returned.
  * ---------------------------------------------------------------------------
  */
-void e(char* tag, char *msg) {
+static int e(const char* tag, const char *format, ...) {
+
+    int byte_read = 0;
 
     if (ERROR_LEVEL >= PRINT_LEVEL) {
-        fprintf(stderr, "%s E/%s - %s\n", timestamp(), tag, msg);
+        
+        char *formatted_str;
+
+        va_list arg;
+        va_start (arg, format);
+        byte_read = vasprintf(&formatted_str, format, arg);
+        va_end (arg);
+
+        char *output; 
+        byte_read = asprintf(&output, "%s %s D/ - %s", timestamp(), tag, formatted_str);
+
+        free(formatted_str);
+
+        fprintf(stderr, "%s \n", output);
     }
+
+    return byte_read;
+
+    //fprintf(stderr, "%s E/%s - %s\n", timestamp(), tag, msg);
 
     //TODO scrivere sul file se variabile è settata nel config
 }
@@ -95,7 +154,7 @@ void e(char* tag, char *msg) {
  * Return       : void.
  * ---------------------------------------------------------------------------
  */
-void print_throwable(Throwable *thr) {
+static void print_throwable(Throwable *thr) {
 
     if (thr->status == STATUS_OK) {
         fprintf(stdout, "Status: %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);

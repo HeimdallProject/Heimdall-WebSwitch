@@ -1,12 +1,12 @@
 #include <string.h>
 #include "stdlib.h"
 #include "stdio.h"
+#include <unistd.h>
 
 #include "utils/log.h"
 #include "web_switch/thread_pool.h"
 #include "web_switch/worker_obj.h"
 #include "web_switch/config_parser.h"
-#include "web_switch/worker_pool.h"
 
 
 /*
@@ -98,9 +98,14 @@ int config_handler(char *key, char *value, void *p_config) {
 int main() {
 
     /* Init Log */
-    Log log = *get_log();
-    log.d(TAG_MAIN, "Start main programm");
-    log.d(TAG_MAIN, "Start Log");
+    LogPtr log = get_log();
+
+    log->d(TAG_MAIN, "Start main programm");
+    log->d(TAG_MAIN, "Prova1 log con intero %d e caratter %c", 100, 'Y');
+
+    log->i(TAG_MAIN, "Prova2 log con intero %d e caratter %c", 100, 'Y');
+    log->e(TAG_MAIN, "Prova3 log con intero %d e caratter %c", 100, 'Y');
+    //log->d(TAG_MAIN, "Start Log");
 
     /* Init Config */
 
@@ -137,19 +142,18 @@ int main() {
     // Creazione del thread Pool
     /*ThreadPool *th_pool = init_thread_pool();
     if (th_pool == NULL){
-        log.d(TAG_MAIN, "Error in init_thread_pool()");
+        log->d(TAG_MAIN, "Error in init_thread_pool()");
         exit(EXIT_FAILURE);
-    }
+    }*/
 
-    Worker *wrk = th_pool->get_worker();
-    printf("Worker: %p\n", wrk->thread_identifier);*/
+    /*WorkerPtr wrk = th_pool->get_worker();
+    printf("Worker: %p\n", wrk->thread_identifier);
 
-    WorkerPoolPtr ptr = init_worker_pool();
-    printf("%p\n", ptr);    
-
-    ptr->add_worker(NULL);
-    ptr->search_worker(NULL);
-    ptr->delete_worker(NULL);
+    int i = 0;
+    for (i = 0; i < 10000; ++i){
+        sleep(1);
+        printf(".");
+    }*/
     
     exit(EXIT_SUCCESS);
 }

@@ -117,6 +117,45 @@ char *timestamp() {
     return timestamp;
 }
 
+/*
+ *  See .h for more information.
+ */
+char* concat_string(const char* string1, const char* string2){
+
+    int len_str1 = strlen(string1);
+    int len_str2 = strlen(string2);
+
+    char *new_string = (char*) malloc(len_str1+len_str2);
+    if (new_string == NULL) {
+        return NULL;
+    }
+
+    char *to = new_string;
+    to = stpcpy (to, string1);
+    to = stpcpy (to, string2);
+    
+    return new_string;
+}
+
+/*
+ *  See .h for more information.
+ */
+char* append_char_to_string(const char* string, const char c){
+
+    size_t len = strlen(string);
+
+    char* ret = (char*) malloc(len+2);
+    if (ret == NULL) {
+        return NULL;
+    }
+
+    strcpy(ret, string);    
+    ret[len] = c;
+    ret[len+1] = '\0';
+
+    return ret;
+}
+
 
 
 

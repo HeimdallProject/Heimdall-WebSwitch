@@ -10,6 +10,7 @@ set(SOURCE_FILES_MAIN
         code/web_switch/config_parser.c
         code/web_switch/thread_pool.c
         code/web_switch/worker_obj.c
+        code/web_switch/worker_pool.c
         code/utils/log.c
         code/utils/helper.c
         code/utils/throwable.c)
@@ -51,6 +52,10 @@ set(SOURCE_FILES_WORKER
         code/utils/helper.c
         code/HTTP/http_request.c)
 
+set(SOURCE_FILES_WPOOL
+        code/web_switch/worker_obj.c
+        code/web_switch/worker_pool.c)
+
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
 add_executable(ApacheStatus ${SOURCE_FILES_APACHE})
 add_executable(HTTPRequest ${SOURCE_FILES_REQUEST})
@@ -60,3 +65,4 @@ add_executable(ConfigParser ${SOURCE_FILES_CONFIG})
 add_executable(Connection ${SOURCE_FILES_CONNECTION})
 add_executable(Worker ${SOURCE_FILES_WORKER})
 add_executable(Main ${SOURCE_FILES_MAIN})
+add_executable(WorkerPool ${SOURCE_FILES_WPOOL})

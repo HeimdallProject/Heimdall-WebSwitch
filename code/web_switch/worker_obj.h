@@ -31,7 +31,7 @@
 typedef struct worker {
     char* thread_identifier;
     char* process_identifier;
-} Worker;
+} Worker, *WorkerPtr;
 
 /*
  * ---------------------------------------------------------------------------

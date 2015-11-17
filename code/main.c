@@ -6,6 +6,7 @@
 #include "web_switch/thread_pool.h"
 #include "web_switch/worker_obj.h"
 #include "web_switch/config_parser.h"
+#include "web_switch/worker_pool.h"
 
 
 /*
@@ -134,14 +135,21 @@ int main() {
      Config *config1 = get_config(); */
 
     // Creazione del thread Pool
-    ThreadPool *th_pool = init_thread_pool();
+    /*ThreadPool *th_pool = init_thread_pool();
     if (th_pool == NULL){
         log.d(TAG_MAIN, "Error in init_thread_pool()");
         exit(EXIT_FAILURE);
     }
 
     Worker *wrk = th_pool->get_worker();
-    printf("Worker: %p\n", wrk->thread_identifier);
+    printf("Worker: %p\n", wrk->thread_identifier);*/
+
+    WorkerPoolPtr ptr = init_worker_pool();
+    printf("%p\n", ptr);    
+
+    ptr->add_worker(NULL);
+    ptr->search_worker(NULL);
+    ptr->delete_worker(NULL);
     
     exit(EXIT_SUCCESS);
 }

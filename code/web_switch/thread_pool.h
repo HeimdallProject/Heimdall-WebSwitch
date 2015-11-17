@@ -19,6 +19,7 @@
 #include <pthread.h>
 
 #include "../utils/log.h"
+#include "worker_obj.h"
 
 // Macro for log message
 #define TAG_THREAD_POOL "THREAD_POOL"
@@ -34,7 +35,9 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct thread_pool {
+	struct thread_pool *self;
     pthread_t thread_identifier;
+    Worker* (*get_worker)();
 } ThreadPool;
 
 /*

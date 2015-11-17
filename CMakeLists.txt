@@ -8,10 +8,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -pthread")
 set(SOURCE_FILES_MAIN
         code/main.c
         code/web_switch/config_parser.c
+        code/web_switch/thread_pool.c
+        code/web_switch/worker_obj.c
         code/utils/log.c
         code/utils/helper.c
-        code/utils/throwable.c
-        code/web_switch/thread_pool.c)
+        code/utils/throwable.c)
 
 set(SOURCE_FILES_APACHE
         code/utils/helper.c

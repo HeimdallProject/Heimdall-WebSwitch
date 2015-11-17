@@ -4,6 +4,7 @@
 
 #include "utils/log.h"
 #include "web_switch/thread_pool.h"
+#include "web_switch/worker_obj.h"
 #include "web_switch/config_parser.h"
 
 
@@ -138,6 +139,9 @@ int main() {
         log.d(TAG_MAIN, "Error in init_thread_pool()");
         exit(EXIT_FAILURE);
     }
+
+    Worker *wrk = th_pool->get_worker();
+    printf("Worker: %p\n", wrk->thread_identifier);
     
     exit(EXIT_SUCCESS);
 }

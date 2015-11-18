@@ -19,7 +19,7 @@
 #include <pthread.h>
 
 #include "../utils/log.h"
-#include "worker_obj.h"
+#include "worker.h"
 #include "worker_pool.h"
 
 // Macro for log message

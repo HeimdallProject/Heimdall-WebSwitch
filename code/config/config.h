@@ -5,6 +5,8 @@
 #ifndef WEBSWITCH_CONFIG_H
 #define WEBSWITCH_CONFIG_H
 
+#include "config_parser.h"
+
 /*
  * ---------------------------------------------------------------------------
  * Structure        : Config struct

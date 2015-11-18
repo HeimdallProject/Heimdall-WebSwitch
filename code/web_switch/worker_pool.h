@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "worker_obj.h"
+#include "worker.h"
 
 #define TAG_WORKER_POOL_H "WORKER_POOL"
 

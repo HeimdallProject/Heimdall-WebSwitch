@@ -15,14 +15,12 @@
 #include <time.h>
 #include <errno.h>
 #include <pthread.h>
-
-#include "../config/config.h"
 #include "../utils/helper.h"
-#include "config_parser.h"
+#include "../config/config.h"
 #include "worker.h"
 
 #include "watchdog.h"
-#include "worker_obj.h"
+#include "worker.h"
 
 // initializing the requests buffer (DEV)
 ThreadRequest *requests;

@@ -5,9 +5,8 @@
 
 #include "utils/log.h"
 #include "web_switch/thread_pool.h"
-#include "web_switch/worker_obj.h"
+#include "web_switch/worker.h"
 #include "config/config.h"
-#include "web_switch/config_parser.h"
 
 
 /*

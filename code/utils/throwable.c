@@ -145,13 +145,13 @@ ThrowablePtr get_throwable() {
  *  Main function, for test and example usage.
  * ---------------------------------------------------------------------------
  */
-/*
+
 int main() {
 
     Throwable Throwable = *get_throwable();
 
-    Log log = *get_log();
-    log.print_throwable(Throwable.create(STATUS_ERROR, "Ciao ciccio", "main()"));
+    Log *log = get_log();
+    log->t(Throwable.create(STATUS_ERROR, "Ciao ciccio", "main()"));
 
     return EXIT_SUCCESS;
-}*/
+}

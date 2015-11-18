@@ -3,14 +3,14 @@ project(WebSwitch)
 
 FIND_PACKAGE (Threads)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -Wno-unused-parameter -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")
 #[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -pthread")]]
 
 set(SOURCE_FILES_MAIN
         code/main.c
-        code/web_switch/config_parser.c
+        code/config/config_parser.c
         code/web_switch/thread_pool.c
-        code/web_switch/worker_obj.c
+        code/web_switch/worker.c
         code/web_switch/worker_pool.c
         code/utils/log.c
         code/utils/helper.c
@@ -18,14 +18,14 @@ set(SOURCE_FILES_MAIN
 
 set(SOURCE_FILES_APACHE
         code/utils/helper.c
-        code/HTTP/connection.c
+        code/http/connection.c
         code/utils/log.c
         code/utils/throwable.c
         code/web_switch/apache_status.c)
 
 set(SOURCE_FILES_REQUEST
         code/utils/helper.c
-        code/HTTP/http_request.c)
+        code/http/http_request.c)
 
 set(SOURCE_FILES_LOG
         code/utils/log.c
@@ -37,32 +37,32 @@ set(SOURCE_FILES_THROWABLE
         code/utils/helper.c)
 
 set(SOURCE_FILES_CONFIG
-        code/web_switch/config_parser.c
+        code/config/config_parser.c
         heimdall_config.conf)
 
 set(SOURCE_FILES_CONNECTION
-        code/HTTP/connection.c
+        code/http/connection.c
         code/utils/log.c
         code/utils/throwable.c
-        code/HTTP/http_request.c
+        code/http/http_request.c
         code/utils/helper.c)
 
 set(SOURCE_FILES_WORKER
         code/web_switch/worker.c
         code/utils/throwable.c
         code/utils/helper.c
-        code/HTTP/http_request.c)
+        code/http/http_request.c)
 
 set(SOURCE_FILES_WPOOL
-        code/web_switch/worker_obj.c
+        code/web_switch/worker.c
         code/web_switch/worker_pool.c)
 
 set(SOURCE_FILE_REQUEST_QUEUE
         code/utils/log.c
         code/utils/throwable.c
         code/utils/helper.c
-        code/HTTP/http_request.c
-        code/HTTP/http_response.c
+        code/http/http_request.c
+        code/http/http_response.c
         code/utils/request_node.c
         code/utils/request_queue.c)
 

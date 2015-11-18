@@ -42,13 +42,13 @@ int start_worker() {
     if (watchdog_creation != 0)
         return STATUS_ERROR;
 
-    // initialilizing the FIFO data structure to manage a
+    // initialilizing the QUEUE data structure to manage a
     // node of the current request handled (pipeline-robust approach)
-    // TODO: do something to allocate the FIFO
+    // TODO: do something to allocate the QUEUE
 
     // starting the main routine cycling in a read/execute loop
     for (;;) {
-        // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the FIFO
+        // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the QUEUE
 
 
     }

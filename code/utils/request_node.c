@@ -1,13 +1,27 @@
 //
-// Created by claudio on 11/17/15.
+//============================================================================
+// Name             : request_node.c
+// Author           : Claudio Pastorini
+// Version          : 0.1
+// Data Created     : 18/11/2015
+// Last modified    : 18/11/2015
+// Description      : This header file contains all the stuffs useful in order
+//                    to create a node for request_queue.
+// ===========================================================================
 //
 
+#include <stdlib.h>
 #include "request_node.h"
+#include "log.h"
 
 /*
  * ---------------------------------------------------------------------------
  * Function   : destroy_request_node
  * Description: This function free all the memory bound with RequestNode.
+ *              It does not free the memory of the previous and the next node.
+
+ *              PAY ATTENTION could be dangerous remove a node without check
+ *              next and previous node or other nodes linked.
  *
  * Param      :
  *   self   : The pointer to the RequestNode.
@@ -15,12 +29,13 @@
  * Return     : None.
  * ---------------------------------------------------------------------------
  */
-void destroy_request_node(RequestNode *self) {
+void destroy_request_node(RequestNodePtr self) {
     free(self->string);        // Free space for to_string
-    free(self);                  // Free all the struct
+    //TODO or not todo self->response->destroy(self->response)
+    free(self);                // Free all the struct
 }
 
-/*/
+/*
  * ---------------------------------------------------------------------------
  * Function   : to_string_request_node
  * Description: This function return a char pointer with a human form of the
@@ -32,58 +47,61 @@ void destroy_request_node(RequestNode *self) {
  * Return     : The pointer of the string.
  * ---------------------------------------------------------------------------
  */
-char *to_string_request_node(RequestNode *self) {
+char *to_string_request_node(RequestNodePtr self) {
     char *string;
 
     if (self->string != NULL) {
         free(self->string);
     }
 
-    char *string = malloc(sizeof(char) * 64000);  // TODO i do not know how many space
-    snprintf(string, 64000,
-             "Request Node: \n\n"
-                     "Thread Id: %d\n"
-                     "Response: %d\n"
-                     "Timeout: %f\n"
-                     "Next: %s",
+    string = malloc(sizeof(char) * 64000);  // TODO i do not know how many space
 
-             self->thread_id,
-             self->response->to_string(self->response),
-             self->request_timeout,
-             self->next->to_string(self->next));
+/*    char *next_string;
+    if (self->next == NULL) {
+        next_string = "null";
+    } else {
+        next_string = self->next->to_string(self->next);
+    }*/
+
+    snprintf(string,   // TODO i do not know how many space
+             64000,
+             "\nRequest Node: \n\n"
+                     "Thread Id: %u\n"
+                     "Response: %s\n"
+                     "Timeout: %f\n"
+                     "Previous: %p\n"
+                     "Next: %p\n",
+
+             (unsigned int) self->thread_id,
+             "ciao", //TODO create http_response to_string
+             (double) self->request_timeout,
+             self->previous,
+             self->next);
+
 
     self->string = string;  //  Save pointer in the struct in order to free after
     return string;
 }
 
-RequestNode *new_request_node() {
+RequestNodePtr init_request_node() {
 
-    RequestNode *request_node = malloc(sizeof(RequestNode));
+    RequestNodePtr request_node = malloc(sizeof(RequestNode));
     if (request_node == NULL) {
-        (*get_log()).e(TAG_REQUEST_NODE, "Memory allocation error in new_request_node.\n");
+        (*get_log()).e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node.\n");
         exit(EXIT_FAILURE);
     }
     // Set self linking
     request_node->self = request_node;
-    request_node->thread_id = -1;
-    request_node->response = "";
+    request_node->thread_id = 1;        //TODO choose better default value and add other methods
+    request_node->response = new_http_response();
     request_node->request_timeout = 10;
+    request_node->previous = NULL;
     request_node->next = NULL;
     request_node->string = NULL;
-    // Set "methods"
 
+    // Set "methods"
     request_node->destroy = destroy_request_node;
     request_node->to_string = to_string_request_node;
 
     return request_node;
-}
-
-/*
- * ---------------------------------------------------------------------------
- *  Main function, for test and example usage.
- * ---------------------------------------------------------------------------
- */
-int main(int argc, char *argv[]) {
-
-    return EXIT_SUCCESS;
 }

@@ -220,7 +220,8 @@ Throwable *read_headers(char *buffer, HTTPRequest *http, int type) {
     return (*get_throwable()).create(STATUS_OK, NULL, "get_header_http_request");
 }
 
-void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol) {
+void set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
+                        char *string) {
 
     // setting the params for a simple http request
     ((HTTPRequest *) self)->req_type = request_type;

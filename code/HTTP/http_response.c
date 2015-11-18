@@ -13,8 +13,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <sys/errno.h>
 
 #include "../utils/helper.h"
 #include "../utils/log.h"
@@ -31,12 +29,12 @@ Throwable *get_http_response(void *self, char *buffer) {
     int i = 0;
 
     // parsing and dividing into head and body buffers
-    head = buffer[start];
-    for (i; i < strlen(buffer); i++) {
+    head = buffer + sizeof(char) * start;
+    for (i=0; i < (signed) strlen(buffer); i++) {
         if (buffer[i + 1] == endline) {
             head[i + 1] = '\0';
-            if (i + 2 < strlen(buffer)) if (buffer[i + 2] != '\0') {
-                body = buffer[i + 2];
+            if (i + 2 < (signed) strlen(buffer)) if (buffer + (sizeof(char) * (i + 2)) != '\0') {
+                body = buffer + sizeof(char) * (i + 2);
                 break;
             }
         }
@@ -107,6 +105,8 @@ HTTPResponse *new_http_response(void) {
     http->get_response_head = get_response_head;
     http->get_response_body = get_response_body;
     http->destroy           = destroy_http_response;
+
+    return http;
 }
 
 

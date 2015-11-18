@@ -3,7 +3,8 @@ project(WebSwitch)
 
 FIND_PACKAGE (Threads)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -Wno-unused-parameter -pthread")
+#[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -pthread")]]
 
 set(SOURCE_FILES_MAIN
         code/main.c
@@ -56,6 +57,15 @@ set(SOURCE_FILES_WPOOL
         code/web_switch/worker_obj.c
         code/web_switch/worker_pool.c)
 
+set(SOURCE_FILE_REQUEST_QUEUE
+        code/utils/log.c
+        code/utils/throwable.c
+        code/utils/helper.c
+        code/HTTP/http_request.c
+        code/HTTP/http_response.c
+        code/utils/request_node.c
+        code/utils/request_queue.c)
+
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
 add_executable(ApacheStatus ${SOURCE_FILES_APACHE})
 add_executable(HTTPRequest ${SOURCE_FILES_REQUEST})
@@ -66,3 +76,4 @@ add_executable(Connection ${SOURCE_FILES_CONNECTION})
 add_executable(Worker ${SOURCE_FILES_WORKER})
 add_executable(Main ${SOURCE_FILES_MAIN})
 add_executable(WorkerPool ${SOURCE_FILES_WPOOL})
+add_executable(RequestQueue ${SOURCE_FILE_REQUEST_QUEUE})

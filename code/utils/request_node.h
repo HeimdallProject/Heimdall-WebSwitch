@@ -1,34 +1,64 @@
 //
-// Created by claudio on 11/17/15.
+//============================================================================
+// Name             : request_node.h
+// Author           : Claudio Pastorini
+// Version          : 0.1
+// Data Created     : 18/11/2015
+// Last modified    : 18/11/2015
+// Description      : This header file contains all the stuffs useful in order
+//                    to create a node for request_queue.
+// ===========================================================================
 //
-
 #ifndef WEBSWITCH_REQUEST_NODE_H
 #define WEBSWITCH_REQUEST_NODE_H
 
-#define TAG_REQUEST_NODE "REQUEST_NODE"
+#include "../HTTP/http_response.h"
+#include <time.h>
+#include <pthread.h>
 
+#define TAG_REQUEST_NODE "REQUEST_NODE" // Macro for log message
+
+/*
+ * ---------------------------------------------------------------------------
+ * Structure  : request_node
+ * Description: This struct allows to create a linked request node.
+ *
+ * Data:
+ *  self            : Pointer to itself.
+ *  pthread_id      : The pthread id bounded to the node.
+ *  response        : The response of http request bounded to the node.
+ *  request_timeout : The timeout of the request.
+ *  previous        : The previous node.
+ *  next            : The next node.
+ *  string          : The summary of the node.
+ *
+ * Functions:
+ *  to_string  : Pointer to to_string function.
+ *  destroy    : Pointer to destroy function.
+ */
 typedef struct request_node {
     struct request_node *self;
-    pthread_t thread_id;                            // thread identifier
-    HTTPResponse response;                          //
-    time_t request_timeout;                         // timeout request
+    pthread_t thread_id;
+    HTTPResponse *response;
+    time_t request_timeout;
+    struct request_node *previous;
     struct request_node *next;
     char *string;
 
     char *(*to_string)(struct request_node *self);
-    void (*destroy)(void *self);
+    void (*destroy)(struct request_node *self);
 } RequestNode, *RequestNodePtr;
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : new_request_node
+ * Function   : init_request_node
  * Description: This function create a new instance of RequestNode.
  *
- * Param      :
+ * Param      : None.
  *
  * Return     : The pointer to new instance of RequestNode.
  * ---------------------------------------------------------------------------
  */
-RequestNode *new_request_node();
+RequestNode *init_request_node();
 
 #endif //WEBSWITCH_REQUEST_NODE_H

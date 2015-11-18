@@ -215,7 +215,8 @@ Throwable *read_headers(char *buffer, struct http_request *http, int type);
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-void set_simple_request(void *self, char *request_type, char *request_resource, char *request_protocol);
+void set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
+                        char *string);
 
 /*
  * ---------------------------------------------------------------------------

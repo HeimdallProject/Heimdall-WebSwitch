@@ -27,11 +27,14 @@
  * Functions:
  * ---------------------------------------------------------------------------
  */
-typedef struct worker_pool {
-    int (*add_worker)(WorkerPtr worker);
+typedef struct worker_pool{
+	struct node *first;
+    struct node *last;
+    struct worker_pool* self;
+    int (*add_worker)(struct worker_pool* self, WorkerPtr worker);
     int (*delete_worker)(WorkerPtr worker);
     int (*search_worker)(WorkerPtr worker);
-    struct worker_pool* (*init_worker_pool)();
+    int (*print_worker_pool)();
 } WorkerPool, *WorkerPoolPtr;
 
 /*

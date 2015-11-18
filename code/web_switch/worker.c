@@ -16,7 +16,8 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "../web_switch/config_parser.h"
+#include "../config/config.h"
+#include "config_parser.h"
 #include "worker.h"
 
 
@@ -42,10 +43,12 @@ int start_worker() {
     int watchdog_creation = pthread_create(watchdog->thread_id, NULL, enable_watchdog, NULL);
     if (watchdog_creation != 0)
         return STATUS_ERROR;
+    // retrieving the config
+    Config *config = get_config();
     // watchdog wake-up time
-    watchdog->killer_time = 1000;
-    // setting up the execution time using config
-    watchdog->exec_time   = 1000;
+    watchdog->killer_time = config->killer_time;
+    // setting up the execution time
+    watchdog->exec_time   = config->timeout_worker;
 
     // initialilizing the FIFO data structure to manage a
     // node of the current request handled (pipeline-robust approach)

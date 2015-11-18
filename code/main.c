@@ -52,8 +52,6 @@ typedef struct config{
  */
 int config_handler(char *key, char *value, void *p_config) {
 
-    printf("Key %s %d\n", key,strcmp(key, "handling_mode"));
-
     Config* config = (Config *)p_config;
 
     if (strcmp(key, "handling_mode") == 0)
@@ -97,47 +95,46 @@ int config_handler(char *key, char *value, void *p_config) {
  */
 int main() {
 
-    /* Init Log */
-    LogPtr log = get_log();
-
-    log->d(TAG_MAIN, "Start main programm");
-    log->d(TAG_MAIN, "Prova1 log con intero %d e caratter %c", 100, 'Y');
-
-    log->i(TAG_MAIN, "Prova2 log con intero %d e caratter %c", 100, 'Y');
-    log->e(TAG_MAIN, "Prova3 log con intero %d e caratter %c", 100, 'Y');
-    //log->d(TAG_MAIN, "Start Log");
-
     /* Init Config */
-
-    /*Config *config  = malloc(sizeof(Config));
+    Config *config  = malloc(sizeof(Config));
     if (config == NULL) {
-        log.d(TAG_MAIN, "Error in malloc(sizeof(Config))");
+        fprintf(stderr, "%s Error in malloc(sizeof(Config))\n", TAG_MAIN);
         exit(EXIT_FAILURE);
     }
 
     if(init_config(CONFIGFILE, &config_handler, config) == -1){
-        log.d(TAG_MAIN, "Error in init_config");
+        fprintf(stderr, "%s Error ininit_config\n", TAG_MAIN);
         exit(EXIT_FAILURE);
     }
 
-    log.d(TAG_MAIN, "Config started");*/
-
-    /*printf("handling_mode: %s\n",config->handling_mode);
-    printf("max_worker: %s\n",config->max_worker);
-    printf("max_thread_for_worker: %s\n",config->max_thread_for_worker);
-    printf("algorithm_selection: %s\n",config->algorithm_selection);
-    printf("pre_fork: %s\n",config->pre_fork);
-    printf("log_level: %s\n",config->log_level);
-    printf("write_enable: %s\n",config->write_enable);
-    printf("print_enable: %s\n",config->print_enable);
-    printf("log_file: %s\n",config->log_file);
-    printf("timeout_worker: %s\n",config->timeout_worker);
-    printf("killer_time: %s\n",config->killer_time);
-    printf("server_config: %s\n",config->server_config);
-    printf("timeout_request: %s\n",config->timeout_request);*/
-
     /*for further access in config please use:
      Config *config1 = get_config(); */
+
+    /*printf("handling_mode: %s",config->handling_mode);
+    printf("max_worker: %s",config->max_worker);
+    printf("max_thread_for_worker: %s",config->max_thread_for_worker);
+    printf("algorithm_selection: %s",config->algorithm_selection);
+    printf("pre_fork: %s",config->pre_fork);
+    printf("log_level: %s",config->log_level);
+    printf("write_enable: %s",config->write_enable);
+    printf("print_enable: %s",config->print_enable);
+    printf("log_file: %s",config->log_file);
+    printf("timeout_worker: %s",config->timeout_worker);
+    printf("killer_time: %s",config->killer_time);
+    printf("server_config: %s",config->server_config);
+    printf("timeout_request: %s",config->timeout_request);*/
+
+    /* Init Log */
+    //LogPtr log = get_log();
+
+    //log->d(TAG_MAIN, "Start main programm");
+    //log->d(TAG_MAIN, "Prova1 log con intero %d e caratter %c", 100, 'Y');
+
+    //log->i(TAG_MAIN, "Prova2 log con intero %d e caratter %c", 100, 'Y');
+    //log->e(TAG_MAIN, "Prova3 log con intero %d e caratter %c", 100, 'Y');
+    //log->d(TAG_MAIN, "Start Log");
+
+    //log.d(TAG_MAIN, "Config started");
 
     // Creazione del thread Pool
     /*ThreadPool *th_pool = init_thread_pool();

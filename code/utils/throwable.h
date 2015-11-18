@@ -39,7 +39,7 @@ typedef struct throwable {
     struct throwable* (*create)(int status, char *msg, char *stack_trace);
     struct throwable* (*thrown)(struct throwable* self, char *stack_trace);
     int (*is_an_error)(struct throwable* self);
-} Throwable;
+} Throwable, *ThrowablePtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -52,6 +52,6 @@ typedef struct throwable {
  * Return       : Pointer to object Throwable.
  * ---------------------------------------------------------------------------
  */
-Throwable *get_throwable();
+ThrowablePtr get_throwable();
 
 #endif

@@ -38,8 +38,8 @@ typedef struct thread_request {
  */
 typedef struct watchdog_thread {
     pthread_t *thread_id;                           // thread identifier
-    long killer_time;                               // time to schedule the watchdog wakeup
-    time_t exec_time;                               // time to abort a thread run
+    time_t killer_time;                               // time to schedule the watchdog wakeup
+    time_t timeout_worker;                          // time to abort a thread run
 
     struct thread_request *requests;                // pointer to the request array (DEV)
 } Watchdog;

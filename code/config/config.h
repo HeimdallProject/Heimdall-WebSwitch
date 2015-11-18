@@ -25,6 +25,6 @@ typedef struct config{
     char *killer_time;
     char *server_config;
     char *timeout_request;
-} Config;
+} Config, *ConfigPtr;
 
 #endif //WEBSWITCH_CONFIG_H

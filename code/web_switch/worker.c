@@ -17,6 +17,7 @@
 #include <pthread.h>
 
 #include "../config/config.h"
+#include "../utils/helper.h"
 #include "config_parser.h"
 #include "worker.h"
 
@@ -43,12 +44,17 @@ int start_worker() {
     int watchdog_creation = pthread_create(watchdog->thread_id, NULL, enable_watchdog, NULL);
     if (watchdog_creation != 0)
         return STATUS_ERROR;
-    // retrieving the config
+    // retrieving the config params for the watchdog and converting them
     Config *config = get_config();
+    long k_time;
+    long out_time;
+    if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())      ||
+        str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable())  )
+        return STATUS_ERROR;
     // watchdog wake-up time
-    watchdog->killer_time = config->killer_time;
+    watchdog->killer_time      = (time_t) k_time;
     // setting up the execution time
-    watchdog->exec_time   = config->timeout_worker;
+    watchdog->timeout_worker   = (time_t) out_time;
 
     // initialilizing the FIFO data structure to manage a
     // node of the current request handled (pipeline-robust approach)
@@ -82,7 +88,7 @@ void *enable_watchdog(void *arg) {
         // TODO: advancing step
         // sleeping loop
         // setting req_time specifics
-        req_time->tv_nsec = watchdog->killer_time;
+        req_time->tv_nsec = (long) watchdog->killer_time;
         while (TRUE) {
             sleep_status = nanosleep(req_time, rem_time);
             // upon not successfull complete nanosleep
@@ -111,7 +117,7 @@ int watch_over(pthread_t *running_thread, time_t running_timestamp, time_t curre
 
     // checking for timestamp distance and aborting thread if necessary
     time_t running_exec_time = current_timestamp - running_timestamp;
-    if (running_exec_time > watchdog->exec_time) {
+    if (running_exec_time > watchdog->timeout_worker) {
         int cancellation_status = pthread_cancel(*running_thread);
         if (cancellation_status != 0)
             return STATUS_ERROR;

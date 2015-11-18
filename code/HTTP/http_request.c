@@ -16,7 +16,6 @@
 //              - http://tools.ietf.org/html/rfc7235
 //              - http://en.wikipedia.org/wiki/List_of_HTTP_header_fields (dev)
 // ============================================================================
-//
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -24,9 +23,10 @@
 #include <stdio.h>
 #include <sys/errno.h>
 
-#include "http_request.h"
 #include "../utils/helper.h"
 #include "../utils/log.h"
+#include "http_request.h"
+
 
 Throwable *get_header(char *req_line, HTTPRequest *http) {
 

@@ -76,7 +76,7 @@ int config_handler(char *key, char *value, void *p_config) {
 int main() {
 
     /* Init Config */
-    Config *config  = malloc(sizeof(Config));
+    ConfigPtr config  = malloc(sizeof(Config));
     if (config == NULL) {
         fprintf(stderr, "%s Error in malloc(sizeof(Config))\n", TAG_MAIN);
         exit(EXIT_FAILURE);

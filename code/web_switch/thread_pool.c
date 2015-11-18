@@ -18,6 +18,8 @@
  */
 static pthread_mutex_t mtx_wait_request = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond_wait_request = PTHREAD_COND_INITIALIZER;
+static WorkerPoolPtr worker_pool_ptr = NULL;
+
 static int worker_request = 0;
 
 /*
@@ -83,6 +85,10 @@ static void *init_pool(void *arg){
 	char *s = (char *) arg;
     printf("%s", s);
 
+    // Init worker pool
+    worker_pool_ptr = init_worker_pool();
+    worker_pool_ptr->print_worker_pool(worker_pool_ptr);
+
     thread_pool_loop();
 
     // pthread_detach(pthread_self());
@@ -124,21 +130,21 @@ Worker *get_worker() {
  */
 ThreadPool *init_thread_pool() {
 
-	Log log = *get_log();
-	log.d(TAG_THREAD_POOL, "Thread pool start.");
+	LogPtr log = get_log();
+	log->d(TAG_THREAD_POOL, "Thread pool start.");
 
 	pthread_t t1;
 	int born;
 	
 	born = pthread_create(&t1, NULL, init_pool, "HELL!!!!!\n"); 
 	if (born != 0) {
-		log.e(TAG_THREAD_POOL, "Error in pthread_create");
+		log->e(TAG_THREAD_POOL, "Error in pthread_create");
 		return NULL;
 	}
 
 	ThreadPool *th_pool = malloc(sizeof(ThreadPool));
     if (th_pool == NULL) {
-    	log.e(TAG_THREAD_POOL, "Memory allocation error in thread_pool_init().");
+    	log->e(TAG_THREAD_POOL, "Memory allocation error in thread_pool_init().");
         return NULL;
     }
 

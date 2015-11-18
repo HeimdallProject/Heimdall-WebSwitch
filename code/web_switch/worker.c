@@ -1,10 +1,10 @@
 //
 //============================================================================
 // Name             : worker.c
-// Author           : Alessio Moretti e Claudio Pastorini
+// Author           : Alessio Moretti, Claudio Pastorini e Andrea Cerra
 // Version          : 0.2
 // Data Created     : 11/11/2015
-// Last modified    : 11/11/2015
+// Last modified    : 18/11/2015
 // Description      : This is the webswitch single Worker thread body
 // ===========================================================================
 //
@@ -21,27 +21,44 @@
 #include "config_parser.h"
 #include "worker.h"
 
-
-// initializing the watchdog struct
-Watchdog *watchdog;
+#include "watchdog.h"
+#include "worker_obj.h"
 
 // initializing the requests buffer (DEV)
 ThreadRequest *requests;
 
-int start_worker() {
+/*
+ *  See .h for more information.
+ */
+WorkerPtr new_worker() {
+
+    Worker *wrk = malloc(sizeof(Worker));
+    if (wrk == NULL) {
+        fprintf(stderr, "Memory allocation error in new_log.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Set attribute
+    wrk->thread_identifier = NULL;
+    wrk->process_identifier = NULL;
+
+    return wrk;
+}
+
+int start_worker(WorkerPtr worker) {
 
     // initializing write thread
     // TODO: do something to start the thread
 
     // setting up watchdog
     // struct allocation
-    watchdog = malloc(sizeof(Watchdog));
-    if (watchdog == NULL)
+    worker->watchdog = malloc(sizeof(Watchdog));
+    if (worker->watchdog == NULL)
         return STATUS_ERROR;
     // struct init
-    watchdog->requests = requests;
+    worker->watchdog->requests = requests;
     // thread initialization
-    int watchdog_creation = pthread_create(watchdog->thread_id, NULL, enable_watchdog, NULL);
+    int watchdog_creation = pthread_create(worker->watchdog->thread_id, NULL, enable_watchdog, (void *) worker->watchdog);
     if (watchdog_creation != 0)
         return STATUS_ERROR;
     // retrieving the config params for the watchdog and converting them
@@ -52,9 +69,9 @@ int start_worker() {
         str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable())  )
         return STATUS_ERROR;
     // watchdog wake-up time
-    watchdog->killer_time      = (time_t) k_time;
+    worker->watchdog->killer_time      = (time_t) k_time;
     // setting up the execution time
-    watchdog->timeout_worker   = (time_t) out_time;
+    worker->watchdog->timeout_worker   = (time_t) out_time;
 
     // initialilizing the FIFO data structure to manage a
     // node of the current request handled (pipeline-robust approach)
@@ -65,62 +82,6 @@ int start_worker() {
         // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the FIFO
 
 
-    }
-
-    // successfull status
-    return STATUS_OK;
-}
-
-
-void *enable_watchdog(void *arg) {
-
-    // initializing time specifics
-    struct timespec *req_time = malloc(sizeof(struct timespec));
-    struct timespec *rem_time = malloc(sizeof(struct timespec));
-    if (req_time == NULL || rem_time == NULL)
-        return (void *) (intptr_t) STATUS_ERROR;
-
-
-    // starting watch-over-thread loop main routine
-    int sleep_status;
-    int watch_status;
-    for (;;) {
-        // TODO: advancing step
-        // sleeping loop
-        // setting req_time specifics
-        req_time->tv_nsec = (long) watchdog->killer_time;
-        while (TRUE) {
-            sleep_status = nanosleep(req_time, rem_time);
-            // upon not successfull complete nanosleep
-            if (sleep_status == -1) {
-                if (errno == EFAULT)
-                    return (void *) (intptr_t) STATUS_ERROR;
-                if (errno == EINTR)
-                    req_time->tv_nsec = rem_time->tv_nsec;
-            }
-            // upon successfull complete nanosleep -> watchover routine
-            if (sleep_status == 0)
-                break;
-        }
-
-        // watchover routine
-        watch_status = watch_over(watchdog->requests->thread_id, watchdog->requests->timestamp, time(NULL));
-        if (watch_status == STATUS_ERROR)
-            return (void *) (intptr_t) STATUS_ERROR;
-    }
-
-    // successfull status
-    return (void *) (intptr_t) STATUS_OK;
-}
-
-int watch_over(pthread_t *running_thread, time_t running_timestamp, time_t current_timestamp) {
-
-    // checking for timestamp distance and aborting thread if necessary
-    time_t running_exec_time = current_timestamp - running_timestamp;
-    if (running_exec_time > watchdog->timeout_worker) {
-        int cancellation_status = pthread_cancel(*running_thread);
-        if (cancellation_status != 0)
-            return STATUS_ERROR;
     }
 
     // successfull status

@@ -21,7 +21,7 @@
 /*
  * ---------------------------------------------------------------------------
  * Structure    : typedef struct worker
- * Description  : 
+ * Description  :
  *
  * Data:
  *
@@ -36,7 +36,7 @@ typedef struct worker {
 /*
  * ---------------------------------------------------------------------------
  * Function   : new_worker
- * Description: Method for worker creation. 
+ * Description: Method for worker creation.
  *
  * Param      :
  *

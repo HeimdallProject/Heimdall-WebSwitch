@@ -20,6 +20,7 @@
 
 #include "../utils/log.h"
 #include "worker_obj.h"
+#include "worker_pool.h"
 
 // Macro for log message
 #define TAG_THREAD_POOL "THREAD_POOL"

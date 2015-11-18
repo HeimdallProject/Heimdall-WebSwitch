@@ -14,8 +14,10 @@
 #include <pthread.h>
 #include <time.h>
 #include "../utils/helper.h"
+#include "watchdog.h"
 
-
+// Macro for log message
+#define TAG_WORKER "WORKER"
 
 /*
  * ---------------------------------------------------------------------------
@@ -28,23 +30,22 @@ typedef struct thread_request {
     time_t timestamp;                               // timestamp for watchdog check
 } ThreadRequest;
 
-
 /*
  * ---------------------------------------------------------------------------
- * Structure        : typedef struct watchdog_thread
- * Description      : this struct helps to manage and set attributes for the thread
- *                    which watch over the remote connection thread termination
+ * Structure    : typedef struct worker
+ * Description  :
+ *
+ * Data:
+ *
+ * Functions:
  * ---------------------------------------------------------------------------
  */
-typedef struct watchdog_thread {
-    pthread_t *thread_id;                           // thread identifier
-    long killer_time;                               // time to schedule the watchdog wakeup
-    time_t exec_time;                               // time to abort a thread run
+typedef struct worker {
+    char* thread_identifier;
+    char* process_identifier;
 
-    struct thread_request *requests;                // pointer to the request array (DEV)
-} Watchdog;
-
-
+    Watchdog *watchdog;
+} Worker, *WorkerPtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -52,32 +53,22 @@ typedef struct watchdog_thread {
  * Description: This function runs the main loop into which the worker operates
  *              managing the connection between the client and the remote machine
  *
- * Param      :
+ * Param      : WorkerPtr
  * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
  * ---------------------------------------------------------------------------
  */
-int start_worker();
+int start_worker(WorkerPtr worker);
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : enable_watchdog
- * Description: This function runs the watchdog routine
+ * Function   : new_worker
+ * Description: Method for worker creation.
  *
  * Param      :
- * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
- * ---------------------------------------------------------------------------
- */
-void *enable_watchdog(void *arg);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : watch_over
- * Description: This function runs the watcher routine over the request threads
  *
- * Param      :
- * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
+ * Return     :
  * ---------------------------------------------------------------------------
  */
-int watch_over(pthread_t *running_thread, time_t running_timestamp, time_t current_timestamp);
+Worker *new_worker();
 
 #endif //WEBSWITCH_WORKER_H

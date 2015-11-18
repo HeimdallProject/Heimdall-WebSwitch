@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+
 #include "time.h"
 #include "log.h"
 #include "helper.h"
@@ -36,6 +37,22 @@ Throwable *str_to_int(const char *string, int *value) {
         return (*get_throwable()).create(STATUS_ERROR, "There is some characters", "str_to_int");
 
     return (*get_throwable()).create(STATUS_OK, NULL, "str_to_int");
+}
+
+Throwable *str_to_long(const char *string, long *value) {
+    char *pointer;
+
+    errno = 0;
+    *value = strtol(string, &pointer, 0);
+
+    if ((errno == ERANGE) || (errno != 0 && *value == 0))
+        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "str_to_long");
+    if (pointer == string)
+        return (*get_throwable()).create(STATUS_ERROR, "No digits were found", "str_to_long");
+    if (*pointer != '\0')
+        return (*get_throwable()).create(STATUS_ERROR, "There is some characters", "str_to_long");
+
+    return (*get_throwable()).create(STATUS_OK, NULL, "str_to_long");
 }
 
 /*

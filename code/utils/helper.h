@@ -38,6 +38,21 @@ Throwable *str_to_int(const char *string, int *value);
 
 /*
  * ---------------------------------------------------------------------------
+ * Function   	: str_to_long
+ * Description	: This function converts a string into a long value using the
+ *              	C command strotol.
+ *
+ * Param      	:
+ *   string 	: The string to convert.
+ *   value 		: The pointer to result value.
+ *
+ * Return     	: The converted value or STATUS_ERROR in case of error.
+ * ---------------------------------------------------------------------------
+ */
+Throwable *str_to_long(const char *string, long *value);
+
+/*
+ * ---------------------------------------------------------------------------
  * Function   	: str_to_float
  * Description	: This function converts a string into a float value using the
  *              	C command strtof.

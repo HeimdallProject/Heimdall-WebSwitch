@@ -6,6 +6,7 @@
 #include "utils/log.h"
 #include "web_switch/thread_pool.h"
 #include "web_switch/worker_obj.h"
+#include "config/config.h"
 #include "web_switch/config_parser.h"
 
 
@@ -20,27 +21,6 @@
 #define CONFIGFILE "../heimdall_config.conf"
 #define TAG_MAIN "MAIN"
 
-/*
- * ---------------------------------------------------------------------------
- * Structure        : Config struct
- * Description      : This struct collect all config value from config file.
- * ---------------------------------------------------------------------------
- */
-typedef struct config{
-    char *handling_mode;
-    char *max_worker;
-    char *max_thread_for_worker;
-    char *algorithm_selection;
-    char *pre_fork;
-    char *log_level;
-    char *write_enable;
-    char *print_enable;
-    char *log_file;
-    char *timeout_worker;
-    char *killer_time;
-    char *server_config;
-    char *timeout_request;
-} Config;
 
 /*
  * ---------------------------------------------------------------------------
@@ -96,7 +76,7 @@ int config_handler(char *key, char *value, void *p_config) {
 int main() {
 
     /* Init Config */
-    Config *config  = malloc(sizeof(Config));
+    ConfigPtr config  = malloc(sizeof(Config));
     if (config == NULL) {
         fprintf(stderr, "%s Error in malloc(sizeof(Config))\n", TAG_MAIN);
         exit(EXIT_FAILURE);

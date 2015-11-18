@@ -130,7 +130,7 @@ Throwable *new_throwable() {
 /*
  *  See .h for more information
  */
-Throwable *get_throwable() {
+ThrowablePtr get_throwable() {
 
     if (singleton_throwable == NULL) {
         singleton_throwable = new_throwable();

@@ -41,6 +41,9 @@ int start_worker() {
     int watchdog_creation = pthread_create(watchdog->thread_id, NULL, enable_watchdog, NULL);
     if (watchdog_creation != 0)
         return STATUS_ERROR;
+    // watchdog wake-up time params
+    watchdog->killer_time = 1000;
+    watchdog->exec_time   = 1000;
 
     // initialilizing the FIFO data structure to manage a
     // node of the current request handled (pipeline-robust approach)

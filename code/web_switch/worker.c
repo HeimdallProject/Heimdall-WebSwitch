@@ -57,10 +57,6 @@ int start_worker(WorkerPtr worker) {
         return STATUS_ERROR;
     // struct init
     worker->watchdog->requests = requests;
-    // thread initialization
-    int watchdog_creation = pthread_create(worker->watchdog->thread_id, NULL, enable_watchdog, (void *) worker->watchdog);
-    if (watchdog_creation != 0)
-        return STATUS_ERROR;
     // retrieving the config params for the watchdog and converting them
     Config *config = get_config();
     long k_time;
@@ -72,6 +68,10 @@ int start_worker(WorkerPtr worker) {
     worker->watchdog->killer_time      = (time_t) k_time;
     // setting up the execution time
     worker->watchdog->timeout_worker   = (time_t) out_time;
+    // thread initialization
+    int watchdog_creation = pthread_create(worker->watchdog->thread_id, NULL, enable_watchdog, (void *) worker->watchdog);
+    if (watchdog_creation != 0)
+        return STATUS_ERROR;
 
     // initialilizing the FIFO data structure to manage a
     // node of the current request handled (pipeline-robust approach)

@@ -127,10 +127,10 @@ Throwable *parse_apache_status(ApacheServerStatus *self) {
  * Return     : None.
  * ---------------------------------------------------------------------------
  */
-void destroy_apache_status(void *self) {
-    free(((ApacheServerStatus *) self)->url);           // Free space for URL
-    free(((ApacheServerStatus *) self)->status_page);   // Free space for status page
-    free(((ApacheServerStatus *) self)->string);        // Free space for to_string
+void destroy_apache_status(ApacheServerStatus *self) {
+    free(self->url);           // Free space for URL
+    free(self->status_page);   // Free space for status page
+    free(self->string);        // Free space for to_string
     free(self);                                         // Free all the struct
 }
 
@@ -235,18 +235,24 @@ Throwable *set_url_apache_status(ApacheServerStatus *self, char *url) {
  * ---------------------------------------------------------------------------
  */
 char *to_string_apache_status(ApacheServerStatus *self) {
-    char *string = malloc(sizeof(char) * 64000);  // TODO i do not know how many space
+    char *string;
+
+    if (self->string != NULL) {
+        free(self->string);
+    }
+
+    string = malloc(sizeof(char) * 64000);  // TODO i do not know how many space
     snprintf(string, 64000,
              "Status of Apache server at URL: %s\n\n"
-             "Total Accesses: %d\n"
-             "Total kBytes: %d\n"
-             "CPULoad: %f\n"
-             "Uptime: %d\n"
-             "ReqPerSec: %f\n"
-             "BytesPerSec: %f\n"
-             "BytesPerReq: %f\n"
-             "BusyWorkers: %d\n"
-             "IdleWorkers: %d",
+                     "Total Accesses: %d\n"
+                     "Total kBytes: %d\n"
+                     "CPULoad: %f\n"
+                     "Uptime: %d\n"
+                     "ReqPerSec: %f\n"
+                     "BytesPerSec: %f\n"
+                     "BytesPerReq: %f\n"
+                     "BusyWorkers: %d\n"
+                     "IdleWorkers: %d",
              self->url,
              self->total_accesses,
              self->total_kBytes,

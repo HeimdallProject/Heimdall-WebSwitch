@@ -66,7 +66,7 @@ typedef struct apache_server_status {
     Throwable *(*parse)(struct apache_server_status *self);
     Throwable *(*set_url)(struct apache_server_status *self, char *url);
     char *(*to_string)(struct apache_server_status *self);
-    void (*destroy)(void *self);
+    void (*destroy)(struct apache_server_status *self);
 } ApacheServerStatus;
 
 /*

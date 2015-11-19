@@ -121,10 +121,10 @@ typedef struct http_request {
     Throwable *(*get_header)(char *req_line, struct http_request *http);
     Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
     Throwable *(*read_headers)(char *buffer, struct http_request *http, int type);
-    Throwable *(*make_simple_request)(void *self, char **result);
+    Throwable *(*make_simple_request)(struct http_request *self, char **result);
     void (*set_simple_request)(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
-                            char *string);
-    void (*destroy)(void *self);
+                            char *host);
+    void (*destroy)(struct http_request *self);
 } HTTPRequest;
 
 
@@ -232,7 +232,7 @@ void set_simple_request(struct http_request *self, char *request_type, char *req
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *make_simple_request(void *self, char **result);
+Throwable *make_simple_request(struct http_request *self, char **result);
 
 /*
  * ---------------------------------------------------------------------------
@@ -243,7 +243,7 @@ Throwable *make_simple_request(void *self, char **result);
  * Return     :
  * ---------------------------------------------------------------------------
  */
-void destroy_http_request(void *self);
+void destroy_http_request(struct http_request *self);
 
 /*
  * ---------------------------------------------------------------------------

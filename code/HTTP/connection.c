@@ -88,6 +88,8 @@ int create_client_socket(const int type, const char *ip, const int port, int *so
 
     if (connect(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
         // TODO manage errno perror("Error in connect()");
+        printf("ciao");
+        fflush(stdout);
         return STATUS_ERROR;
     }
 
@@ -210,10 +212,10 @@ int main() {
     HTTPRequest http_request = *new_http_request();
 
     // Set simple request
-    http_request.set_simple_request(http_request.self, "GET", "/", "HTTP/1.1", "laziobus.it");
+    http_request.set_simple_request(http_request.self, "GET", "/", "HTTP/1.1", "10.200.15.216");
 
     int sockfd;
-    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) {
+    if (create_client_socket(TCP, "10.200.15.216", 8000, &sockfd) == STATUS_ERROR) {
         Log.e("Errore", "niente client socket!");
         exit(EXIT_FAILURE);
     }
@@ -223,7 +225,7 @@ int main() {
     receive_response(&sockfd);
 
     // Destroy the object
-    http_request.destroy(http_request.self);
+    http_request.destroy(&http_request);
 
     return EXIT_SUCCESS;
 }

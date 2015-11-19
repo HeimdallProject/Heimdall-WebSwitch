@@ -139,7 +139,7 @@ Throwable *get_request(char *req_line, HTTPRequest *http, int len) {
 }
 
 
-Throwable *get_response(char *req_line, HTTPRequest *http, int len) {
+Throwable * get_response(char *req_line, struct http_request *http, int len) {
 
     char delimiter = ' ';
 
@@ -221,53 +221,58 @@ Throwable *read_headers(char *buffer, HTTPRequest *http, int type) {
 }
 
 void set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
-                        char *string) {
+                        char *host) {
 
     // setting the params for a simple http request
-    ((HTTPRequest *) self)->req_type = request_type;
-    ((HTTPRequest *) self)->req_protocol = request_protocol;
-    ((HTTPRequest *) self)->req_resource = request_resource;
+    self->req_type = request_type;
+    self->req_protocol = request_protocol;
+    self->req_resource = request_resource;
+    self->req_host = host;
 }
 
-Throwable *make_simple_request(void *self, char **result) {
+Throwable * make_simple_request(struct http_request *self, char **result) {
 
     // checking if params are set
-    if (((HTTPRequest *) self)->req_type == NULL     ||
-        ((HTTPRequest *) self)->req_protocol == NULL ||
-        ((HTTPRequest *) self)->req_resource == NULL) {
+    if (self->req_type == NULL     ||
+            self->req_protocol == NULL ||
+            self->req_resource == NULL ||
+            self->req_host == NULL) {
         return (*get_throwable()).create(STATUS_ERROR, "Trying to create a simple http request with no params set", "make_simple_request");
     }
 
     // allocating the memory necessary for the result char buffer
-    int result_size = (int) strlen(((HTTPRequest *) self)->req_type)     + 1 +
-                      (int) strlen(((HTTPRequest *) self)->req_protocol) + 1 +
-                      (int) strlen(((HTTPRequest *) self)->req_resource);
+    int result_size = (int) strlen(self->req_type)     + 1 +
+                      (int) strlen(self->req_protocol) + 1 +
+                      (int) strlen(self->req_resource) + 1 +
+                      (int) strlen(self->req_host);
     *result = malloc(sizeof(char) * result_size + 2);
     if (*result == NULL)
         return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request)");
 
     // creating the simple request
-    int s = sprintf(*result, "%s %s %s\n\n", ((HTTPRequest *) self)->req_type,
-                                          ((HTTPRequest *) self)->req_resource,
-                                          ((HTTPRequest *) self)->req_protocol);
+    int s = sprintf(*result, "%s %s %s\nHost: %s\n\n",
+                    self->req_type,
+                    self->req_resource,
+                    self->req_protocol,
+                    self->req_host);
 
     return s < 0 ? (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request") :
                    (*get_throwable()).create(STATUS_OK, NULL, "make_simple_request");
 }
 
-void destroy_http_request(void *self) {
+void destroy_http_request(struct http_request *self) {
 
     // freeing the memory allocated for all the http request handling
-    free(((HTTPRequest *) self)->status);
-    free(((HTTPRequest *) self)->req_type);
-    free(((HTTPRequest *) self)->req_protocol);
-    free(((HTTPRequest *) self)->req_resource);
-    free(((HTTPRequest *) self)->req_accept);
-    free(((HTTPRequest *) self)->req_from);
-    free(((HTTPRequest *) self)->req_host);
-    free(((HTTPRequest *) self)->req_content_type);
-    free(((HTTPRequest *) self)->req_content_len);
-    free(((HTTPRequest *) self)->req_upgrade);
+    free(self->status);
+    free(self->req_type);
+    free(self->req_protocol);
+    free(self->req_resource);
+    free(self->req_accept);
+    free(self->req_from);
+    free(self->req_host);
+    free(self->req_content_type);
+    free(self->req_content_len);
+    free(self->req_upgrade);
     free(self);
 }
 
@@ -280,7 +285,19 @@ HTTPRequest *new_http_request(void) {
     }
 
     // autoreferencing
-    http->self = http;
+    http->self = (void*) http;
+
+    // NULL referencing the attributes
+    http->status = NULL;
+    http->req_type = NULL;
+    http->req_protocol = NULL;
+    http->req_resource = NULL;
+    http->req_accept = NULL;
+    http->req_from = NULL;
+    http->req_host = NULL;
+    http->req_content_type = NULL;
+    http->req_content_len = NULL;
+    http->req_upgrade = NULL;
 
     // functions pointers initialization
     http->get_header            = get_header;

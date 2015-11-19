@@ -14,7 +14,50 @@
 #ifndef APACHE_STATUS_H
 #define APACHE_STATUS_H
 
-#define TAG_APACHE_STATUS "APACHE_STATUS"  // Macro for log message
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include "../include/helper.h"
+#include "../include/connection.h"
+#include "../include/log.h"
+#include "../include/throwable.h"
+
+#define TAG_APACHE_STATUS "APACHE_STATUS"
+
+/*
+ * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+ *
+ *  // Initialize server_status
+ *  ApacheServerStatus server_status = *new_apache_server_status();
+ *  server_status.set_url(server_status.self, "www.laziobus.it");
+ *
+ *   // Retrieve status
+ *  Throwable retrieve_throwable = *server_status.retrieve(server_status.self);
+ *  if (retrieve_throwable.is_an_error(retrieve_throwable.self)) {
+ *      printf("Error");
+ *      exit(EXIT_FAILURE);
+ *  }
+ *
+ *  // Parse
+ *  Throwable parse_throwable = *server_status.parse(server_status.self);
+ *  if (parse_throwable.is_an_error(parse_throwable.self)) {
+ *      printf("Error");
+ *      exit(EXIT_FAILURE);
+ *  }
+ *
+ *  Log.i(TAG_APACHE_STATUS, server_status.to_string(server_status.self));
+ *
+ *  // Destroy the object
+ *  server_status.destroy(server_status.self);
+ *
+ *  return EXIT_SUCCESS;
+ *
+ */
 
 /*
  * ---------------------------------------------------------------------------
@@ -81,4 +124,4 @@ typedef struct apache_server_status {
  */
 ApacheServerStatus *new_apache_server_status();
 
-#endif
+#endif //APACHE_STATUS_H

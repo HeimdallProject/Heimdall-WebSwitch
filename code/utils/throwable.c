@@ -9,10 +9,7 @@
 // ===========================================================================
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "log.h"
-#include "helper.h"
+#include "../include/throwable.h"
 
 /*
  *  See .h for more information.
@@ -138,20 +135,4 @@ ThrowablePtr get_throwable() {
 
     // return singleton
     return singleton_throwable;
-}
-
-/*
- * ---------------------------------------------------------------------------
- *  Main function, for test and example usage.
- * ---------------------------------------------------------------------------
- */
-
-int main() {
-
-    Throwable Throwable = *get_throwable();
-
-    Log *log = get_log();
-    log->t(Throwable.create(STATUS_ERROR, "Ciao ciccio", "main()"));
-
-    return EXIT_SUCCESS;
 }

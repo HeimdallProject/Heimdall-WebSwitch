@@ -18,11 +18,10 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "../utils/log.h"
-#include "worker.h"
-#include "worker_pool.h"
+#include "../include/log.h"
+#include "../include/worker.h"
+#include "../include/worker_pool.h"
 
-// Macro for log message
 #define TAG_THREAD_POOL "THREAD_POOL"
 
 /*
@@ -53,4 +52,4 @@ typedef struct thread_pool {
  */
 ThreadPool *init_thread_pool();
 
-#endif
+#endif //THREAD_POOL_H

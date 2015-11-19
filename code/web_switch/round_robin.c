@@ -10,18 +10,7 @@
 // ===========================================================================
 //
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <pthread.h>
-#include <string.h>
-#include <stdio.h>
-
-#include "round_robin.h"
-#include "../web_switch/connection.h"
-#include "../web_switch/http_request.h"
-#include "../utils/helper.h"
-
+#include "../include/round_robin.h"
 
 // server broken reentering routine
 // TODO: to verify the effective necessity of this function and its further implementation

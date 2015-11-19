@@ -10,22 +10,33 @@
 //
 #ifndef LOG_H
 #define LOG_H
-#define _GNU_SOURCE
 
-#include "throwable.h"
-#include "../web_switch/apache_status.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "helper.h"
 #include <stdarg.h>
 #include <string.h>
 
-#define DEBUG_LEVEL   2  // Macro for debug message level
-#define INFO_LEVEL    3  // Macro for info message level
-#define ERROR_LEVEL   4  // Macro for error message level
+#include "../include/helper.h"
+#include "../include/throwable.h"
+#include "../include/heimdall_config.h"
 
-//TODO da mettere nel config
-#define PRINT_LEVEL 2
+#define _GNU_SOURCE
+#define DEBUG_LEVEL   2
+#define INFO_LEVEL    3
+#define ERROR_LEVEL   4
+
+/*
+ * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+ *
+ *  LogPtr log = get_log();
+ *  log->i("TAG", "INFO %s", "Si usa come la printf");
+ *  log->d("TAG", "DEBUG");
+ *  log->e("TAG", "ERRORE");
+ *
+ */
+
 
 /*
  * ---------------------------------------------------------------------------

@@ -9,8 +9,57 @@
 // ===========================================================================
 //
 
+#ifndef CONFIG_PARSER_H
+#define CONFIG_PARSER_H
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define TAG_CONFIG "CONFIG_PARSER"
+
+/*
+ * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+ *
+ * #include "../include/heimdall_config.h"
+ *
+ *  ConfigPtr config = get_config();
+ *  printf("handling_mode: %s",config->handling_mode);
+ *  printf("max_worker: %s",config->max_worker);
+ *  printf("pre_fork: %s",config->pre_fork);
+ *
+ */
+
+/*
+ * ---------------------------------------------------------------------------
+ * Relative position to config file
+ * ---------------------------------------------------------------------------
+ */
+#define CONFIGFILE "/Users/Andrea/MEGAsync/Sviluppo/Progetto_IIW/webswitch/code/config/heimdall_config.conf"
+
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : Config struct
+ * Description      : This struct collect all config value from config file.
+ * ---------------------------------------------------------------------------
+ */
+typedef struct config{
+    char *handling_mode;
+    char *max_worker;
+    char *max_thread_for_worker;
+    char *algorithm_selection;
+    char *pre_fork;
+    char *log_level;
+    char *write_enable;
+    char *print_enable;
+    char *log_file;
+    char *timeout_worker;
+    char *killer_time;
+    char *server_config;
+    char *timeout_request;
+} Config, *ConfigPtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -52,3 +101,5 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
  * ---------------------------------------------------------------------------
  */
 void *get_config();
+
+#endif //CONFIG_PARSER_H

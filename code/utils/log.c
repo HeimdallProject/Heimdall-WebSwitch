@@ -9,7 +9,7 @@
 // ===========================================================================
 //
 
-#include "log.h"
+#include "../include/log.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -35,9 +35,11 @@ static Log *singleton_log = NULL;
  */
 static int i(const char* tag, const char *format, ...) {
 
+    ConfigPtr config = get_config();
+
     int byte_read = 0;
 
-    if (INFO_LEVEL >= PRINT_LEVEL) {
+    if (INFO_LEVEL >= (int)config->log_level) {
 
         char *formatted_str;
 
@@ -77,10 +79,11 @@ static int i(const char* tag, const char *format, ...) {
 static int d(const char* tag, const char *format, ...) {
 
     //TODO scrivere sul file se variabile è settata nel config
+    ConfigPtr config = get_config();
 
     int byte_read = 0;
 
-    if (DEBUG_LEVEL >= PRINT_LEVEL) {
+    if (DEBUG_LEVEL >= (int)config->log_level) {
 
         char *formatted_str;
 
@@ -117,9 +120,11 @@ static int d(const char* tag, const char *format, ...) {
  */
 static int e(const char* tag, const char *format, ...) {
 
+    ConfigPtr config = get_config();
+
     int byte_read = 0;
 
-    if (ERROR_LEVEL >= PRINT_LEVEL) {
+    if (ERROR_LEVEL >= (int)config->log_level) {
         
         char *formatted_str;
 
@@ -212,16 +217,3 @@ Log *get_log() {
     // return singleton
     return singleton_log;
 }
-
-/*
- * ---------------------------------------------------------------------------
- *  Main function, for test and example usage.
- * ---------------------------------------------------------------------------
- */
-/*int main() {
-
-    Log log = *get_log();
-    log.i("TAG", "INFO");
-    log.d("TAG", "DEBUG");
-    log.e("TAG", "ERRORE");
-}*/

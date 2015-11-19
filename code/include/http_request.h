@@ -21,7 +21,17 @@
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
 
-#define TAG_HTTP_REQUEST        "HTTP_REQUEST"
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+
+#include "../include/helper.h"
+#include "../include/log.h"
+#include "../include/throwable.h"
+
+#define TAG_HTTP_REQUEST "HTTP_REQUEST"
 
 /*
  * this macros will be used to retrieve the necessary info from the HTTP request
@@ -92,9 +102,6 @@
 #define WARNING                 "warning"
 
 #define INTERNAL_ERROR          "500"
-
-
-#include "../utils/throwable.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -256,4 +263,5 @@ void destroy_http_request(void *self);
  * ---------------------------------------------------------------------------
  */
 HTTPRequest *new_http_request(void);
-#endif
+
+#endif //HTTP_REQUEST_H

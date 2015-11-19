@@ -2,8 +2,7 @@
 // Created by Odysseus on 18/11/15.
 //
 
-#include
-#include "watchdog.h"
+#include "../include/watchdog.h"
 
 void *enable_watchdog(void *arg) {
 

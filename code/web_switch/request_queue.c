@@ -10,8 +10,7 @@
 // ===========================================================================
 //
 
-#include "request_queue.h"
-#include "log.h"
+#include "../include/request_queue.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -211,7 +210,7 @@ RequestQueuePtr init_request_queue() {
  *  Main function, for test and example usage.
  * ---------------------------------------------------------------------------
  */
-int main(int argc, char *argv[]) {
+/*int main() {
 
     LogPtr log = get_log();
 
@@ -249,4 +248,4 @@ int main(int argc, char *argv[]) {
     queue->destroy(queue);
 
     return EXIT_SUCCESS;
-}
+}*/

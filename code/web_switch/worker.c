@@ -9,18 +9,7 @@
 // ===========================================================================
 //
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <pthread.h>
-#include "../utils/helper.h"
-#include "../config/config.h"
-#include "worker.h"
-
-#include "watchdog.h"
-#include "worker.h"
+#include "../include/worker.h"
 
 // initializing the requests buffer (DEV)
 ThreadRequest *requests;

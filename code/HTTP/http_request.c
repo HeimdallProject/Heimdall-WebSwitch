@@ -17,16 +17,7 @@
 //              - http://en.wikipedia.org/wiki/List_of_HTTP_header_fields (dev)
 // ============================================================================
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <sys/errno.h>
-
-#include "../utils/helper.h"
-#include "../utils/log.h"
-#include "http_request.h"
-
+#include "../include/http_request.h"
 
 Throwable *get_header(char *req_line, HTTPRequest *http) {
 
@@ -223,6 +214,7 @@ Throwable *read_headers(char *buffer, HTTPRequest *http, int type) {
 void set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
                         char *string) {
 
+    printf("%s\n", string);
     // setting the params for a simple http request
     ((HTTPRequest *) self)->req_type = request_type;
     ((HTTPRequest *) self)->req_protocol = request_protocol;

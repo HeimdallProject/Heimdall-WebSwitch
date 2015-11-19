@@ -8,18 +8,7 @@
 // ============================================================================
 //
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "connection.h"
-#include "../utils/log.h"
+#include "../include/connection.h"
 
 /*
  * Function   : create_socket

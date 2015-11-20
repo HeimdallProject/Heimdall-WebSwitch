@@ -11,15 +11,19 @@
 #ifndef HELPER_H
 #define HELPER_H
 
-#define TAG_HELPER "HELPER"  // Macro for log message
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <limits.h>
+#include <ctype.h>
+#include <time.h>
+#include <string.h>
 
-#include "throwable.h"
+#include "../include/throwable.h"
+#include "../include/log.h"
+#include "../include/macro.h"
 
-#define STATUS_OK     0  // Macro for status ok
-#define STATUS_ERROR -1  // Macro for status error
-
-#define TRUE  1  // Macro for true
-#define FALSE 0  // Macro for false
+#define TAG_HELPER "HELPER"
 
 /*
  * ---------------------------------------------------------------------------
@@ -138,7 +142,7 @@ char* concat_string(const char* string1, const char* string2);
  */
 char* append_char_to_string(const char* string, const char c);
 
-#endif
+#endif //HELPER_H
 
 
 

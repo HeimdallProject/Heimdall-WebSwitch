@@ -12,7 +12,8 @@
 #ifndef WEBSWITCH_REQUEST_QUEUE_H
 #define WEBSWITCH_REQUEST_QUEUE_H
 
-#include "request_node.h"
+#include "../include/request_node.h"
+#include "../include/log.h"
 
 #define TAG_REQUEST_QUEUE "REQUEST_QUEUE" // Macro for log message
 

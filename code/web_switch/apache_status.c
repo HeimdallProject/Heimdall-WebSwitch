@@ -12,16 +12,7 @@
 // ===========================================================================
 //
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include "../utils/helper.h"
-#include "../HTTP/connection.h"
-#include "apache_status.h"
-#include "../utils/log.h"
-#include "../utils/throwable.h"
+#include "../include/apache_status.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -286,47 +277,4 @@ ApacheServerStatus *new_apache_server_status() {
     apache_server_status->to_string = to_string_apache_status;
 
     return apache_server_status;
-}
-
-/*
- * ---------------------------------------------------------------------------
- *  Main function, for test and example usage.
- * ---------------------------------------------------------------------------
- */
-int main(int argc, char *argv[]) {
-
-    int n = 1; // Number of arguments
-    if (argc != n + 1 || strcmp(argv[1], "--help") == 0) {
-        fprintf(stderr, "Usage %s <URL>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    Log Log = (*get_log());
-
-    // Initialize server_status
-    ApacheServerStatus server_status = *new_apache_server_status();
-
-    // Set url of apache server
-    server_status.set_url(server_status.self, argv[1]);
-
-    // Retrieve status
-    Throwable retrieve_throwable = *server_status.retrieve(server_status.self);
-    if (retrieve_throwable.is_an_error(retrieve_throwable.self)) {
-        Log.t(&retrieve_throwable);
-        exit(EXIT_FAILURE);     // Or throw again
-    }
-
-    // Parse
-    Throwable parse_throwable = *server_status.parse(server_status.self);
-    if (parse_throwable.is_an_error(parse_throwable.self)) {
-        Log.t(&parse_throwable);
-        exit(EXIT_FAILURE);     // Or throw again
-    }
-
-    Log.i(TAG_APACHE_STATUS, server_status.to_string(server_status.self));
-
-    // Destroy the object
-    server_status.destroy(server_status.self);
-
-    return EXIT_SUCCESS;
 }

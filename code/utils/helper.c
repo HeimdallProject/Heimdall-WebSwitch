@@ -9,16 +9,7 @@
 // ===========================================================================
 //
 
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
-
-#include "time.h"
-#include "log.h"
-#include "helper.h"
+#include "../include/helper.h"
 
 /*
  *  See .h for more information.

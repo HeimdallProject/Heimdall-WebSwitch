@@ -11,12 +11,18 @@
 #ifndef WEBSWITCH_WORKER_H
 #define WEBSWITCH_WORKER_H
 
-#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <time.h>
-#include "../utils/helper.h"
-#include "watchdog.h"
+#include <errno.h>
+#include <pthread.h>
 
-// Macro for log message
+#include "../include/helper.h"
+#include "../include/heimdall_config.h"
+#include "../include/worker.h"
+#include "../include/watchdog.h"
+
 #define TAG_WORKER "WORKER"
 
 /*

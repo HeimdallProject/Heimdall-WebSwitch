@@ -19,8 +19,10 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "../utils/helper.h"
-#include "worker.h"
+#include "../include/helper.h"
+#include "../include/worker.h"
+
+#define TAG_WATCHDOG "WATCHDOG"
 
 /*
  * ---------------------------------------------------------------------------

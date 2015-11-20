@@ -11,10 +11,24 @@
 #ifndef THROWABLE_H
 #define THROWABLE_H
 
-#define TAG_THROWABLE "THROWABLE"  // Macro for log message
+#include <stdio.h>
+#include <stdlib.h>
 
-#define STATUS_OK     0  // Macro for status ok
-#define STATUS_ERROR -1  // Macro for status error
+#include "../include/macro.h"
+
+#define TAG_THROWABLE "THROWABLE"
+
+/*
+ * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+ *
+ *  ThrowablePtr thr = get_throwable();
+ *  LogPtr log = get_log();
+ *  log->t(thr->create(STATUS_ERROR, "Ciao", "main()"));
+ *
+ */
+
 
 /*
  * ---------------------------------------------------------------------------
@@ -54,4 +68,4 @@ typedef struct throwable {
  */
 ThrowablePtr get_throwable();
 
-#endif
+#endif //THROWABLE_H

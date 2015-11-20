@@ -10,14 +10,7 @@
 // ============================================================================
 //
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "../utils/helper.h"
-#include "../utils/log.h"
-#include "http_response.h"
-
+#include "../include/http_response.h"
 
 Throwable *get_http_response(void *self, char *buffer) {
 

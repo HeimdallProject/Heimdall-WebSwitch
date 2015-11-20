@@ -14,7 +14,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "worker_obj.h"
+
+#include "../include/worker.h"
 
 #define TAG_WORKER_POOL_H "WORKER_POOL"
 
@@ -49,4 +50,4 @@ typedef struct worker_pool{
  */
  WorkerPoolPtr init_worker_pool();
 
-#endif
+#endif //WORKER_POOL_H

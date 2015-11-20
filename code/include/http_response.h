@@ -13,10 +13,16 @@
 #ifndef WEBSWITCH_HTTP_RESPONSE_H
 #define WEBSWITCH_HTTP_RESPONSE_H
 
-#define TAG_HTTP_RESPONSE "HTTP_RESPONSE"
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "../utils/throwable.h"
-#include "http_request.h"
+#include "../include/helper.h"
+#include "../include/log.h"
+#include "../include/throwable.h"
+#include "../include/http_request.h"
+
+#define TAG_HTTP_RESPONSE "HTTP_RESPONSE"
 
 typedef struct http_response {
     struct http_response *self;                                // autoreferencing the struct
@@ -103,4 +109,4 @@ void destroy_http_response(void *self);
 HTTPResponse *new_http_response(void);
 
 
-#endif
+#endif //WEBSWITCH_HTTP_RESPONSE_H

@@ -9,7 +9,7 @@
 // ===========================================================================
 //
 
-#include "config_parser.h"
+#include "../include/heimdall_config.h"
 
 /*
  * ---------------------------------------------------------------------------
@@ -17,6 +17,50 @@
  * ---------------------------------------------------------------------------
  */
 void *singleton_config = NULL;
+
+/*
+* ---------------------------------------------------------------------------
+* Function     : config_handler
+* Description  : Callback function, see config_parser.c for more information.
+*
+* Return       : 0 if ok, -1 if error.
+* ---------------------------------------------------------------------------
+*/
+int config_handler(char *key, char *value, void *p_config) {
+
+    Config* config = (Config *)p_config;
+
+    if (strcmp(key, "handling_mode") == 0)
+        config->handling_mode = value;
+    else if (strcmp(key, "max_worker") == 0)
+        config->max_worker = value;
+    else if (strcmp(key, "max_thread_for_worker") == 0)
+        config->max_thread_for_worker = value;
+    else if (strcmp(key, "algorithm_selection") == 0)
+        config->algorithm_selection = value;
+    else if (strcmp(key, "pre_fork") == 0)
+        config->pre_fork = value;
+    else if (strcmp(key, "log_level") == 0)
+        config->log_level = value;
+    else if (strcmp(key, "write_enable") == 0)
+        config->write_enable = value;
+    else if (strcmp(key, "print_enable") == 0)
+        config->print_enable = value;
+    else if (strcmp(key, "log_file") == 0)
+        config->log_file = value;
+    else if (strcmp(key, "timeout_worker") == 0)
+        config->timeout_worker = value;
+    else if (strcmp(key, "killer_time") == 0)
+        config->killer_time = value;
+    else if (strcmp(key, "server_config") == 0)
+        config->server_config = value;
+    else if (strcmp(key, "timeout_request") == 0)
+        config->timeout_request = value;
+    else
+        return -1;  /* unknown key, error */
+
+    return 0;
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -92,9 +136,39 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * Function     : new_log
+ * Description  : Alloc and initialize object Log.
+ *
+ * Param        :
+ *
+ * Return       : Pointer to object Log.
+ * ---------------------------------------------------------------------------
+ */
+ConfigPtr new_config() {
+
+    ConfigPtr config  = malloc(sizeof(Config));
+    if (config == NULL) {
+        fprintf(stderr, "%s Error in malloc(sizeof(Config))\n", TAG_CONFIG);
+        exit(EXIT_FAILURE);
+    }
+
+    if(init_config(CONFIGFILE, &config_handler, config) == -1){
+        fprintf(stderr, "%s Error ininit_config\n", TAG_CONFIG);
+        exit(EXIT_FAILURE);
+    }
+
+    return config;
+}
+
+/*
  *  See .h for more information.
  */
 void *get_config(){
+
+    if(singleton_config == NULL){
+        singleton_config = new_config();
+    }
 
     return singleton_config;
 }

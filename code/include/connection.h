@@ -8,11 +8,26 @@
 // ============================================================================
 //
 
-#include "http_request.h"
+#ifndef WEBSWITCH_CONNECTION_H
+#define WEBSWITCH_CONNECTION_H
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "../include/http_request.h"
+#include "../include/log.h"
+#include "../include/macro.h"
+
+#define TAG_CONNECTION "CONNECTION"
 
 #define TCP 0
 #define UDP 1
-
 
 //TODO create struct for HTTP response
 //TODO create wrapper for getnameinfo, better version of gethostbyname
@@ -111,3 +126,5 @@ int send_request(int *sockfd, HTTPRequest *request);
  * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
  */
 int receive_response(int *sockfd);
+
+#endif //WEBSWITCH_CONNECTION_H

@@ -9,7 +9,7 @@
 // ===========================================================================
 //
 
-#include "watchdog.h"
+#include "../include/watchdog.h"
 
 void *enable_watchdog(void *arg) {
 

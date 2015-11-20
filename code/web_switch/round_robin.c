@@ -10,18 +10,7 @@
 // ===========================================================================
 //
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <pthread.h>
-#include <string.h>
-#include <stdio.h>
-
-#include "round_robin.h"
-#include "../web_switch/connection.h"
-#include "../web_switch/http_request.h"
-#include "../utils/helper.h"
-
+#include "../include/round_robin.h"
 
 // server broken reentering routine
 // TODO: to verify the effective necessity of this function and its further implementation
@@ -35,13 +24,14 @@ int broken_server_routine(Server *server) {
 
     // making a simple GET request
     char *request;
+    /*
     HTTPRequest *http_request = new_http_request();
     http_request->set_simple_request(http_request->self, "GET", "/", "HTTP/1.1");
     http_request->make_simple_request(http_request->self, &request);
     fprintf(stdout, "requesting...");
     fflush(stdout);
     // initializing an HTTP response struct
-    HTTPRequest *http_response = new_http_request();
+    HTTPRequest *http_response = new_http_request(); */
 
     // writing the request into the socket
     int nwrite = (int) strlen(request);
@@ -83,8 +73,10 @@ int broken_server_routine(Server *server) {
     buffer[readn] = '\0';
 
     // reading the response
+    /*
     http_response->read_headers(buffer, http_response, RESP);
     if (strcmp(http_response->resp_code, "500") == 0) return STATUS_ERROR;
+     */
 
     return STATUS_OK;
 }

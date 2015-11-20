@@ -8,18 +8,7 @@
 // ============================================================================
 //
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "connection.h"
-#include "../utils/log.h"
+#include "../include/connection.h"
 
 /*
  * Function   : create_socket
@@ -88,6 +77,8 @@ int create_client_socket(const int type, const char *ip, const int port, int *so
 
     if (connect(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
         // TODO manage errno perror("Error in connect()");
+        printf("ciao");
+        fflush(stdout);
         return STATUS_ERROR;
     }
 
@@ -204,26 +195,26 @@ int main() {
         return EXIT_FAILURE;
     }*/
 
-    Log Log = (*get_log());
+    LogPtr log = get_log();
 
     // Initialize server_status
-    HTTPRequest http_request = *new_http_request();
+    HTTPRequest *http_request = new_http_request();
 
     // Set simple request
-    http_request.set_simple_request(http_request.self, "GET", "/", "HTTP/1.1", "laziobus.it");
+    http_request->set_simple_request(http_request->self, "GET", "/", "HTTP/1.1", "10.200.15.216");
 
     int sockfd;
-    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) {
-        Log.e("Errore", "niente client socket!");
+    if (create_client_socket(TCP, "10.200.15.216", 8000, &sockfd) == STATUS_ERROR) {
+        log->e("Errore", "niente client socket!");
         exit(EXIT_FAILURE);
     }
 
-    send_request(&sockfd, &http_request);
+    send_request(&sockfd, http_request);
 
     receive_response(&sockfd);
 
     // Destroy the object
-    http_request.destroy(http_request.self);
+    http_request->destroy(http_request);
 
     return EXIT_SUCCESS;
 }

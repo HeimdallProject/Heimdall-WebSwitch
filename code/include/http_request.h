@@ -21,7 +21,17 @@
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
 
-#define TAG_HTTP_REQUEST        "HTTP_REQUEST"
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+
+#include "../include/helper.h"
+#include "../include/log.h"
+#include "../include/throwable.h"
+
+#define TAG_HTTP_REQUEST "HTTP_REQUEST"
 
 /*
  * this macros will be used to retrieve the necessary info from the HTTP request
@@ -93,9 +103,6 @@
 
 #define INTERNAL_ERROR          "500"
 
-
-#include "../utils/throwable.h"
-
 /*
  * ---------------------------------------------------------------------------
  * Structure        : typedef struct http_request
@@ -121,10 +128,9 @@ typedef struct http_request {
     Throwable *(*get_header)(char *req_line, struct http_request *http);
     Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
     Throwable *(*read_headers)(char *buffer, struct http_request *http, int type);
-    Throwable *(*make_simple_request)(void *self, char **result);
-    void (*set_simple_request)(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
-                            char *string);
-    void (*destroy)(void *self);
+    Throwable *(*make_simple_request)(struct http_request *self, char **result);
+    Throwable *(*set_simple_request)(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
+    void (*destroy)(struct http_request *self);
 } HTTPRequest;
 
 
@@ -215,8 +221,7 @@ Throwable *read_headers(char *buffer, struct http_request *http, int type);
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-void set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol,
-                        char *string);
+Throwable *set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
 
 /*
  * ---------------------------------------------------------------------------
@@ -232,7 +237,7 @@ void set_simple_request(struct http_request *self, char *request_type, char *req
  *   Throwable pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *make_simple_request(void *self, char **result);
+Throwable *make_simple_request(struct http_request *self, char **result);
 
 /*
  * ---------------------------------------------------------------------------
@@ -243,7 +248,7 @@ Throwable *make_simple_request(void *self, char **result);
  * Return     :
  * ---------------------------------------------------------------------------
  */
-void destroy_http_request(void *self);
+void destroy_http_request(struct http_request *self);
 
 /*
  * ---------------------------------------------------------------------------
@@ -252,8 +257,9 @@ void destroy_http_request(void *self);
  *
  * Param      :
  * Return     :
- *   struct http_request pointer
+ *   struct http_request pointer or NULL in case of failure
  * ---------------------------------------------------------------------------
  */
 HTTPRequest *new_http_request(void);
-#endif
+
+#endif //HTTP_REQUEST_H

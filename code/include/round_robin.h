@@ -5,10 +5,22 @@
 #ifndef WEBSWITCH_ROUND_ROBIN_H
 #define WEBSWITCH_ROUND_ROBIN_H
 
-#include "circular.h"
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdio.h>
 
-#define MAX_BROKEN_SERV_ROUTINE_BUFFER 320
+#include "../include/connection.h"
+#include "../include/http_request.h"
+#include "../include/helper.h"
+#include "../include/circular.h"
+
+#define TAG_ROUND_ROBIN "ROUND_ROBIN"
+
 //TODO: to modify this constrain!! using realloc?
+#define MAX_BROKEN_SERV_ROUTINE_BUFFER 320
 
 /*
  * ---------------------------------------------------------------------------

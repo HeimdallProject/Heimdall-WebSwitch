@@ -5,16 +5,21 @@
 #ifndef WEBSWITCH_CIRCULAR_H
 #define WEBSWITCH_CIRCULAR_H
 
-#include "../utils/throwable.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <pthread.h>
 
-#define BUFFER_PROGRESS_OK          0
-#define BUFFER_PROGRESS_STOP       -1
+#include "../include/helper.h"
+#include "../include/throwable.h"
 
-#define SERVER_STATUS_READY         1
-#define SERVER_STATUS_BROKEN       -1
-
-#define WEIGHT_DEFAULT              1
-#define WEIGHT_MAX                  4
+#define TAG_CIRCULAR "CIRCULAR"
+#define BUFFER_PROGRESS_OK      0
+#define BUFFER_PROGRESS_STOP    -1
+#define SERVER_STATUS_READY     1
+#define SERVER_STATUS_BROKEN    -1
+#define WEIGHT_DEFAULT          1
+#define WEIGHT_MAX              4
 
 /*
  * this is only an example structure to define a circular buffer over a set of
@@ -138,4 +143,4 @@ void acquire_circular(void);
  */
 void release_circular(void);
 
-#endif
+#endif //WEBSWITCH_CIRCULAR_H

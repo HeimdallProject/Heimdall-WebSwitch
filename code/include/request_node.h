@@ -12,11 +12,14 @@
 #ifndef WEBSWITCH_REQUEST_NODE_H
 #define WEBSWITCH_REQUEST_NODE_H
 
-#include "../HTTP/http_response.h"
 #include <time.h>
 #include <pthread.h>
+#include <stdlib.h>
 
-#define TAG_REQUEST_NODE "REQUEST_NODE" // Macro for log message
+#include "../include/http_response.h"
+#include "../include/log.h"
+
+#define TAG_REQUEST_NODE "REQUEST_NODE"
 
 /*
  * ---------------------------------------------------------------------------

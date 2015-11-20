@@ -10,6 +10,7 @@
 //
 #ifndef LOG_H
 #define LOG_H
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +21,6 @@
 #include "../include/throwable.h"
 #include "../include/heimdall_config.h"
 
-#define _GNU_SOURCE
 #define DEBUG_LEVEL   2
 #define INFO_LEVEL    3
 #define ERROR_LEVEL   4

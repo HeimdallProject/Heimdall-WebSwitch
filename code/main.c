@@ -17,8 +17,8 @@
 int main() {
 
     /* Init Config */
-    //ConfigPtr config = get_config();
-    //printf("test_config: %s",config->pre_fork);
+    ConfigPtr config = get_config();
+    printf("test_config: %s",config->pre_fork);
 
     /* Init Log */
     //LogPtr log = get_log();

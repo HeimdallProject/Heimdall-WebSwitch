@@ -1,10 +1,6 @@
 //
 //============================================================================
 // Name             : log.h
-// Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 30/05/2015
-// Last modified    : 30/05/2015
 // Description      : This header file contains all the stuffs useful in order to print / write log file.
 // ===========================================================================
 //

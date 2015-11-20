@@ -1,8 +1,6 @@
 //
 //============================================================================
 // Name       : http_request.h
-// Author     : Alessio Moretti
-// Version    : 0.1
 // Description: Header file for the HTTP request header parsing - it includes all
 //              the structs and functions useful to parse the header of the HTTP
 //              request in order to let the web switch balancing algorithm to

@@ -1,10 +1,6 @@
 //
 //============================================================================
 // Name             : apache_status.c
-// Author           : Claudio Pastorini
-// Version          : 0.3
-// Data Created     : 09/05/2015
-// Last modified    : 01/06/2015
 // Description      : This header file contains all the stuffs useful in order to
 //                    reads the status of an Apache server.
 //                    For other info read:

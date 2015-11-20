@@ -1,8 +1,6 @@
 //
 //============================================================================
 // Name       : connection.h
-// Author     : Claudio Pastorini
-// Version    : 0.2
 // Description: Header file for our client/server project with simple socket's
 //              functions.
 // ============================================================================

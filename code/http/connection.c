@@ -1,12 +1,3 @@
-//
-//============================================================================
-// Name       : connection.c
-// Author     : Claudio Pastorini
-// Version    : 0.2
-// Description: Code file for our client/server project with simple socket's
-//              functions.
-// ============================================================================
-//
 
 #include "../include/connection.h"
 

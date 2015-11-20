@@ -1,14 +1,3 @@
-//
-//============================================================================
-// Name             : round_robin.c
-// Author           : Alessio Moretti
-// Version          : 0.1
-// Date created     : 18/08/2015
-// Last modified    : 18/08/2015
-// Description      : This file contains an implementation of some different Round
-//                    Robin scheduling disciplines using the circular buffer implementation
-// ===========================================================================
-//
 
 #include "../include/round_robin.h"
 

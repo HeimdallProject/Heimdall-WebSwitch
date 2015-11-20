@@ -1,5 +1,12 @@
 //
-// Created by Odysseus on 18/11/15.
+//============================================================================
+// Name             : watchdog.c
+// Author           : Alessio Moretti
+// Version          : 0.2
+// Data Created     : 18/11/2015
+// Last modified    : 18/11/2015
+// Description      : This is the watchdog utils source file
+// ===========================================================================
 //
 
 #include "../include/watchdog.h"

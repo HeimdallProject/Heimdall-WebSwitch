@@ -206,26 +206,26 @@ int main() {
         return EXIT_FAILURE;
     }*/
 
-    Log Log = (*get_log());
+    LogPtr log = get_log();
 
     // Initialize server_status
-    HTTPRequest http_request = *new_http_request();
+    HTTPRequest *http_request = new_http_request();
 
     // Set simple request
-    http_request.set_simple_request(http_request.self, "GET", "/", "HTTP/1.1", "10.200.15.216");
+    http_request->set_simple_request(http_request->self, "GET", "/", "HTTP/1.1", "10.200.15.216");
 
     int sockfd;
     if (create_client_socket(TCP, "10.200.15.216", 8000, &sockfd) == STATUS_ERROR) {
-        Log.e("Errore", "niente client socket!");
+        log->e("Errore", "niente client socket!");
         exit(EXIT_FAILURE);
     }
 
-    send_request(&sockfd, &http_request);
+    send_request(&sockfd, http_request);
 
     receive_response(&sockfd);
 
     // Destroy the object
-    http_request.destroy(&http_request);
+    http_request->destroy(http_request);
 
     return EXIT_SUCCESS;
 }

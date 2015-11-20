@@ -11,10 +11,35 @@
 
 #include "../include/watchdog.h"
 
+int detach_watchdog(WorkerPtr worker) {
+    // setting up watchdog
+    // struct allocation
+    worker->watchdog = malloc(sizeof(Watchdog));
+    if (worker->watchdog == NULL)
+        return STATUS_ERROR;
+    // retrieving the config params for the watchdog and converting them
+    Config *config = get_config();
+    long k_time;
+    long out_time;
+    if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())      ||
+        str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable()))
+        return STATUS_ERROR;
+    // watchdog wake-up time
+    worker->watchdog->killer_time = (time_t) k_time;
+    // setting up the execution time
+    worker->watchdog->timeout_worker = (time_t) out_time;
+    // thread initialization
+    int watchdog_creation = pthread_create(worker->watchdog->thread_id, NULL, enable_watchdog, (void *) worker->watchdog);
+    if (watchdog_creation != 0)
+        return STATUS_ERROR;
+    else
+        return STATUS_OK;
+}
+
 void *enable_watchdog(void *arg) {
 
     // retrieving watchdog
-    Watchdog *watchdog = (Watchdog *) arg;
+    WatchdogPtr watchdog = (WatchdogPtr) arg;
 
     // initializing time specifics
     struct timespec *req_time = malloc(sizeof(struct timespec));
@@ -27,7 +52,6 @@ void *enable_watchdog(void *arg) {
     int sleep_status;
     int watch_status;
     for (;;) {
-        // TODO: advancing step
         // sleeping loop
         // setting req_time specifics
         req_time->tv_nsec = (long) watchdog->killer_time;
@@ -46,25 +70,20 @@ void *enable_watchdog(void *arg) {
         }
 
         // watchover routine
-        watch_status = watch_over(watchdog, watchdog->requests->thread_id, watchdog->requests->timestamp, time(NULL));
+        watch_status = watch_over(watchdog, watchdog->timestamp_worker, time(NULL));
         if (watch_status == STATUS_ERROR)
             return (void *) (intptr_t) STATUS_ERROR;
+        if (watch_status == WATCH_OVER)
+            return (void *) (intptr_t) STATUS_OK;
     }
-
-    // successfull status
-    return (void *) (intptr_t) STATUS_OK;
 }
 
-int watch_over(Watchdog *watchdog, pthread_t *running_thread, time_t running_timestamp, time_t current_timestamp) {
+int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_timestamp) {
 
     // checking for timestamp distance and aborting thread if necessary
     time_t running_exec_time = current_timestamp - running_timestamp;
-    if (running_exec_time > watchdog->timeout_worker) {
-        int cancellation_status = pthread_cancel(*running_thread);
-        if (cancellation_status != 0)
-            return STATUS_ERROR;
-    }
-
-    // successfull status
-    return STATUS_OK;
+    if (running_exec_time > watchdog->timeout_worker)
+        return WATCH_OVER;
+    else
+        return STATUS_OK;
 }

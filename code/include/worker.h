@@ -1,13 +1,10 @@
 //
 //============================================================================
 // Name             : worker.h
-// Author           : Alessio Moretti e Claudio Pastorini
-// Version          : 0.2
-// Data Created     : 11/11/2015
-// Last modified    : 11/11/2015
 // Description      : This is the webswitch single Worker thread body
 // ===========================================================================
 //
+
 #ifndef WEBSWITCH_WORKER_H
 #define WEBSWITCH_WORKER_H
 
@@ -27,17 +24,6 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Structure        : typedef struct thread_request
- * Description      : this struct manage the request
- * ---------------------------------------------------------------------------
- */
-typedef struct thread_request {
-    pthread_t *thread_id;                            // thread identifier
-    time_t timestamp;                               // timestamp for watchdog check
-} ThreadRequest;
-
-/*
- * ---------------------------------------------------------------------------
  * Structure    : typedef struct worker
  * Description  :
  *
@@ -47,23 +33,51 @@ typedef struct thread_request {
  * ---------------------------------------------------------------------------
  */
 typedef struct worker {
-    char* thread_identifier;
-    char* process_identifier;
+    pthread_t *writer;                              // pointer to thread writer identifier
+    pthread_t *reader;                              // pointer to thread reader identifier
 
-    Watchdog *watchdog;
+    RequestQueuePtr requests_ques;                  // pointer to the queue of the pending requests
+    WatchdogPtr watchdog;                           // pointer to the watchdog
 } Worker, *WorkerPtr;
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : start_worker
- * Description: This function runs the main loop into which the worker operates
- *              managing the connection between the client and the remote machine
+ * Function   : read_work
+ * Description: This function is used by a specific thread to run over a inf.
+ *              loop to read from a remote socket specified in Worker
  *
- * Param      : WorkerPtr
+ * Param      : void pointer necessary - WorkerPtr in this case
  * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
  * ---------------------------------------------------------------------------
  */
-int start_worker(WorkerPtr worker);
+void *read_work(void *arg);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : write_work
+ * Description: This function is used by a specific thread to run over a inf.
+ *              loop to write into the client socket, it is projected to be used
+ *              to help the (blocking) read process.
+ *
+ * Param      : void pointer necessary - WorkerPtr in this case
+ * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
+ * ---------------------------------------------------------------------------
+ */
+void *write_work(void *arg);
+
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : start_worker
+ * Description: This function is used to launch all the threads and to allocate
+ *              all the data structures and buffer necessary to the worker proper
+ *              goal.
+ *
+ * Param      :
+ * Return     : ThrowablePtr
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr start_worker();
 
 /*
  * ---------------------------------------------------------------------------
@@ -72,9 +86,9 @@ int start_worker(WorkerPtr worker);
  *
  * Param      :
  *
- * Return     :
+ * Return     : WorkPtr
  * ---------------------------------------------------------------------------
  */
-Worker *new_worker();
+WorkerPtr new_worker();
 
 #endif //WEBSWITCH_WORKER_H

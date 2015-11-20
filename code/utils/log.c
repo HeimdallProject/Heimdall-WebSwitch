@@ -2,9 +2,9 @@
 //============================================================================
 // Name             : log.c
 // Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 30/05/2015
-// Last modified    : 30/05/2015
+// Version          : 0.1.1
+// Data Created     : 20/11/2015
+// Last modified    : 20/11/2015
 // Description      : This file contains all the stuffs useful in order to print / write log file.
 // ===========================================================================
 //
@@ -39,7 +39,10 @@ static int i(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    if (INFO_LEVEL >= (int)*(config->log_level)) {
+    int level;
+    str_to_int(config->log_level, &level);
+
+    if (INFO_LEVEL >= level) {
 
         char *formatted_str;
 
@@ -83,7 +86,10 @@ static int d(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    if (DEBUG_LEVEL >= (int)*(config->log_level)) {
+    int level;
+    str_to_int(config->log_level, &level);
+
+    if (DEBUG_LEVEL >= level) {
 
         char *formatted_str;
 
@@ -124,7 +130,10 @@ static int e(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    if (ERROR_LEVEL >= (int)*(config->log_level)) {
+    int level;
+    str_to_int(config->log_level, &level);
+
+    if (ERROR_LEVEL >= level) {
         
         char *formatted_str;
 

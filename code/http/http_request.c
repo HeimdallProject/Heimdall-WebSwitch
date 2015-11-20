@@ -321,6 +321,7 @@ HTTPRequest *new_http_request(void) {
     return http;
 }
 
+/*
 // use cases
 int main(int argc, char *argv[]) {
     if (argc != 1) {
@@ -336,4 +337,4 @@ int main(int argc, char *argv[]) {
     http->destroy(http->self);
 
     return 0;
-}
+}*/

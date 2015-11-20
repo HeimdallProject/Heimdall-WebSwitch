@@ -210,7 +210,7 @@ RequestQueuePtr init_request_queue() {
  *  Main function, for test and example usage.
  * ---------------------------------------------------------------------------
  */
-/*int main() {
+int main() {
 
     LogPtr log = get_log();
 
@@ -248,4 +248,4 @@ RequestQueuePtr init_request_queue() {
     queue->destroy(queue);
 
     return EXIT_SUCCESS;
-}*/
+}

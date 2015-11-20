@@ -37,7 +37,7 @@
  * Relative position to config file
  * ---------------------------------------------------------------------------
  */
-#define CONFIGFILE "code/config/heimdall_config.conf"
+#define CONFIGFILE "../code/config/heimdall_config.conf"
 
 /*
  * ---------------------------------------------------------------------------

@@ -1,8 +1,5 @@
 #include "../include/worker.h"
 
-// initializing the requests buffer (DEV)
-ThreadRequest *requests;
-
 /*
  *  See .h for more information.
  */
@@ -14,53 +11,75 @@ WorkerPtr new_worker() {
         exit(EXIT_FAILURE);
     }
 
-    // Set attribute
-    wrk->thread_identifier = NULL;
-    wrk->process_identifier = NULL;
+    // Set attributes
+    // TODO: choose attributes
 
     return wrk;
 }
 
-int start_worker(WorkerPtr worker) {
+void *read_work(void *arg) {
 
-    // initializing write thread
-    // TODO: do something to start the thread
+    // casting the parameter
+    WorkerPtr worker = (WorkerPtr) arg;
 
-    // setting up watchdog
-    // struct allocation
-    worker->watchdog = malloc(sizeof(Watchdog));
-    if (worker->watchdog == NULL)
-        return STATUS_ERROR;
-    // struct init
-    worker->watchdog->requests = requests;
-    // retrieving the config params for the watchdog and converting them
-    Config *config = get_config();
-    long k_time;
-    long out_time;
-    if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())      ||
-        str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable())  )
-        return STATUS_ERROR;
-    // watchdog wake-up time
-    worker->watchdog->killer_time      = (time_t) k_time;
-    // setting up the execution time
-    worker->watchdog->timeout_worker   = (time_t) out_time;
-    // thread initialization
-    int watchdog_creation = pthread_create(worker->watchdog->thread_id, NULL, enable_watchdog, (void *) worker->watchdog);
-    if (watchdog_creation != 0)
-        return STATUS_ERROR;
+    for (;;) {
+        // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the QUEUE
+        // (DEV)
+        worker->watchdog->timestamp_worker = time(NULL);
+    }
+
+}
+
+void *write_work(void *arg) {
+
+    // casting the parameter
+    WorkerPtr worker = (WorkerPtr) arg;
+
+}
+
+
+ThrowablePtr start_worker() {
+
+    // initializing worker
+    WorkerPtr worker = new_worker();
 
     // initialilizing the QUEUE data structure to manage a
     // node of the current request handled (pipeline-robust approach)
+    // TODO: allocating using worker's own attribute
+
+
     // TODO: do something to allocate the QUEUE
+    // initializing watchdog
+    if (detach_watchdog(worker) == STATUS_ERROR)
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
 
-    // starting the main routine cycling in a read/execute loop
-    for (;;) {
-        // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the QUEUE
+    // initializing thread writer
+    int w_creation = pthread_create(worker->writer, NULL, write_work, (void *) worker);
+    if (w_creation != 0)
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
 
+    // initializing thread reader
+    int r_creation = pthread_create(worker->reader, NULL, write_work, (void *) worker);
+    if (r_creation != 0)
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
 
+    // waiting for the child threads running over their own routines
+    void *watch_status;
+    void *write_status;
+    void *read_status;
+
+    if (pthread_join(*(worker->watchdog->thread_id), &watch_status) == 0 ||
+        pthread_join(*(worker->writer), &write_status)              == 0 ||
+        pthread_join(*(worker->reader), &read_status)               == 0  ) {
+
+        if (((intptr_t) watch_status) == STATUS_ERROR ||
+            ((intptr_t) write_status) == STATUS_ERROR ||
+            ((intptr_t) read_status)  == STATUS_ERROR  )
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+        else
+            return get_throwable()->create(STATUS_OK, NULL, "start_worker");
+
+    } else {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
     }
-
-    // successfull status
-    return STATUS_OK;
 }
-

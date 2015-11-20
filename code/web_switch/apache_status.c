@@ -145,7 +145,7 @@ void destroy_apache_status(ApacheServerStatusPtr self) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
-    // TODO use similary to connection.c
+    // TODO something similar to connection.c
     /*int sockfd;
     if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) return get_throwable()->create(STATUS_ERROR, "Boh", "retrieve_apache_status");
 
@@ -273,6 +273,8 @@ ApacheServerStatusPtr new_apache_server_status() {
         get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status.\n");
         exit(EXIT_FAILURE);
     }
+    // Set self linking
+    apache_server_status->self = apache_server_status;
 
     // Set "methods"
     apache_server_status->retrieve = retrieve_apache_status;

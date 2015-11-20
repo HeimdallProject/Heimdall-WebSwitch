@@ -55,7 +55,7 @@ typedef struct circular_buffer {
     Server      *head;
     Server      *tail;
 
-    ThrowablePtr   *(*allocate_buffer)(Server **servers, int len);
+    ThrowablePtr (*allocate_buffer)(Server **servers, int len);
     int          (*progress)();
     void         (*destroy_buffer)();
 } Circular, *CircularPtr;

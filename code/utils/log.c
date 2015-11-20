@@ -39,7 +39,7 @@ static int i(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    if (INFO_LEVEL >= (int)config->log_level) {
+    if (INFO_LEVEL >= (int)*(config->log_level)) {
 
         char *formatted_str;
 
@@ -83,7 +83,7 @@ static int d(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    if (DEBUG_LEVEL >= (int)config->log_level) {
+    if (DEBUG_LEVEL >= (int)*(config->log_level)) {
 
         char *formatted_str;
 
@@ -124,7 +124,7 @@ static int e(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    if (ERROR_LEVEL >= (int)config->log_level) {
+    if (ERROR_LEVEL >= (int)*(config->log_level)) {
         
         char *formatted_str;
 

@@ -5,6 +5,7 @@ FIND_PACKAGE (Threads)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")
 #[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -pthread")]]
+#[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -Wno-unused-parameter -pthread")]]
 
 set(SOURCE_FILES_MAIN
         code/main.c

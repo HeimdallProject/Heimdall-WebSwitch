@@ -37,7 +37,7 @@
  * Relative position to config file
  * ---------------------------------------------------------------------------
  */
-#define CONFIGFILE "/Users/Andrea/MEGAsync/Sviluppo/Progetto_IIW/webswitch/code/config/heimdall_config.conf"
+#define CONFIGFILE "../code/config/heimdall_config.conf"
 
 /*
  * ---------------------------------------------------------------------------

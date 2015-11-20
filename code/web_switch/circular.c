@@ -1,19 +1,3 @@
-//
-//============================================================================
-// Name             : circular.c
-// Author           : Alessio Moretti
-// Version          : 0.1
-// Date created     : 14/08/2015
-// Last modified    : 15/08/2015
-// Description      : This file contains an implementation of the circular
-//                    buffer data structure with some example structures (to
-//                    simulate an implementation over remote machines)
-// Implementation   : It has been used a lock to perform atomically all the admin
-//                    operations upon the circular buffer. It is architecturally
-//                    intended that progress() operation is the only one performed by the
-//                    user and her should handle the release op.
-// ===========================================================================
-//
 
 #include "../include/circular.h"
 

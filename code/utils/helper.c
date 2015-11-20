@@ -1,13 +1,3 @@
-//
-//============================================================================
-// Name             : utils.h
-// Author           : Claudio Pastorini
-// Version          : 0.2
-// Data Created     : 12/05/2015
-// Last modified    : 01/06/2015
-// Description      : Header file with some useful macro and functions.
-// ===========================================================================
-//
 
 #include "../include/helper.h"
 

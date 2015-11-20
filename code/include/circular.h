@@ -1,5 +1,14 @@
 //
-// Created by Odysseus on 14/08/15.
+//============================================================================
+// Name             : circular.c
+// Description      : This file contains an implementation of the circular
+//                    buffer data structure with some example structures (to
+//                    simulate an implementation over remote machines)
+// Implementation   : It has been used a lock to perform atomically all the admin
+//                    operations upon the circular buffer. It is architecturally
+//                    intended that progress() operation is the only one performed by the
+//                    user and her should handle the release op.
+// ===========================================================================
 //
 
 #ifndef WEBSWITCH_CIRCULAR_H

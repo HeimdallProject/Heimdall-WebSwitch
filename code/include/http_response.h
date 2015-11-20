@@ -1,8 +1,6 @@
 //
 //============================================================================
 // Name       : http_response.h
-// Author     : Alessio Moretti
-// Version    : 0.1
 // Description: Header file for the HTTP response parsing - it includes all
 //              the structs and functions useful to parse the header  and body
 //              of the HTTP response in order to collect its headers and body

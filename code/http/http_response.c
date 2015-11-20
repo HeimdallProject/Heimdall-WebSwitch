@@ -1,14 +1,3 @@
-//
-//============================================================================
-// Name       : http_response.h
-// Author     : Alessio Moretti
-// Version    : 0.1
-// Description: Code file for the HTTP response parsing - it includes all
-//              the functions useful to parse the header  and body of the HTTP
-//              response in order to collect its headers and body to perform the
-//              web switching callback feature
-// ============================================================================
-//
 
 #include "../include/http_response.h"
 

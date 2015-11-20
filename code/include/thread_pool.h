@@ -1,10 +1,6 @@
 //
 //============================================================================
 // Name             : thread_pool.h
-// Author           : Andrea Cerra
-// Version          : 0.1
-// Data Created     : 16/11/2015
-// Last modified    : 16/11/2015
 // Description      : This header file contains infomation about thread pool object.
 // ===========================================================================
 //

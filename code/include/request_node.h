@@ -1,10 +1,6 @@
 //
 //============================================================================
 // Name             : request_node.h
-// Author           : Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 18/11/2015
-// Last modified    : 18/11/2015
 // Description      : This header file contains all the stuffs useful in order
 //                    to create a node for request_queue.
 // ===========================================================================

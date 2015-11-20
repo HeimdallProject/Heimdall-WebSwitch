@@ -1,10 +1,6 @@
 //
 //============================================================================
 // Name             : throwable.h
-// Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.2
-// Data Created     : 30/05/2015
-// Last modified    : 01/06/2015
 // Description      : This header file contains all the stuffs useful in order to create and manage Throwable object.
 // ===========================================================================
 //

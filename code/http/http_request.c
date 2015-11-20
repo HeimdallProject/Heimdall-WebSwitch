@@ -1,21 +1,3 @@
-//
-//============================================================================
-// Name       : http_request.c
-// Author     : Alessio Moretti
-// Version    : 0.1
-// Description: Code file for the HTTP request header parsing - it includes all
-//              the structs and functions useful to parse the header of the HTTP
-//              request in order to let the web switch balancing algorithm to
-//              decide the  machines load.
-//              Further infos at:
-//              - http://tools.ietf.org/html/rfc7230
-//              - http://tools.ietf.org/html/rfc7231
-//              - http://tools.ietf.org/html/rfc7232
-//              - http://tools.ietf.org/html/rfc7233
-//              - http://tools.ietf.org/html/rfc7234
-//              - http://tools.ietf.org/html/rfc7235
-//              - http://en.wikipedia.org/wiki/List_of_HTTP_header_fields (dev)
-// ============================================================================
 
 #include "../include/http_request.h"
 

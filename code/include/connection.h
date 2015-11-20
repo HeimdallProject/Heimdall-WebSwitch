@@ -1,8 +1,6 @@
 //
 //============================================================================
 // Name       : connection.h
-// Author     : Claudio Pastorini
-// Version    : 0.2
 // Description: Header file for our client/server project with simple socket's
 //              functions.
 // ============================================================================
@@ -20,7 +18,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../include/throwable.h"
 #include "../include/http_request.h"
+#include "../include/http_response.h"
 #include "../include/log.h"
 #include "../include/macro.h"
 
@@ -29,8 +29,6 @@
 #define TCP 0
 #define UDP 1
 
-//TODO create struct for HTTP response
-//TODO create wrapper for getnameinfo, better version of gethostbyname
 /*
  * Function   : create_server_socket
  * Description: This function creates a TCP or a UDP server
@@ -42,9 +40,9 @@
  *   sockfd:  The pointer of the int where save the file
  *            description.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int create_server_socket(const int type, const int port, int *sockfd);
+ThrowablePtr create_server_socket(const int type, const int port, int *sockfd);
 
 /*
  * Function   : create_client_socket
@@ -58,9 +56,9 @@ int create_server_socket(const int type, const int port, int *sockfd);
  *   sockfd:  The pointer of the int where save the file
  *            description.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int create_client_socket(const int type, const char *ip, const int port, int *sockfd);
+ThrowablePtr create_client_socket(const int type, const char *ip, const int port, int *sockfd);
 
 /*
  * Function   : listen_to
@@ -69,11 +67,11 @@ int create_client_socket(const int type, const char *ip, const int port, int *so
  *
  * Param      :
  *   sockfd:  The socket for which listen for.
- *   backlog: //TODO: non ho ancora capito che è..
+ *   backlog: Max lenght of connection queue.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int listen_to(const int sockfd, const int backlog);
+ThrowablePtr listen_to(const int sockfd, const int backlog);
 
 /*
  * Function   : accept_connection
@@ -85,46 +83,40 @@ int listen_to(const int sockfd, const int backlog);
  *   connection: The pointer of the int where save the new
  *               file description.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int accept_connection(const int sockfd, int *connection);
+ThrowablePtr accept_connection(const int sockfd, int *connection);
 
 /*
  * Function   : close_connection
- * Description: This function close the connection.
+ * Description: This function closes the connection.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int close_connection(const int connection);
-
-/*
- * Function   : get_server_url
- * Description:
- *
- * Param      :
- *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
- */
-int get_server_url(const char *ip, char *url);
+ThrowablePtr close_connection(const int connection);
 
 /*
  * Function   : send_request
- * Description:
+ * Description: This function sends an HTTP request through a socket.
  *
  * Param      :
+ *   sockfd:     The socket where write.
+ *   request:    The pointer to the request to send.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int send_request(int *sockfd, HTTPRequest *request);
+ThrowablePtr send_request(int *sockfd, char *request);
 
 /*
  * Function   : receive_response
- * Description:
+ * Description: This function receives an HTTP response through a socket.
  *
  * Param      :
+ *   sockfd:     The socket from where read.
+ *   request:    The pointer where put the response.
  *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
+ * Return     : A Throwable.
  */
-int receive_response(int *sockfd);
+ThrowablePtr receive_response(int *sockfd, char *response);
 
 #endif //WEBSWITCH_CONNECTION_H

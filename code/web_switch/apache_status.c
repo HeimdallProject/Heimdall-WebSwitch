@@ -1,17 +1,3 @@
-//
-//============================================================================
-// Name             : apache_status.c
-// Author           : Claudio Pastorini
-// Version          : 0.3
-// Data Created     : 09/05/2015
-// Last modified    : 01/06/2015
-// Description      : This file contains all the stuffs useful in order to
-//                    reads the status of an Apache server.
-//                    For other info read:
-//                      - http://httpd.apache.org/docs/2.4/mod/mod_status.html
-// ===========================================================================
-//
-
 #include "../include/apache_status.h"
 
 /*
@@ -26,10 +12,13 @@
  * Return     : A Throwable.
  * ---------------------------------------------------------------------------
  */
-Throwable *parse_apache_status(ApacheServerStatus *self) {
+ThrowablePtr parse_apache_status(ApacheServerStatusPtr self) {
     // TODO: improve with @alessio
     char *to_parse = strdup(self->status_page); // The string to parse
-    if (errno != 0 || to_parse == NULL) return (*get_throwable()).create(STATUS_OK, get_error_by_errno(errno), "parse_apache_status");
+    if (errno != 0 || to_parse == NULL) {
+        return get_throwable()->create(STATUS_OK, get_error_by_errno(errno), "parse_apache_status");
+    }
+
     char *delim = ":";                          // First delimiter
     char *sub_delim = "\n";                     // Second delimiter
     char *str1, *str2, *token, *sub_token;      // Useful strings
@@ -51,48 +40,66 @@ Throwable *parse_apache_status(ApacheServerStatus *self) {
             if (i % 2 == 0) {
                 switch (i) {
                     case 2: {  // total_accesses
-                        Throwable total_access_throwable = *str_to_int(sub_token, &(self->total_accesses));
-                        if (total_access_throwable.is_an_error(total_access_throwable.self)) return total_access_throwable.thrown(total_access_throwable.self, "parse_apache_status");
+                        ThrowablePtr total_access_throwable = str_to_int(sub_token, &(self->total_accesses));
+                        if (total_access_throwable->is_an_error(total_access_throwable)) {
+                            return total_access_throwable->thrown(total_access_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 4: {  // total_kBytes
-                        Throwable total_kBytes_throwable = *str_to_int(sub_token, &(self->total_kBytes));
-                        if (total_kBytes_throwable.is_an_error(total_kBytes_throwable.self)) return total_kBytes_throwable.thrown(total_kBytes_throwable.self, "parse_apache_status");
+                        ThrowablePtr total_kBytes_throwable = str_to_int(sub_token, &(self->total_kBytes));
+                        if (total_kBytes_throwable->is_an_error(total_kBytes_throwable)) {
+                            return total_kBytes_throwable->thrown(total_kBytes_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 6: {  // cpu_load
-                        Throwable cpu_load_throwable = *str_to_float(sub_token, &(self->cpu_load));
-                        if (cpu_load_throwable.is_an_error(cpu_load_throwable.self)) return cpu_load_throwable.thrown(cpu_load_throwable.self, "parse_apache_status");
+                        ThrowablePtr cpu_load_throwable = str_to_float(sub_token, &(self->cpu_load));
+                        if (cpu_load_throwable->is_an_error(cpu_load_throwable)) {
+                            return cpu_load_throwable->thrown(cpu_load_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 8: {  // uptime
-                        Throwable uptime_throwable = *str_to_int(sub_token, &(self->uptime));
-                        if (uptime_throwable.is_an_error(uptime_throwable.self)) return uptime_throwable.thrown(uptime_throwable.self, "parse_apache_status");
+                        ThrowablePtr uptime_throwable = str_to_int(sub_token, &(self->uptime));
+                        if (uptime_throwable->is_an_error(uptime_throwable)) {
+                            return uptime_throwable->thrown(uptime_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 10: {  // req_per_sec
-                        Throwable req_per_sec_throwable = *str_to_float(sub_token, &(self->req_per_sec));
-                        if (req_per_sec_throwable.is_an_error(req_per_sec_throwable.self)) return req_per_sec_throwable.thrown(req_per_sec_throwable.self, "parse_apache_status");
+                        ThrowablePtr req_per_sec_throwable = str_to_float(sub_token, &(self->req_per_sec));
+                        if (req_per_sec_throwable->is_an_error(req_per_sec_throwable)) {
+                            return req_per_sec_throwable->thrown(req_per_sec_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 12: {  // bytes_per_sec
-                        Throwable bytes_per_sec_throwable = *str_to_float(sub_token, &(self->bytes_per_sec));
-                        if (bytes_per_sec_throwable.is_an_error(bytes_per_sec_throwable.self)) return bytes_per_sec_throwable.thrown(bytes_per_sec_throwable.self, "parse_apache_status");
+                        ThrowablePtr bytes_per_sec_throwable = str_to_float(sub_token, &(self->bytes_per_sec));
+                        if (bytes_per_sec_throwable->is_an_error(bytes_per_sec_throwable)) {
+                            return bytes_per_sec_throwable->thrown(bytes_per_sec_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 14: {  // bytes_per_req
-                        Throwable bytes_per_req_throwable = *str_to_float(sub_token, &(self->bytes_per_req));
-                        if (bytes_per_req_throwable.is_an_error(bytes_per_req_throwable.self)) return bytes_per_req_throwable.thrown(bytes_per_req_throwable.self, "parse_apache_status");
+                        ThrowablePtr bytes_per_req_throwable = str_to_float(sub_token, &(self->bytes_per_req));
+                        if (bytes_per_req_throwable->is_an_error(bytes_per_req_throwable)) {
+                            return bytes_per_req_throwable->thrown(bytes_per_req_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 16: {  // busy_workers
-                        Throwable busy_workers_throwable = *str_to_int(sub_token, &(self->busy_workers));
-                        if (busy_workers_throwable.is_an_error(busy_workers_throwable.self)) return busy_workers_throwable.thrown(busy_workers_throwable.self, "parse_apache_status");
+                        ThrowablePtr busy_workers_throwable = str_to_int(sub_token, &(self->busy_workers));
+                        if (busy_workers_throwable->is_an_error(busy_workers_throwable)) {
+                            return busy_workers_throwable->thrown(busy_workers_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     case 18: {  // idle_workers
-                        Throwable idle_workers_throwable = *str_to_int(sub_token, &(self->idle_workers));
-                        if (idle_workers_throwable.is_an_error(idle_workers_throwable.self)) return idle_workers_throwable.thrown(idle_workers_throwable.self, "parse_apache_status");
+                        ThrowablePtr idle_workers_throwable = str_to_int(sub_token, &(self->idle_workers));
+                        if (idle_workers_throwable->is_an_error(idle_workers_throwable)) {
+                            return idle_workers_throwable->thrown(idle_workers_throwable, "parse_apache_status");
+                        }
                         break;
                     }
                     default:
@@ -104,7 +111,7 @@ Throwable *parse_apache_status(ApacheServerStatus *self) {
     // Free memory used for to_parse
     free(to_parse);
 
-    return (*get_throwable()).create(STATUS_OK, NULL, "parse_apache_status");
+    return get_throwable()->create(STATUS_OK, NULL, "parse_apache_status");
 }
 
 /*
@@ -118,7 +125,7 @@ Throwable *parse_apache_status(ApacheServerStatus *self) {
  * Return     : None.
  * ---------------------------------------------------------------------------
  */
-void destroy_apache_status(ApacheServerStatus *self) {
+void destroy_apache_status(ApacheServerStatusPtr self) {
     free(self->url);           // Free space for URL
     free(self->status_page);   // Free space for status page
     free(self->string);        // Free space for to_string
@@ -137,20 +144,20 @@ void destroy_apache_status(ApacheServerStatus *self) {
  * Return     : A Throwable.
  * ---------------------------------------------------------------------------
  */
-Throwable *retrieve_apache_status(ApacheServerStatus *self) {
-    // TODO improve with @andrea creating a helper function to retrieve HTTP page
+ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
+    // TODO use similary to connection.c
     /*int sockfd;
-    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) return (*get_throwable()).create(STATUS_ERROR, "Boh", "retrieve_apache_status");
+    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) return get_throwable()->create(STATUS_ERROR, "Boh", "retrieve_apache_status");
 
     fprintf(stdout, "Connected to server at URL: %s\n", self->url);
 
     int bytes, sent, received, total;
     char message[1024], response[4096];
 
-    // Fill in the parameters TODO use the new http_request struct
+    // Fill in the parameters
     sprintf(message, "GET /server-status?auto HTTP/1.1\nHost: www.laziobus.it\n\n");
 
-    (*get_log()).d(TAG_APACHE_STATUS, message);
+    get_log()->d(TAG_APACHE_STATUS, message);
 
     // Send the request
     total = (int) strlen(message);
@@ -183,12 +190,12 @@ Throwable *retrieve_apache_status(ApacheServerStatus *self) {
     // Close the socket
     close(sockfd);
 
-    (*get_log()).d(TAG_APACHE_STATUS, response);*/
+    get_log()->d(TAG_APACHE_STATUS, response);*/
 
     //TODO read and manage header and put in status page only the content of the http response
     self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .12a5764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
 
-    return (*get_throwable()).create(STATUS_OK, NULL, "retrieve_apache_status");
+    return get_throwable()->create(STATUS_OK, NULL, "retrieve_apache_status");
 }
 
 /*
@@ -203,14 +210,14 @@ Throwable *retrieve_apache_status(ApacheServerStatus *self) {
  * Return     : A Throwable.
  * ---------------------------------------------------------------------------
  */
-Throwable *set_url_apache_status(ApacheServerStatus *self, char *url) {
+ThrowablePtr set_url_apache_status(ApacheServerStatusPtr self, char *url) {
     errno = 0;
     char *new_url = strdup(url);
-    if (errno != 0 || new_url == NULL) return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "set_url_apache_status");
+    if (errno != 0 || new_url == NULL) return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_url_apache_status");
     // Set url
     self->url = new_url;
 
-    return (*get_throwable()).create(STATUS_OK, NULL, "set_url_apache_status");
+    return get_throwable()->create(STATUS_OK, NULL, "set_url_apache_status");
 }
 
 /*
@@ -225,7 +232,7 @@ Throwable *set_url_apache_status(ApacheServerStatus *self, char *url) {
  * Return     : The pointer of the string.
  * ---------------------------------------------------------------------------
  */
-char *to_string_apache_status(ApacheServerStatus *self) {
+char *to_string_apache_status(ApacheServerStatusPtr self) {
     char *string;
 
     if (self->string != NULL) {
@@ -259,15 +266,13 @@ char *to_string_apache_status(ApacheServerStatus *self) {
     return string;
 }
 
-ApacheServerStatus *new_apache_server_status() {
+ApacheServerStatusPtr new_apache_server_status() {
 
-    ApacheServerStatus *apache_server_status = malloc(sizeof(ApacheServerStatus));
+    ApacheServerStatusPtr apache_server_status = malloc(sizeof(ApacheServerStatus));
     if (apache_server_status == NULL) {
-        (*get_log()).e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status.\n");
+        get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status.\n");
         exit(EXIT_FAILURE);
     }
-    // Set self linking
-    apache_server_status->self = apache_server_status;
 
     // Set "methods"
     apache_server_status->retrieve = retrieve_apache_status;

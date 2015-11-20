@@ -25,7 +25,7 @@ int main() {
     //log->d(TAG_MAIN, "Start main programm");
 
     // Creazione del thread Pool
-    /*ThreadPool *th_pool = init_thread_pool();
+    /*ThreadPoolPtr th_pool = init_thread_pool();
     if (th_pool == NULL){
         log->d(TAG_MAIN, "Error in init_thread_pool()");
         exit(EXIT_FAILURE);

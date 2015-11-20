@@ -1,40 +1,29 @@
-//
-//============================================================================
-// Name             : throwable.c
-// Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.2
-// Data Created     : 30/05/2015
-// Last modified    : 01/06/2015
-// Description      : This file contains all the stuffs useful in order to create and manage Throwable object.
-// ===========================================================================
-//
-
 #include "../include/throwable.h"
 
 /*
  *  See .h for more information.
  */
-Throwable *new_throwable();
+ThrowablePtr new_throwable();
 
 /*
  * ---------------------------------------------------------------------------
  * Description  : Global variable, singleton instance of Throwable
  * ---------------------------------------------------------------------------
  */
-Throwable *singleton_throwable = NULL;
+ThrowablePtr singleton_throwable = NULL;
 
 /*
  * ---------------------------------------------------------------------------
  * Function     : is_an_error_throwable
- * Description  : Check if the Throwable is an error or not.
+ * Description  : Check if the ThrowablePtr is an error or not.
  *
  * Param        :
  *  self        : The pointer to the Throwable.
  *
- * Return       : 0 if false, 1 otherwise.
+ * Return       : FALSE or TRUE.
  * ---------------------------------------------------------------------------
  */
-int is_an_error_throwable(Throwable *self) {
+int is_an_error_throwable(ThrowablePtr self) {
     if (self->status == STATUS_OK) {
         return FALSE;
     } else {
@@ -45,7 +34,7 @@ int is_an_error_throwable(Throwable *self) {
 /*
  * ---------------------------------------------------------------------------
  * Function     : thrown_throwable
- * Description  : Thrown a Throwable adding into the stack_trace the name of
+ * Description  : Thrown a ThrowablePtr adding into the stack_trace the name of
  *                the new function.
  *
  * Param        :
@@ -56,7 +45,7 @@ int is_an_error_throwable(Throwable *self) {
  * ---------------------------------------------------------------------------
  */
 // TODO creare funzione strlen per fare malloc intelligente
-Throwable *thrown_throwable(Throwable *self, char *stack_trace) {
+ThrowablePtr thrown_throwable(ThrowablePtr self, char *stack_trace) {
     char *old_stack_trace = self->stack_trace;
 
     char *new_stack_trace = malloc(1024);
@@ -75,7 +64,7 @@ Throwable *thrown_throwable(Throwable *self, char *stack_trace) {
 /*
  * ---------------------------------------------------------------------------
  * Function     : create_throwable
- * Description  : Create a son of singleton Throwable and put all info in.
+ * Description  : Create a son of singleton ThrowablePtr and put all info in.
  *
  * Param        :
  *  status              : The status code of Throwable, 0 for all ok, -1 otherwise.
@@ -85,10 +74,10 @@ Throwable *thrown_throwable(Throwable *self, char *stack_trace) {
  * Return       : Pointer to object Throwable.
  * ---------------------------------------------------------------------------
  */
-Throwable *create_throwable(int status, char *msg, char *stack_trace) {
+ThrowablePtr create_throwable(int status, char *msg, char *stack_trace) {
 
-    Throwable *throwable = new_throwable();
-    throwable->self = throwable;
+    ThrowablePtr throwable = new_throwable();
+
     throwable->message = msg;
     throwable->status = status;
     throwable->stack_trace = stack_trace;
@@ -110,9 +99,9 @@ Throwable *create_throwable(int status, char *msg, char *stack_trace) {
  * Return       : Pointer to object Throwable.
  * ---------------------------------------------------------------------------
  */
-Throwable *new_throwable() {
+ThrowablePtr new_throwable() {
 
-    Throwable *throwable = malloc(sizeof(Throwable));
+    ThrowablePtr throwable = malloc(sizeof(Throwable));
     if (throwable == NULL) {
         fprintf(stderr, "Memory allocation error in new_throwable().\n");
         exit(EXIT_FAILURE);

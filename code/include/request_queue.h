@@ -1,12 +1,8 @@
 //
 //============================================================================
-// Name             : request_queue.h
-// Author           : Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 18/11/2015
-// Last modified    : 18/11/2015
-// Description      : This header file contains all the stuffs useful in order
-//                    to create a request_queue.
+// Name       : request_queue.h
+// Description: This header file contains all the stuffs useful in order to
+//              create a request_queue.
 // ===========================================================================
 //
 #ifndef WEBSWITCH_REQUEST_QUEUE_H

@@ -1,11 +1,8 @@
 //
 //============================================================================
-// Name             : log.h
-// Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 30/05/2015
-// Last modified    : 30/05/2015
-// Description      : This header file contains all the stuffs useful in order to print / write log file.
+// Name       : log.h
+// Description: This header file contains all the stuffs useful in order to
+//              print / write log file.
 // ===========================================================================
 //
 #ifndef LOG_H
@@ -54,7 +51,7 @@ typedef struct log {
     int (*d)(const char* tag, const char *format, ...);
     int (*i)(const char* tag, const char *format, ...);
     int (*e)(const char* tag, const char *format, ...);
-    void (*t)(Throwable *throwable);
+    void (*t)(ThrowablePtr throwable);
 } Log, *LogPtr;
 
 /*

@@ -1,15 +1,3 @@
-//
-//============================================================================
-// Name             : request_node.c
-// Author           : Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 18/11/2015
-// Last modified    : 18/11/2015
-// Description      : This header file contains all the stuffs useful in order
-//                    to create a node for request_queue.
-// ===========================================================================
-//
-
 #include "../include/request_node.h"
 
 /*
@@ -85,11 +73,10 @@ RequestNodePtr init_request_node() {
 
     RequestNodePtr request_node = malloc(sizeof(RequestNode));
     if (request_node == NULL) {
-        (*get_log()).e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node.\n");
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node.\n");
         exit(EXIT_FAILURE);
     }
-    // Set self linking
-    request_node->self = request_node;
+
     request_node->thread_id = 1;        //TODO choose better default value and add other methods
     request_node->response = new_http_response();
     request_node->request_timeout = 10;

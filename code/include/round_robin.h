@@ -1,7 +1,11 @@
 //
-// Created by Odysseus on 18/08/15.
+//============================================================================
+// Name       : round_robin.h
+// Description: This file contains an implementation of some different Round
+//              Robin scheduling disciplines using the circular buffer
+//              implementation.
+// ===========================================================================
 //
-
 #ifndef WEBSWITCH_ROUND_ROBIN_H
 #define WEBSWITCH_ROUND_ROBIN_H
 

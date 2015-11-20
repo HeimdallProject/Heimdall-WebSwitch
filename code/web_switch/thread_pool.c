@@ -1,14 +1,3 @@
-//
-//============================================================================
-// Name             : thread_pool.c
-// Author           : Andrea Cerra
-// Version          : 0.1
-// Data Created     : 16/11/2015
-// Last modified    : 16/11/2015
-// Description      : This file contains infomation about thread pool object.
-// ===========================================================================
-//
-
 #include "../include/thread_pool.h"
 
 /*
@@ -27,7 +16,7 @@ static int worker_request = 0;
  * Description  : Global variable, singleton instance of Thread Pool
  * ---------------------------------------------------------------------------
  */
-ThreadPool *singleton_thdpool = NULL;
+ThreadPoolPtr singleton_thdpool = NULL;
 
 /*
  * ---------------------------------------------------------------------------
@@ -128,7 +117,7 @@ Worker *get_worker() {
 /*
  *  See .h for more information.
  */
-ThreadPool *init_thread_pool() {
+ThreadPoolPtr init_thread_pool() {
 
 	LogPtr log = get_log();
 	log->d(TAG_THREAD_POOL, "Thread pool start.");
@@ -142,7 +131,7 @@ ThreadPool *init_thread_pool() {
 		return NULL;
 	}
 
-	ThreadPool *th_pool = malloc(sizeof(ThreadPool));
+	ThreadPoolPtr th_pool = malloc(sizeof(ThreadPool));
     if (th_pool == NULL) {
     	log->e(TAG_THREAD_POOL, "Memory allocation error in thread_pool_init().");
         return NULL;
@@ -158,7 +147,7 @@ ThreadPool *init_thread_pool() {
 /*
  *  See .h for more information.
  */
-ThreadPool *get_thread_pool() {
+ThreadPoolPtr get_thread_pool() {
 
 	if (singleton_thdpool == NULL) {
         // error

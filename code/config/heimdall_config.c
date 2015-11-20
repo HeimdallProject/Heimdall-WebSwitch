@@ -1,14 +1,3 @@
-//
-//============================================================================
-// Name             : config_parser.c
-// Author           : Andrea Cerra
-// Version          : 0.3
-// Data Created     : 30/05/2015
-// Last modified    : 16/11/2015
-// Description      : Simple C Config Parser
-// ===========================================================================
-//
-
 #include "../include/heimdall_config.h"
 
 /*

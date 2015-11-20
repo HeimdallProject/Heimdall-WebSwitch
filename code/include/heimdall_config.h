@@ -1,14 +1,9 @@
 //
 //============================================================================
-// Name             : config_parser.c
-// Author           : Andrea Cerra
-// Version          : 0.2
-// Data Created     : 30/05/2015
-// Last modified    : 14/11/2015
-// Description      : This file contains all the stuffs useful in order to create an object Config from a config file
+// Name       : heimdall_config.h
+// Description: Simple C Config Parser.
 // ===========================================================================
 //
-
 #ifndef CONFIG_PARSER_H
 #define CONFIG_PARSER_H
 

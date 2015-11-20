@@ -1,14 +1,3 @@
-//
-//============================================================================
-// Name             : worker.c
-// Author           : Alessio Moretti, Claudio Pastorini e Andrea Cerra
-// Version          : 0.2
-// Data Created     : 11/11/2015
-// Last modified    : 18/11/2015
-// Description      : This is the webswitch single Worker thread body
-// ===========================================================================
-//
-
 #include "../include/worker.h"
 
 // initializing the requests buffer (DEV)

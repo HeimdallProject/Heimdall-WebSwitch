@@ -1,11 +1,8 @@
 //
 //============================================================================
-// Name             : throwable.h
-// Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.2
-// Data Created     : 30/05/2015
-// Last modified    : 01/06/2015
-// Description      : This header file contains all the stuffs useful in order to create and manage Throwable object.
+// Name       : throwable.h
+// Description: This header file contains all the stuffs useful in order to
+//              create and manage ThrowablePtr object.
 // ===========================================================================
 //
 #ifndef THROWABLE_H
@@ -45,7 +42,6 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct throwable {
-    struct throwable* self;
     int status;
     char *message;
     char *stack_trace;
@@ -58,7 +54,7 @@ typedef struct throwable {
 /*
  * ---------------------------------------------------------------------------
  * Function     : get_throwable
- * Description  : Return singleton instance of Throwable object, if this instance is not already created
+ * Description  : Return singleton instance of ThrowablePtr object, if this instance is not already created
  *                this function call automatically new_throwable() for instantiate the object itself.
  *
  * Param        :

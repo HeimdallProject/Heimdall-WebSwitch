@@ -1,15 +1,3 @@
-//
-//============================================================================
-// Name             : request_queue.c
-// Author           : Claudio Pastorini
-// Version          : 0.1
-// Data Created     : 18/11/2015
-// Last modified    : 18/11/2015
-// Description      : This header file contains all the stuffs useful in order
-//                    to create a request_queue.
-// ===========================================================================
-//
-
 #include "../include/request_queue.h"
 
 /*
@@ -181,7 +169,7 @@ RequestQueuePtr init_request_queue() {
 
     RequestQueuePtr request_queue = malloc(sizeof(RequestQueue));
     if (request_queue == NULL) {
-        (*get_log()).e(TAG_REQUEST_NODE, "Memory allocation error in new_request_queue.\n");
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in new_request_queue.\n");
         exit(EXIT_FAILURE);
     }
     // Set self linking

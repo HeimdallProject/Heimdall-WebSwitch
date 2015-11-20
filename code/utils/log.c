@@ -1,14 +1,3 @@
-//
-//============================================================================
-// Name             : log.c
-// Author           : Andrea Cerra e Claudio Pastorini
-// Version          : 0.1.1
-// Data Created     : 20/11/2015
-// Last modified    : 20/11/2015
-// Description      : This file contains all the stuffs useful in order to print / write log file.
-// ===========================================================================
-//
-
 #include "../include/log.h"
 
 /*
@@ -52,7 +41,7 @@ static int i(const char* tag, const char *format, ...) {
         va_end (arg);
 
         char *output; 
-        byte_read = asprintf(&output, "%s %s D/ - %s", timestamp(), tag, formatted_str);
+        byte_read = asprintf(&output, "%s: I/%s: \n%s", timestamp(), tag, formatted_str);
 
         free(formatted_str);
 
@@ -99,7 +88,7 @@ static int d(const char* tag, const char *format, ...) {
         va_end (arg);
 
         char *output; 
-        byte_read = asprintf(&output, "%s %s D/ - %s", timestamp(), tag, formatted_str);
+        byte_read = asprintf(&output, "%s: D/%s: \n%s", timestamp(), tag, formatted_str);
 
         free(formatted_str);
 
@@ -143,7 +132,7 @@ static int e(const char* tag, const char *format, ...) {
         va_end (arg);
 
         char *output; 
-        byte_read = asprintf(&output, "%s %s D/ - %s", timestamp(), tag, formatted_str);
+        byte_read = asprintf(&output, "%s: E/%s: \n%s", timestamp(), tag, formatted_str);
 
         free(formatted_str);
 
@@ -163,17 +152,17 @@ static int e(const char* tag, const char *format, ...) {
  * Description  : Used for print human-readable object Throwable.
  *
  * Param        :
- *   Throwable  : Pointer to object Throwable.
+ *   ThrowablePtr  : Pointer to object Throwable.
  *
  * Return       : void.
  * ---------------------------------------------------------------------------
  */
-static void print_throwable(Throwable *thr) {
-
+static void print_throwable(ThrowablePtr thr) {
+    //TODO ma printa solo o lo mettiamo anche su log?
     if (thr->status == STATUS_OK) {
-        fprintf(stdout, "Status: %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
+        fprintf(stdout, "Status: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
     } else {
-        fprintf(stderr, "Status: %d \nMessage: %s \nStack Trace: \n %s", thr->status, thr->message, thr->stack_trace);
+        fprintf(stderr, "Status: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
     }
 }
 

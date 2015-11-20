@@ -1,11 +1,7 @@
 //
 //============================================================================
-// Name             : utils.h
-// Author           : Claudio Pastorini
-// Version          : 0.2
-// Data Created     : 12/05/2015
-// Last modified    : 31/05/2015
-// Description      : Header file with some useful macro and functions.
+// Name       : helper.h
+// Description: Header file with some useful macro and functions.
 // ===========================================================================
 //
 #ifndef HELPER_H
@@ -38,7 +34,7 @@
  * Return     	: The converted value or STATUS_ERROR in case of error.
  * ---------------------------------------------------------------------------
  */
-Throwable *str_to_int(const char *string, int *value);
+ThrowablePtr str_to_int(const char *string, int *value);
 
 /*
  * ---------------------------------------------------------------------------
@@ -53,7 +49,7 @@ Throwable *str_to_int(const char *string, int *value);
  * Return     	: The converted value or STATUS_ERROR in case of error.
  * ---------------------------------------------------------------------------
  */
-Throwable *str_to_long(const char *string, long *value);
+ThrowablePtr str_to_long(const char *string, long *value);
 
 /*
  * ---------------------------------------------------------------------------
@@ -68,7 +64,7 @@ Throwable *str_to_long(const char *string, long *value);
  * Return     	: The converted value or STATUS_ERROR in case of error.
  * ---------------------------------------------------------------------------
  */
-Throwable *str_to_float(char *string, float *value);
+ThrowablePtr str_to_float(char *string, float *value);
 
 /*
  * ---------------------------------------------------------------------------

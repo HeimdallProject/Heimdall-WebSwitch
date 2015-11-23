@@ -82,22 +82,21 @@ void *write_work(void *arg);
  *              all the data structures and buffer necessary to the worker proper
  *              goal.
  *
- * Param      : pid_t as worker process identifier
+ * Param      :
  * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr start_worker(pid_t os_id);
+ThrowablePtr start_worker();
 
 /*
  * ---------------------------------------------------------------------------
  * Function   : new_worker
  * Description: Method for worker creation.
  *
- * Param      :
- *
+ * Param      : pid_t as process identifier
  * Return     : WorkPtr
  * ---------------------------------------------------------------------------
  */
-WorkerPtr new_worker();
+WorkerPtr new_worker(pid_t os_id);
 
 #endif //WEBSWITCH_WORKER_H

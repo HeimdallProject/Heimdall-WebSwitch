@@ -1,4 +1,3 @@
-
 #include "../include/request_node.h"
 
 /*
@@ -74,11 +73,10 @@ RequestNodePtr init_request_node() {
 
     RequestNodePtr request_node = malloc(sizeof(RequestNode));
     if (request_node == NULL) {
-        (*get_log()).e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node.\n");
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node.\n");
         exit(EXIT_FAILURE);
     }
-    // Set self linking
-    request_node->self = request_node;
+
     request_node->thread_id = 1;        //TODO choose better default value and add other methods
     request_node->response = new_http_response();
     request_node->request_timeout = 10;

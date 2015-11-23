@@ -1,10 +1,10 @@
 //
 //============================================================================
 // Name       : http_request.h
-// Description: Header file for the HTTP request header parsing - it includes all
-//              the structs and functions useful to parse the header of the HTTP
-//              request in order to let the web switch balancing algorithm to
-//              decide the  machines load.
+// Description: Header file for the HTTP request header parsing - it includes
+//              all the structs and functions useful to parse the header of
+//              the HTTP request in order to let the web switch balancing
+//              algorithm to decide the machines load.
 //              Further infos at:
 //              - http://tools.ietf.org/html/rfc7230
 //              - http://tools.ietf.org/html/rfc7231
@@ -15,7 +15,6 @@
 //              - http://en.wikipedia.org/wiki/List_of_HTTP_header_fields (dev)
 // ============================================================================
 //
-
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
 
@@ -123,13 +122,13 @@ typedef struct http_request {
     char *req_content_len;
     char *req_upgrade;                                  // no protocol upgrade are allowed
 
-    Throwable *(*get_header)(char *req_line, struct http_request *http);
-    Throwable *(*get_request)(char *req_line, struct http_request *http, int len);
-    Throwable *(*read_headers)(char *buffer, struct http_request *http, int type);
-    Throwable *(*make_simple_request)(struct http_request *self, char **result);
-    Throwable *(*set_simple_request)(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
+    ThrowablePtr (*get_header)(char *req_line, struct http_request *http);
+    ThrowablePtr (*get_request)(char *req_line, struct http_request *http, int len);
+    ThrowablePtr (*read_headers)(char *buffer, struct http_request *http, int type);
+    ThrowablePtr (*make_simple_request)(struct http_request *self, char **result);
+    ThrowablePtr (*set_simple_request)(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
     void (*destroy)(struct http_request *self);
-} HTTPRequest;
+} HTTPRequest, *HTTPRequestPtr;
 
 
 /*
@@ -146,7 +145,7 @@ typedef struct http_request {
  *   struct http_request
  * ---------------------------------------------------------------------------
  */
-Throwable *get_header(char *req_line, struct http_request *http);
+ThrowablePtr get_header(char *req_line, struct http_request *http);
 
 /*
  * ---------------------------------------------------------------------------
@@ -160,7 +159,7 @@ Throwable *get_header(char *req_line, struct http_request *http);
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *get_request(char *req_line, struct http_request *http, int len);
+ThrowablePtr get_request(char *req_line, struct http_request *http, int len);
 
 /*
  * ---------------------------------------------------------------------------
@@ -174,7 +173,7 @@ Throwable *get_request(char *req_line, struct http_request *http, int len);
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *get_response(char *req_line, HTTPRequest *http, int len);
+ThrowablePtr get_response(char *req_line, HTTPRequestPtr http, int len);
 
 /*
  * ---------------------------------------------------------------------------
@@ -197,7 +196,7 @@ Throwable *get_response(char *req_line, HTTPRequest *http, int len);
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *read_headers(char *buffer, struct http_request *http, int type);
+ThrowablePtr read_headers(char *buffer, struct http_request *http, int type);
 
 /*
  * ---------------------------------------------------------------------------
@@ -216,10 +215,10 @@ Throwable *read_headers(char *buffer, struct http_request *http, int type);
  *   request_protocol: the protocol to be used
  *
  * Return     :
- *   Throwable pointer
+ *   ThrowablePtr pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
+ThrowablePtr set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
 
 /*
  * ---------------------------------------------------------------------------
@@ -232,10 +231,10 @@ Throwable *set_simple_request(struct http_request *self, char *request_type, cha
  *           properly formatted
  *
  * Return     :
- *   Throwable pointer
+ *   ThrowablePtr pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *make_simple_request(struct http_request *self, char **result);
+ThrowablePtr make_simple_request(struct http_request *self, char **result);
 
 /*
  * ---------------------------------------------------------------------------
@@ -258,6 +257,6 @@ void destroy_http_request(struct http_request *self);
  *   struct http_request pointer or NULL in case of failure
  * ---------------------------------------------------------------------------
  */
-HTTPRequest *new_http_request(void);
+HTTPRequestPtr new_http_request(void);
 
 #endif //HTTP_REQUEST_H

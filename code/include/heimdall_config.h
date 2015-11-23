@@ -1,10 +1,9 @@
 //
 //============================================================================
-// Name             : config_parser.c
-// Description      : Simple C Config Parser
+// Name       : heimdall_config.h
+// Description: Simple C Config Parser.
 // ===========================================================================
 //
-
 #ifndef CONFIG_PARSER_H
 #define CONFIG_PARSER_H
 

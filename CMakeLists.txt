@@ -21,7 +21,8 @@ set(SOURCE_FILES_APACHE
         code/config/heimdall_config.c
         code/utils/throwable.c
         code/web_switch/apache_status.c
-        code/http/http_request.c)
+        code/http/http_request.c
+        code/http/http_response.c)
 
 set(SOURCE_FILES_REQUEST
         code/utils/helper.c
@@ -37,6 +38,7 @@ set(SOURCE_FILES_CONNECTION
         code/utils/log.c
         code/utils/throwable.c
         code/http/http_request.c
+        code/http/http_response.c
         code/utils/helper.c)
 
 set(SOURCE_FILES_WORKER

@@ -1,4 +1,3 @@
-
 #include "../include/watchdog.h"
 
 int detach_watchdog(WatchdogPtr watchdog) {

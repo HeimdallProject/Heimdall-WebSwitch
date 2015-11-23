@@ -1,10 +1,9 @@
 //
 //============================================================================
-// Name             : thread_pool.h
-// Description      : This header file contains infomation about thread pool object.
+// Name       : thread_pool.h
+// Description: This header file contains information about thread pool object.
 // ===========================================================================
 //
-
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
@@ -31,10 +30,9 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct thread_pool {
-	struct thread_pool *self;
     pthread_t thread_identifier;
     Worker* (*get_worker)();
-} ThreadPool;
+} ThreadPool, *ThreadPoolPtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -46,6 +44,6 @@ typedef struct thread_pool {
  * Return       : Log typedef.
  * ---------------------------------------------------------------------------
  */
-ThreadPool *init_thread_pool();
+ThreadPoolPtr init_thread_pool();
 
 #endif //THREAD_POOL_H

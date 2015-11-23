@@ -1,4 +1,3 @@
-
 #include "../include/heimdall_config.h"
 
 /*

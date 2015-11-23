@@ -1,8 +1,8 @@
 //
 //============================================================================
-// Name             : request_queue.h
-// Description      : This header file contains all the stuffs useful in order
-//                    to create a request_queue.
+// Name       : request_queue.h
+// Description: This header file contains all the stuffs useful in order to
+//              create a request_queue.
 // ===========================================================================
 //
 #ifndef WEBSWITCH_REQUEST_QUEUE_H

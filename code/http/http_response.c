@@ -1,7 +1,6 @@
-
 #include "../include/http_response.h"
 
-Throwable *get_http_response(void *self, char *buffer) {
+ThrowablePtr get_http_response(HTTPResponsePtr self, char *buffer) {
 
     char endline = '\n';
     char *head;
@@ -23,57 +22,54 @@ Throwable *get_http_response(void *self, char *buffer) {
     }
 
     // letting the other delegate functions parse headers and body
-    Throwable *t_head = ((HTTPResponse *) self)->get_response_head(self, head);
-    Throwable *t_body = ((HTTPResponse *) self)->get_response_body(self, body);
+    ThrowablePtr t_head = self->get_response_head(self, head);
+    ThrowablePtr t_body = self->get_response_body(self, body);
     // checking for any error
-    if (t_head->is_an_error || t_body->is_an_error)
-        return (*get_throwable()).create(STATUS_ERROR, "Trying to parse remote server response", "get_response");
-    else
-        return (*get_throwable()).create(STATUS_OK, NULL, "get_response");
+    if (t_head->is_an_error(t_head) || t_body->is_an_error(t_body)) {
+        return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response", "get_response");
+    } else {
+        return get_throwable()->create(STATUS_OK, NULL, "get_response");
+    }
 }
 
-Throwable *get_response_head(void *self, char *head) {
+ThrowablePtr get_response_head(HTTPResponsePtr self, char *head) {
 
     // using struct http_request to retrieve headers
-    Throwable *t_resp_head = ((HTTPResponse *) self)->response->read_headers(head,
-                                                                            ((HTTPResponse *) self)->response,
-                                                                            ((HTTPResponse *) self)->http_response_type);
-    if (t_resp_head->is_an_error)
-        return (*get_throwable()).create(STATUS_ERROR, "Trying to parse remote server response", "get_response_head");
-    else
-        return (*get_throwable()).create(STATUS_OK, NULL, "get_response_head");
+    ThrowablePtr t_resp_head = self->response->read_headers(head, self->response, self->http_response_type);
+    if (t_resp_head->is_an_error(t_resp_head)) {
+        return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response", "get_response_head");
+    } else {
+        return get_throwable()->create(STATUS_OK, NULL, "get_response_head");
+    }
 }
 
-Throwable *get_response_body(void *self, char *body) {
+ThrowablePtr get_response_body(HTTPResponsePtr self, char *body) {
 
     // setting the body attribute
-    if (body == NULL)
-        return (*get_throwable()).create(STATUS_ERROR, "Trying to parse remote server response - no body", "get_response_body");
-    else {
-        ((HTTPResponse *) self)->http_response_body = body;
-        return (*get_throwable()).create(STATUS_OK, NULL, "get_response_body");
+    if (body == NULL) {
+        return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response - no body",
+                                       "get_response_body");
+    } else {
+        self->http_response_body = body;
+        return get_throwable()->create(STATUS_OK, NULL, "get_response_body");
     }
 }
 
-void destroy_http_response(void *self) {
+void destroy_http_response(HTTPResponsePtr self) {
 
     // destroyng http_request support struct
-    ((HTTPResponse *) self)->response->destroy(
-    ((HTTPResponse *) self)->response->self);
+    self->response->destroy(self->response);
     // freeing memory allocated for the body during message receiving
-    free(((HTTPResponse *) self)->http_response_body);
+    free(self->http_response_body);
 }
 
-HTTPResponse *new_http_response(void) {
+HTTPResponsePtr new_http_response(void) {
 
-    HTTPResponse *http = malloc(sizeof(HTTPResponse));
+    HTTPResponsePtr http = malloc(sizeof(HTTPResponse));
     if (http == NULL) {
-        (*get_log()).e(TAG_HTTP_RESPONSE, "Memory allocation error in new_http_response\n");
+        get_log()->e(TAG_HTTP_RESPONSE, "Memory allocation error in new_http_response\n");
         exit(EXIT_FAILURE);
     }
-
-    // autoreferencing
-    http->self = http;
 
     // setting type attribute and body to null
     http->http_response_type = RESP;

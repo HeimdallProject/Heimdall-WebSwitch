@@ -1,57 +1,56 @@
-
 #include "../include/helper.h"
 
 /*
  *  See .h for more information.
  */
-Throwable *str_to_int(const char *string, int *value) {
+ThrowablePtr str_to_int(const char *string, int *value) {
     char *pointer;
 
     errno = 0;
     *value = (int) strtol(string, &pointer, 0);
 
     if ((errno == ERANGE) || (errno != 0 && *value == 0)) 
-        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "str_to_int");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "str_to_int");
     if (pointer == string) 
-        return (*get_throwable()).create(STATUS_ERROR, "No digits were found", "str_to_int");
+        return get_throwable()->create(STATUS_ERROR, "No digits were found", "str_to_int");
     if (*pointer != '\0') 
-        return (*get_throwable()).create(STATUS_ERROR, "There is some characters", "str_to_int");
+        return get_throwable()->create(STATUS_ERROR, "There is some characters", "str_to_int");
 
-    return (*get_throwable()).create(STATUS_OK, NULL, "str_to_int");
+    return get_throwable()->create(STATUS_OK, NULL, "str_to_int");
 }
 
-Throwable *str_to_long(const char *string, long *value) {
+ThrowablePtr str_to_long(const char *string, long *value) {
     char *pointer;
 
     errno = 0;
     *value = strtol(string, &pointer, 0);
 
     if ((errno == ERANGE) || (errno != 0 && *value == 0))
-        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "str_to_long");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "str_to_long");
     if (pointer == string)
-        return (*get_throwable()).create(STATUS_ERROR, "No digits were found", "str_to_long");
+        return get_throwable()->create(STATUS_ERROR, "No digits were found", "str_to_long");
     if (*pointer != '\0')
-        return (*get_throwable()).create(STATUS_ERROR, "There is some characters", "str_to_long");
+        return get_throwable()->create(STATUS_ERROR, "There is some characters", "str_to_long");
 
-    return (*get_throwable()).create(STATUS_OK, NULL, "str_to_long");
+    return get_throwable()->create(STATUS_OK, NULL, "str_to_long");
 }
 
 /*
  *  See .h for more information.
  */
-Throwable *str_to_float(char *string, float *value) {
+ThrowablePtr str_to_float(char *string, float *value) {
     char *pointer;
 
     errno = 0;
     *value = strtof(string, &pointer);
     if ((errno == ERANGE && (*value == LONG_MAX || *value == LONG_MIN)) || (errno != 0 && *value == 0)) 
-        return (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "str_to_float");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "str_to_float");
     if (pointer == string) 
-        return (*get_throwable()).create(STATUS_ERROR, "No digits were found", "str_to_float");
+        return get_throwable()->create(STATUS_ERROR, "No digits were found", "str_to_float");
     if (*pointer != '\0') 
-        return (*get_throwable()).create(STATUS_ERROR, "There is some characters", "str_to_float");
+        return get_throwable()->create(STATUS_ERROR, "There is some characters", "str_to_float");
 
-    return (*get_throwable()).create(STATUS_OK, NULL, "str_to_float");
+    return get_throwable()->create(STATUS_OK, NULL, "str_to_float");
 }
 
 /*
@@ -72,7 +71,7 @@ char *str_to_lower(char *string) {
 char *get_error_by_errno(const int error) {
     char error1[250];
     snprintf(error1, 250, "%d", error);
-    (*get_log()).d(TAG_HELPER, error1);
+    get_log()->d(TAG_HELPER, error1);
 
     char *message;
     size_t size;

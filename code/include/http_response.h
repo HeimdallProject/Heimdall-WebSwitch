@@ -7,7 +7,6 @@
 //              to perform the web switching callback feature
 // ============================================================================
 //
-
 #ifndef WEBSWITCH_HTTP_RESPONSE_H
 #define WEBSWITCH_HTTP_RESPONSE_H
 
@@ -23,17 +22,16 @@
 #define TAG_HTTP_RESPONSE "HTTP_RESPONSE"
 
 typedef struct http_response {
-    struct http_response *self;                                // autoreferencing the struct
     struct http_request  *response;                            // http_request struct pointer which handle a basic response retrieval
                                                                // and will be extended into this struct
     int    http_response_type;                                 // setting http_request struct response type for using its methods
     char  *http_response_body;                                 // the body of the message
 
-    Throwable *(*get_http_response)(void *self, char *buffer);
-    Throwable *(*get_response_head)(void *self, char *head);
-    Throwable *(*get_response_body)(void *self, char *body);
-    void (*destroy)(void *self);
-} HTTPResponse;
+    ThrowablePtr (*get_http_response)(struct http_response *self, char *buffer);
+    ThrowablePtr (*get_response_head)(struct http_response *self, char *head);
+    ThrowablePtr (*get_response_body)(struct http_response *self, char *body);
+    void (*destroy)(struct http_response *self);
+} HTTPResponse, *HTTPResponsePtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -49,7 +47,7 @@ typedef struct http_response {
  *   struct http_response
  * ---------------------------------------------------------------------------
  */
-Throwable *get_http_response(void *self, char *buffer);
+ThrowablePtr get_http_response(HTTPResponsePtr self, char *buffer);
 
 /*
  * ---------------------------------------------------------------------------
@@ -65,7 +63,7 @@ Throwable *get_http_response(void *self, char *buffer);
  *   struct http_response
  * ---------------------------------------------------------------------------
  */
-Throwable *get_response_head(void *self, char *head);
+ThrowablePtr get_response_head(HTTPResponsePtr self, char *head);
 
 /*
  * ---------------------------------------------------------------------------
@@ -81,7 +79,7 @@ Throwable *get_response_head(void *self, char *head);
  *   struct http_response
  * ---------------------------------------------------------------------------
  */
-Throwable *get_response_body(void *self, char *body);
+ThrowablePtr get_response_body(HTTPResponsePtr self, char *body);
 
 /*
  * ---------------------------------------------------------------------------
@@ -92,7 +90,7 @@ Throwable *get_response_body(void *self, char *body);
  * Return     :
  * ---------------------------------------------------------------------------
  */
-void destroy_http_response(void *self);
+void destroy_http_response(HTTPResponsePtr self);
 
 /*
  * ---------------------------------------------------------------------------
@@ -104,7 +102,7 @@ void destroy_http_response(void *self);
  *   struct http_request pointer
  * ---------------------------------------------------------------------------
  */
-HTTPResponse *new_http_response(void);
+HTTPResponsePtr new_http_response(void);
 
 
 #endif //WEBSWITCH_HTTP_RESPONSE_H

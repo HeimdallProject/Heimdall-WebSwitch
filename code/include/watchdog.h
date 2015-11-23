@@ -1,10 +1,9 @@
 //
 //============================================================================
-// Name             : watchdog.h
-// Description      : This is the watchdog utils header file
+// Name       : watchdog.h
+// Description: This is the watchdog utils header file.
 // ===========================================================================
 //
-
 #ifndef WEBSWITCH_WATCHDOG_H
 #define WEBSWITCH_WATCHDOG_H
 
@@ -71,7 +70,5 @@ void *enable_watchdog(void *arg);
  * ---------------------------------------------------------------------------
  */
 int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_timestamp);
-
-
 
 #endif //WEBSWITCH_WATCHDOG_H

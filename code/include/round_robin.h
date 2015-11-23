@@ -1,11 +1,11 @@
 //
 //============================================================================
-// Name             : round_robin.c
-// Description      : This file contains an implementation of some different Round
-//                    Robin scheduling disciplines using the circular buffer implementation
+// Name       : round_robin.h
+// Description: This file contains an implementation of some different Round
+//              Robin scheduling disciplines using the circular buffer
+//              implementation.
 // ===========================================================================
 //
-
 #ifndef WEBSWITCH_ROUND_ROBIN_H
 #define WEBSWITCH_ROUND_ROBIN_H
 

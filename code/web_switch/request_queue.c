@@ -1,4 +1,3 @@
-
 #include "../include/request_queue.h"
 
 /*
@@ -170,7 +169,7 @@ RequestQueuePtr init_request_queue() {
 
     RequestQueuePtr request_queue = malloc(sizeof(RequestQueue));
     if (request_queue == NULL) {
-        (*get_log()).e(TAG_REQUEST_NODE, "Memory allocation error in new_request_queue.\n");
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in new_request_queue.\n");
         exit(EXIT_FAILURE);
     }
     // Set self linking

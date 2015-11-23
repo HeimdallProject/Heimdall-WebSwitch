@@ -1,8 +1,8 @@
 //
 //============================================================================
-// Name             : request_node.h
-// Description      : This header file contains all the stuffs useful in order
-//                    to create a node for request_queue.
+// Name       : request_node.h
+// Description: This header file contains all the stuffs useful in order to
+//              create a node for request_queue.
 // ===========================================================================
 //
 #ifndef WEBSWITCH_REQUEST_NODE_H
@@ -36,7 +36,6 @@
  *  destroy    : Pointer to destroy function.
  */
 typedef struct request_node {
-    struct request_node *self;
     pthread_t thread_id;
     HTTPResponse *response;
     time_t request_timeout;
@@ -58,6 +57,6 @@ typedef struct request_node {
  * Return     : The pointer to new instance of RequestNode.
  * ---------------------------------------------------------------------------
  */
-RequestNode *init_request_node();
+RequestNodePtr init_request_node();
 
 #endif //WEBSWITCH_REQUEST_NODE_H

@@ -1,10 +1,10 @@
 //
 //============================================================================
-// Name             : apache_status.c
-// Description      : This header file contains all the stuffs useful in order to
-//                    reads the status of an Apache server.
-//                    For other info read:
-//                      - http://httpd.apache.org/docs/2.4/mod/mod_status.html
+// Name       : apache_status.h
+// Description: This header file contains all the stuffs useful in order to
+//              reads the status of an Apache server.
+//              For other info read:
+//                  - http://httpd.apache.org/docs/2.4/mod/mod_status.html
 // ===========================================================================
 //
 #ifndef APACHE_STATUS_H
@@ -33,15 +33,15 @@
  *  server_status.set_url(server_status.self, "www.laziobus.it");
  *
  *   // Retrieve status
- *  Throwable retrieve_throwable = *server_status.retrieve(server_status.self);
- *  if (retrieve_throwable.is_an_error(retrieve_throwable.self)) {
+ *  ThrowablePtr retrieve_throwable = *server_status.retrieve(server_status.self);
+ *  if (retrieve_throwable->is_an_error(retrieve_throwable.self)) {
  *      printf("Error");
  *      exit(EXIT_FAILURE);
  *  }
  *
  *  // Parse
- *  Throwable parse_throwable = *server_status.parse(server_status.self);
- *  if (parse_throwable.is_an_error(parse_throwable.self)) {
+ *  ThrowablePtr parse_throwable = *server_status.parse(server_status.self);
+ *  if (parse_throwable->is_an_error(parse_throwable.self)) {
  *      printf("Error");
  *      exit(EXIT_FAILURE);
  *  }
@@ -61,7 +61,6 @@
  * Description: This struct collect all data about the state of a Apace server.
  *
  * Data:
- *  self            : Pointer to itself.
  *  url             : The URL of the server status page.
  *  status_page     : The complete status page.
  *  string          : The summary of struct.
@@ -87,7 +86,6 @@
  *  destroy    : Pointer to destroy function.
  */
 typedef struct apache_server_status {
-    struct apache_server_status *self;
     char *url;
     char *status_page;
     char *string;
@@ -101,12 +99,12 @@ typedef struct apache_server_status {
     int busy_workers;
     int idle_workers;
 
-    Throwable *(*retrieve)(struct apache_server_status *self);
-    Throwable *(*parse)(struct apache_server_status *self);
-    Throwable *(*set_url)(struct apache_server_status *self, char *url);
+    ThrowablePtr (*retrieve)(struct apache_server_status *self);
+    ThrowablePtr (*parse)(struct apache_server_status *self);
+    ThrowablePtr (*set_url)(struct apache_server_status *self, char *url);
     char *(*to_string)(struct apache_server_status *self);
     void (*destroy)(struct apache_server_status *self);
-} ApacheServerStatus;
+} ApacheServerStatus, *ApacheServerStatusPtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -118,6 +116,6 @@ typedef struct apache_server_status {
  * Return     : The pointer to new instance of ApacheServerStatus.
  * ---------------------------------------------------------------------------
  */
-ApacheServerStatus *new_apache_server_status();
+ApacheServerStatusPtr new_apache_server_status();
 
 #endif //APACHE_STATUS_H

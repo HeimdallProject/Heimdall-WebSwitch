@@ -1,10 +1,9 @@
 //
 //============================================================================
-// Name             : worker.h
-// Description      : This is the webswitch single Worker thread body
+// Name       : worker.h
+// Description: This is the webswitch single Worker thread body.
 // ===========================================================================
 //
-
 #ifndef WEBSWITCH_WORKER_H
 #define WEBSWITCH_WORKER_H
 

@@ -1,4 +1,3 @@
-
 #include "../include/round_robin.h"
 
 // server broken reentering routine
@@ -7,27 +6,27 @@ int broken_server_routine(Server *server) {
     // creating a TCP client socket
     int socket_fd;
     if (create_client_socket(0, server->address, server->port, &socket_fd) == STATUS_ERROR) {
-        (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "client_socket in broken_server");
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "client_socket in broken_server");
         return STATUS_ERROR;
     }
 
     // making a simple GET request
     char *request;
     /*
-    HTTPRequest *http_request = new_http_request();
+    HTTPRequestPtr http_request = new_http_request();
     http_request->set_simple_request(http_request->self, "GET", "/", "HTTP/1.1");
     http_request->make_simple_request(http_request->self, &request);
     fprintf(stdout, "requesting...");
     fflush(stdout);
     // initializing an HTTP response struct
-    HTTPRequest *http_response = new_http_request(); */
+    HTTPRequestPtr http_response = new_http_request(); */
 
     // writing the request into the socket
     int nwrite = (int) strlen(request);
     int writen;
     while ((writen = (int) write(socket_fd, request, (size_t) nwrite)) <= nwrite) {
         if (writen < 0) {
-            (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "write in socket in broken_server");
+            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write in socket in broken_server");
             return STATUS_ERROR;
         }
         if (writen == 0) break;
@@ -39,7 +38,7 @@ int broken_server_routine(Server *server) {
     // reading the response from the socket
     char *buffer = malloc(sizeof(char)*MAX_BROKEN_SERV_ROUTINE_BUFFER);
     if (buffer == NULL) {
-        (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "malloc in broken_server");
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in broken_server");
         return STATUS_ERROR;
     }
 
@@ -49,7 +48,7 @@ int broken_server_routine(Server *server) {
     while(nread >= 0) {
         n = (int) read(socket_fd, buffer + readn, (size_t) nread);
         if (n <  0) {
-            (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "read from socket in broken_server");
+            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read from socket in broken_server");
             pthread_exit(NULL);
         }
 
@@ -91,7 +90,7 @@ void weighted_servers(Server *servers, int server_num) {
     // allocating the server pattern sequence
     Server *w_servers = malloc(sizeof(Server)*weight_sum);
     if (w_servers == NULL) {
-        (*get_throwable()).create(STATUS_ERROR, get_error_by_errno(errno), "malloc in weighted_servers");
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in weighted_servers");
         exit(EXIT_FAILURE);
     }
 

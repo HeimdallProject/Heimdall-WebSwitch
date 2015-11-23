@@ -1,10 +1,9 @@
 //
 //============================================================================
-// Name             : worker_pool.h
-// Description      : This header infomation about worker LL object.
+// Name       : worker_pool.h
+// Description: This header infomation about worker LL object.
 // ===========================================================================
 //
-
 #ifndef WORKER_POOL_H
 #define WORKER_POOL_H
 

@@ -1,16 +1,16 @@
 //
 //============================================================================
-// Name             : circular.c
-// Description      : This file contains an implementation of the circular
-//                    buffer data structure with some example structures (to
-//                    simulate an implementation over remote machines)
-// Implementation   : It has been used a lock to perform atomically all the admin
-//                    operations upon the circular buffer. It is architecturally
-//                    intended that progress() operation is the only one performed by the
-//                    user and her should handle the release op.
+// Name       : circular.h
+// Description: This file contains an implementation of the circular buffer
+//              data structure with some example structures (to simulate an
+//              implementation over remote machines).
+//
+//              It has been used a lock to perform atomically all the admin
+//              operations upon the circular buffer. It is architecturally
+//              intended that progress() operation is the only one performed
+//              by the user and her should handle the release op.
 // ===========================================================================
 //
-
 #ifndef WEBSWITCH_CIRCULAR_H
 #define WEBSWITCH_CIRCULAR_H
 
@@ -49,17 +49,16 @@ typedef struct server {
  * ---------------------------------------------------------------------------
  */
 typedef struct circular_buffer {
-    struct circular_buffer *self;
     Server      *buffer;
     int         buffer_position;
     int         buffer_len;
     Server      *head;
     Server      *tail;
 
-    Throwable   *(*allocate_buffer)(Server **servers, int len);
+    ThrowablePtr (*allocate_buffer)(Server **servers, int len);
     int          (*progress)();
     void         (*destroy_buffer)();
-} Circular;
+} Circular, *CircularPtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -72,10 +71,10 @@ typedef struct circular_buffer {
  *   integer len:         the length of the server array
  *
  * Return     :
- *   Throwable pointer
+ *   ThrowablePtr pointer
  * ---------------------------------------------------------------------------
  */
-Throwable *allocate_buffer(Server **servers, int len);
+ThrowablePtr allocate_buffer(Server **servers, int len);
 
 
 /*
@@ -115,7 +114,7 @@ void destroy_buffer();
  *   Circular pointer
  * ---------------------------------------------------------------------------
  */
-Circular *new_circular(void);
+CircularPtr new_circular(void);
 
 /*
  * ---------------------------------------------------------------------------
@@ -128,7 +127,7 @@ Circular *new_circular(void);
  *   Circular pointer
  * ---------------------------------------------------------------------------
  */
-Circular *get_circular(void);
+CircularPtr get_circular(void);
 
 /*
  * ---------------------------------------------------------------------------

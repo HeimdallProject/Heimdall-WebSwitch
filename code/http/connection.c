@@ -1,40 +1,28 @@
-
 #include "../include/connection.h"
 
-/*
- * Function   : create_socket
- * Description: This function creates a TCP or UDP socket.
- *
- * Param      :
- *   type:    The type of the socket, 0 for TCP, 1 per UDP.
- *   sockfd:  The pointer of the int where save the file
- *            description.
- *
- * Return     : STATUS_OK in case of success, STATUS_ERROR otherwise.
- */
-int create_socket(const int type, int *sockfd) {
+ThrowablePtr create_socket(const int type, int *sockfd) {
 
     if (type == 0) {  // TCP
         if ((*sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-            // TODO manage errno perror("Error in socket()");
-            return STATUS_ERROR;
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_socket");
         }
     } else if (type == 1) {  // UDP
         if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-            // TODO manage errno perror("Error in socket()");
-            return STATUS_ERROR;
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_socket");
         }
     } else {
-        fprintf(stderr, "Usage create_socket_and_bind(<type>), <type> = 0 for TCP <type> = 1 for UDP\n");
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, "Usage create_socket_and_bind(<type>), <type> = 0 for TCP <type> = 1 for UDP", "create_socket");
     }
 
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "create_socket");
 }
 
-int create_server_socket(const int type, const int port, int *sockfd) {
+ThrowablePtr create_server_socket(const int type, const int port, int *sockfd) {
 
-    if (create_socket(type, sockfd) == STATUS_ERROR) return STATUS_ERROR;
+    ThrowablePtr throwable = create_socket(type, sockfd);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "create_server_socket");
+    }
 
     struct sockaddr_in addr;
 
@@ -44,16 +32,16 @@ int create_server_socket(const int type, const int port, int *sockfd) {
     addr.sin_port = htons(port);               // Waiting a connection on PORT
 
     if (bind(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        // TODO manage errno perror("Error in bind()");
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_server_socket");
     }
 
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "create_server_socket");
 }
 
-int create_client_socket(const int type, const char *ip, const int port, int *sockfd) {
+ThrowablePtr create_client_socket(const int type, const char *ip, const int port, int *sockfd) {
 
-    if (create_socket(type, sockfd) == STATUS_ERROR) return STATUS_ERROR;
+    ThrowablePtr throwable = create_socket(type, sockfd);
+    if (throwable->is_an_error(throwable)) return throwable->thrown(throwable, "create_client_socket");
 
     struct sockaddr_in addr;
 
@@ -62,117 +50,96 @@ int create_client_socket(const int type, const char *ip, const int port, int *so
     addr.sin_port = (in_port_t) htons((uint16_t) port);   // Set server connection on specified PORT
 
     if (inet_pton(AF_INET, ip, &addr.sin_addr) == -1) {
-        // TODO manage errno perror("Error in inet_pthon()");
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_client_socket");
     }
 
     if (connect(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        // TODO manage errno perror("Error in connect()");
-        printf("ciao");
-        fflush(stdout);
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_client_socket");
     }
 
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "create_client_socket");
 }
 
-int listen_to(const int sockfd, const int backlog) {
+ThrowablePtr listen_to(const int sockfd, const int backlog) {
 
     if (listen(sockfd, backlog) == -1) {
-        // TODO manage errno perror("Error in listen()");
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "listen_to");
     }
 
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "listen_to");
 }
 
-int accept_connection(const int sockfd, int *connection) {
+ThrowablePtr accept_connection(const int sockfd, int *connection) {
 
     if ((*connection = accept(sockfd, (struct sockaddr *)NULL, NULL)) == -1) {
-        // TODO manage errno perror("Error in accept()");
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "accept_connection");
     }
 
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "accept_connection");
 }
 
-int close_connection(const int connection) {
+ThrowablePtr close_connection(const int connection) {
 
     if (close(connection) == -1) {
-        // TODO manage errno perror("Error in close()");
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection");
     }
 
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "close_connection");
 }
 
-/*
-int get_server_url(const char *ip, char *url) {
-// TODO complete
-    char *host, service;
-
-    */
-/*if (getnameinfo() != 0) {
-        // TODO manage error that are listed in man
-        return STATUS_ERROR;
-    }*//*
-
-
-
-    return STATUS_OK;
-}*/
-
-int send_request(int *sockfd, HTTPRequest *request) {
+ThrowablePtr send_request(int *sockfd, char *request) {
     int bytes, sent, total;
-    char *message;
 
-    (*request).make_simple_request(request->self, &message);
-    (*get_log()).d(TAG_HTTP_REQUEST, message);
+    get_log()->d(TAG_CONNECTION, request);
 
-    total = (int) strlen(message);
+    total = (int) strlen(request);
     sent = 0;
     do {
-        bytes = (int) write(*sockfd, message+sent, (size_t) (total-sent));
+        bytes = (int) write(*sockfd, request + sent, (size_t) (total-sent));
         if (bytes < 0) {
-            fprintf(stderr, "ERROR writing message to socket");
-            return EXIT_FAILURE;
+            return get_throwable()->create(STATUS_ERROR, "Writing message to socket", "send_request");
         }
         if (bytes == 0)
             break;
         sent+=bytes;
     } while (sent < total);
 
-    return EXIT_SUCCESS;
+    return get_throwable()->create(STATUS_OK, NULL, "send_request");
 }
 
-int receive_response(int *sockfd) {
-    int bytes, total, received;
-    char response[4096];
+ThrowablePtr receive_response(int *sockfd, char *response) {
 
-    memset(response, 0, sizeof(response));
-    total = sizeof(response) - 1;
-    received = 0;
-    do {
-        bytes = (int) read(*sockfd,response-received, (size_t) (total-received));
-        if (bytes < 0) {
-            fprintf(stderr, "ERROR reading response from socket");
-            return EXIT_FAILURE;
-        }
-        if (bytes == 0)
+    ssize_t n_read;                     // Last size read
+    ssize_t total_read = 0;             // Total size read
+    ssize_t size = sizeof(char) * 1024; // Size of response buffer
+
+    while (TRUE) {
+        n_read = read(*sockfd, response + total_read, 1); // Read one char at time
+
+        if (n_read == -1) { // There is an error
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_response");
+        } else if (n_read == 0) {   // EOF reached
             break;
-        received += bytes;
-    } while (received < total);
+        }
 
-    if (received == total)
-        fprintf(stderr, "ERROR storing complete response from socket");
+        // Increase number of bytes read
+        total_read = total_read + sizeof(char) * n_read;
 
-    // Close the socket
-    close(*sockfd);
+        // If memory is full realloc
+        if (total_read == size) {
+            if (realloc(response, size + sizeof(char) * 1024) == NULL) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_response");
+            }
+            // Increase size
+            size = size + sizeof(char) * 1024;
+        }
+    }
 
-    (*get_log()).d("CONNECTION", response);
-    
-    return EXIT_SUCCESS;
+    get_log()->d(TAG_CONNECTION, response);
+
+    return get_throwable()->create(STATUS_OK, NULL, "receive_response");
 }
+
 /*
  * ---------------------------------------------------------------------------
  *  Main function, for test and example usage.
@@ -180,29 +147,48 @@ int receive_response(int *sockfd) {
  */
 int main() {
 
-/*    int n = 1; // Number of arguments
-    if (argc != n + 1 || strcmp(argv[1], "--help") == 0) {
-        fprintf(stderr, "Usage %s <URL>\n", argv[0]);
-        return EXIT_FAILURE;
-    }*/
-
     LogPtr log = get_log();
 
-    // Initialize server_status
-    HTTPRequest *http_request = new_http_request();
+    // Initializes the new http request
+    HTTPRequestPtr http_request = new_http_request();
 
-    // Set simple request
-    http_request->set_simple_request(http_request->self, "GET", "/", "HTTP/1.1", "10.200.15.216");
+    // Generates a new simple request
+    http_request->set_simple_request(http_request, "GET", "/", "HTTP/1.1", "agesciroma97.org");
 
+    // Creates a new client
     int sockfd;
-    if (create_client_socket(TCP, "10.200.15.216", 8000, &sockfd) == STATUS_ERROR) {
-        log->e("Errore", "niente client socket!");
+    ThrowablePtr throwable = create_client_socket(TCP, "5.249.149.45", 80, &sockfd);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
         exit(EXIT_FAILURE);
     }
 
-    send_request(&sockfd, http_request);
+    // Sends the simple request
+    char *message;
+    http_request->make_simple_request(http_request, &message);
+    send_request(&sockfd, message);
 
-    receive_response(&sockfd);
+    // Prepares in order to receive the response
+    char *response = (char *) malloc(sizeof(char) * 1024);
+    if (response == NULL) {
+        log->e(TAG_CONNECTION, "Allocation error");
+    }
+
+    // Receives the response
+    throwable = receive_response(&sockfd, response);
+    if(throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Closes the connection
+    close_connection(sockfd);
+
+    // Parse the response and put into the
+    HTTPResponsePtr http_response = new_http_response();
+    http_response->get_http_response(http_response, response);
+
+    //log->i(TAG_CONNECTION, http_response->http_response_body); //TODO non funziona...
 
     // Destroy the object
     http_request->destroy(http_request);

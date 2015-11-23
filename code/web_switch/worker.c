@@ -1,4 +1,3 @@
-
 #include "../include/worker.h"
 
 /*

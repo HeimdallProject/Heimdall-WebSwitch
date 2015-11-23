@@ -1,7 +1,3 @@
-//
-// Created by Andrea Cerra on 19/11/15.
-//
-
 #ifndef WEBSWITCH_MACRO_H
 #define WEBSWITCH_MACRO_H
 

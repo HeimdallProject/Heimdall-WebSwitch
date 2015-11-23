@@ -82,11 +82,11 @@ void *write_work(void *arg);
  *              all the data structures and buffer necessary to the worker proper
  *              goal.
  *
- * Param      :
+ * Param      : pid_t as worker process identifier
  * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr start_worker();
+ThrowablePtr start_worker(pid_t os_id);
 
 /*
  * ---------------------------------------------------------------------------

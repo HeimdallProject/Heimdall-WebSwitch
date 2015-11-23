@@ -4,6 +4,8 @@
 
 #include "include/log.h"
 #include "include/heimdall_config.h"
+#include "include/worker.h"
+
 
 #define TAG_MAIN "MAIN"
 
@@ -17,8 +19,8 @@
 int main() {
 
     /* Init Config */
-    ConfigPtr config = get_config();
-    printf("test_config: %s",config->pre_fork);
+    //ConfigPtr config = get_config();
+    //printf("test_config: %s",config->pre_fork);
 
     /* Init Log */
     //LogPtr log = get_log();
@@ -39,6 +41,12 @@ int main() {
         sleep(1);
         printf(".");
     }*/
+
+    /* WORKER AND WATCHDOG TESTING - no code area! */
+    ThrowablePtr worker_throw = start_worker();
+    if (get_throwable()->is_an_error(worker_throw))
+        fprintf(stdout, "ERROR: %s\n", get_throwable()->stack_trace);
+
     
     exit(EXIT_SUCCESS);
 }

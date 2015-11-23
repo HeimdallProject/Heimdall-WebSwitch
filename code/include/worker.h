@@ -17,7 +17,6 @@
 
 #include "../include/helper.h"
 #include "../include/heimdall_config.h"
-#include "../include/worker.h"
 #include "../include/watchdog.h"
 
 #define TAG_WORKER "WORKER"
@@ -33,10 +32,11 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct worker {
-    pthread_t *writer;                              // pointer to thread writer identifier
-    pthread_t *reader;                              // pointer to thread reader identifier
+    pthread_t watch_thread;                        // thread watchdog identifier
+    pthread_t writer_thread;                       // thread writer   identifier
+    pthread_t reader_thread;                       // thread reader   identifier
 
-    RequestQueuePtr requests_ques;                  // pointer to the queue of the pending requests
+    RequestQueuePtr requests_queue;                 // pointer to the queue of the pending requests
     WatchdogPtr watchdog;                           // pointer to the watchdog
 } Worker, *WorkerPtr;
 

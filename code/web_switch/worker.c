@@ -6,8 +6,15 @@
  */
 WorkerPtr new_worker() {
 
-    Worker *wrk = malloc(sizeof(Worker));
+    WorkerPtr wrk = malloc(sizeof(Worker));
     if (wrk == NULL) {
+        fprintf(stderr, "Memory allocation error in new_log.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // watchdog struct allocation
+    wrk->watchdog = malloc(sizeof(Watchdog));
+    if (wrk->watchdog == NULL) {
         fprintf(stderr, "Memory allocation error in new_log.\n");
         exit(EXIT_FAILURE);
     }
@@ -35,7 +42,7 @@ void *write_work(void *arg) {
 
     // casting the parameter
     WorkerPtr worker = (WorkerPtr) arg;
-
+    return (void *) worker;
 }
 
 
@@ -51,27 +58,36 @@ ThrowablePtr start_worker() {
 
     // TODO: do something to allocate the QUEUE
     // initializing watchdog
-    if (detach_watchdog(worker) == STATUS_ERROR)
+    if (detach_watchdog(worker->watchdog) == STATUS_ERROR)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+    int watch_creation = pthread_create(&worker->watch_thread, NULL, enable_watchdog, (void *) worker->watchdog);
+    if (watch_creation != 0)
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+    fprintf(stdout, "-> WATCHDOG DETACHED!\n");
 
     // initializing thread writer
-    int w_creation = pthread_create(worker->writer, NULL, write_work, (void *) worker);
+    int w_creation = pthread_create(&worker->writer_thread, NULL, write_work, (void *) worker);
     if (w_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
 
+    fprintf(stdout, "-> WRITER CREATED!\n");
+
     // initializing thread reader
-    int r_creation = pthread_create(worker->reader, NULL, write_work, (void *) worker);
+    int r_creation = pthread_create(&worker->reader_thread, NULL, read_work, (void *) worker);
     if (r_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+
+    fprintf(stdout, "-> READER CREATED!\n");
+
 
     // waiting for the child threads running over their own routines
     void *watch_status;
     void *write_status;
     void *read_status;
 
-    if (pthread_join(*(worker->watchdog->thread_id), &watch_status) == 0 ||
-        pthread_join(*(worker->writer), &write_status)              == 0 ||
-        pthread_join(*(worker->reader), &read_status)               == 0  ) {
+    if (pthread_join(worker->watch_thread, &watch_status)  == 0 ||
+        pthread_join(worker->writer_thread, &write_status) == 0 ||
+        pthread_join(worker->reader_thread, &read_status)  == 0  ) {
 
         if (((intptr_t) watch_status) == STATUS_ERROR ||
             ((intptr_t) write_status) == STATUS_ERROR ||

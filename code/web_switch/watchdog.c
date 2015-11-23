@@ -1,33 +1,26 @@
 
 #include "../include/watchdog.h"
 
-int detach_watchdog(WorkerPtr worker) {
+int detach_watchdog(WatchdogPtr watchdog) {
     // setting up watchdog
-    // struct allocation
-    worker->watchdog = malloc(sizeof(Watchdog));
-    if (worker->watchdog == NULL)
-        return STATUS_ERROR;
     // retrieving the config params for the watchdog and converting them
     Config *config = get_config();
     long k_time;
     long out_time;
-    if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())      ||
+    if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())    ||
         str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable()))
         return STATUS_ERROR;
     // watchdog wake-up time
-    worker->watchdog->killer_time = (time_t) k_time;
+    watchdog->killer_time = (time_t) k_time;
     // setting up the execution time
-    worker->watchdog->timeout_worker = (time_t) out_time;
-    // thread initialization
-    int watchdog_creation = pthread_create(worker->watchdog->thread_id, NULL, enable_watchdog, (void *) worker->watchdog);
-    if (watchdog_creation != 0)
-        return STATUS_ERROR;
-    else
-        return STATUS_OK;
+    watchdog->timeout_worker = (time_t) out_time;
+
+    fprintf(stdout, "WATCHDOG: \nKiller Time: %lu\nTimeout Worker: %lu\n", watchdog->killer_time, watchdog->timeout_worker);
+    return STATUS_OK;
 }
 
 void *enable_watchdog(void *arg) {
-
+    fprintf(stdout, "ENABLE WATCHDOG!\n");
     // retrieving watchdog
     WatchdogPtr watchdog = (WatchdogPtr) arg;
 

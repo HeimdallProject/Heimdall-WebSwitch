@@ -17,10 +17,24 @@
 
 #include "../include/helper.h"
 #include "../include/request_queue.h"
-#include "../include/worker.h"
 
 #define TAG_WATCHDOG "WATCHDOG"
-#define WATCH_OVER   42
+#define WATCH_OVER   42                             // so long and thanks for all the fish!
+
+
+
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : typedef struct watchdog_thread
+ * Description      : this struct helps to manage and set attributes for the thread
+ *                    which watch over the remote connection thread termination
+ * ---------------------------------------------------------------------------
+ */
+typedef struct watchdog_thread {
+    time_t killer_time;                             // time to schedule the watchdog wakeup
+    time_t timeout_worker;                          // time to abort a thread run
+    time_t timestamp_worker;                        // timestamp of the last worker operation
+} Watchdog, *WatchdogPtr;
 
 
 /*
@@ -32,22 +46,7 @@
  * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
  * ---------------------------------------------------------------------------
  */
-int detach_watchdog(WorkerPtr worker);
-
-/*
- * ---------------------------------------------------------------------------
- * Structure        : typedef struct watchdog_thread
- * Description      : this struct helps to manage and set attributes for the thread
- *                    which watch over the remote connection thread termination
- * ---------------------------------------------------------------------------
- */
-typedef struct watchdog_thread {
-    pthread_t *thread_id;                           // thread identifier
-
-    time_t killer_time;                             // time to schedule the watchdog wakeup
-    time_t timeout_worker;                          // time to abort a thread run
-    time_t timestamp_worker;                        // timestamp of the last worker operation
-} Watchdog, *WatchdogPtr;
+int detach_watchdog(WatchdogPtr watchdog);
 
 
 

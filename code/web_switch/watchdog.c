@@ -19,7 +19,8 @@ int detach_watchdog(WatchdogPtr watchdog) {
 }
 
 void *enable_watchdog(void *arg) {
-    fprintf(stdout, "ENABLE WATCHDOG!\n");
+    // (DEV)
+    //fprintf(stdout, "ENABLE WATCHDOG!\n");
     // retrieving watchdog
     WatchdogPtr watchdog = (WatchdogPtr) arg;
 

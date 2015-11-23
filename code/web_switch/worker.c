@@ -62,21 +62,22 @@ ThrowablePtr start_worker() {
     int watch_creation = pthread_create(&worker->watch_thread, NULL, enable_watchdog, (void *) worker->watchdog);
     if (watch_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
-    fprintf(stdout, "-> WATCHDOG DETACHED!\n");
+    // (DEV)
+    //fprintf(stdout, "-> WATCHDOG DETACHED!\n");
 
     // initializing thread writer
     int w_creation = pthread_create(&worker->writer_thread, NULL, write_work, (void *) worker);
     if (w_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
-
-    fprintf(stdout, "-> WRITER CREATED!\n");
+    // (DEV)
+    //fprintf(stdout, "-> WRITER CREATED!\n");
 
     // initializing thread reader
     int r_creation = pthread_create(&worker->reader_thread, NULL, read_work, (void *) worker);
     if (r_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
-
-    fprintf(stdout, "-> READER CREATED!\n");
+    // (DEV)
+    //fprintf(stdout, "-> READER CREATED!\n");
 
 
     // waiting for the child threads running over their own routines

@@ -58,6 +58,7 @@ void *write_work(void *arg) {
     // casting the parameter
     WorkerPtr worker = (WorkerPtr) arg;
     worker = worker;
+    // (DEV)
     for(;;);
 }
 

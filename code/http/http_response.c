@@ -43,14 +43,22 @@ ThrowablePtr get_response_head(HTTPResponsePtr self, char *head) {
     }
 }
 
+
 ThrowablePtr get_response_body(HTTPResponsePtr self, char *body) {
 
     // setting the body attribute
     if (body == NULL) {
-        return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response - no body",
-                                       "get_response_body");
+        return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response - no body", "get_response_body");
     } else {
-        self->http_response_body = body;
+        // allocating
+        self->http_response_body = malloc(sizeof(char) * (strlen(body) + 1));
+        if (self->http_response_body == NULL) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response_body");
+        } else {
+            // storing body into struct
+            if (strcpy(self->http_response_body, body) != self->http_response_body)
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response_body");
+        }
         return get_throwable()->create(STATUS_OK, NULL, "get_response_body");
     }
 }
@@ -60,7 +68,8 @@ void destroy_http_response(HTTPResponsePtr self) {
     // destroyng http_request support struct
     self->response->destroy(self->response);
     // freeing memory allocated for the body during message receiving
-    free(self->http_response_body);
+    if (self->http_response_body != NULL)
+        free(self->http_response_body);
 }
 
 HTTPResponsePtr new_http_response(void) {
@@ -86,7 +95,3 @@ HTTPResponsePtr new_http_response(void) {
 
     return http;
 }
-
-
-/* use cases */
-/* TO BE TESTED !!! */

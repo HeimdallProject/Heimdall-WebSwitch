@@ -13,14 +13,12 @@ int detach_watchdog(WatchdogPtr watchdog) {
     watchdog->killer_time = (time_t) k_time;
     // setting up the execution time
     watchdog->timeout_worker = (time_t) out_time;
-
-    fprintf(stdout, "WATCHDOG: \nKiller Time: %lu\nTimeout Worker: %lu\n", watchdog->killer_time, watchdog->timeout_worker);
     return STATUS_OK;
 }
 
 void *enable_watchdog(void *arg) {
     // (DEV)
-    //fprintf(stdout, "ENABLE WATCHDOG!\n");
+    fprintf(stdout, "ENABLE WATCHDOG!\n");
     // retrieving watchdog
     WatchdogPtr watchdog = (WatchdogPtr) arg;
 
@@ -54,19 +52,19 @@ void *enable_watchdog(void *arg) {
 
         // watchover routine
         watch_status = watch_over(watchdog, watchdog->timestamp_worker, time(NULL));
-        if (watch_status == STATUS_ERROR)
-            return (void *) (intptr_t) STATUS_ERROR;
         if (watch_status == WATCH_OVER)
             return (void *) (intptr_t) STATUS_OK;
     }
 }
 
 int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_timestamp) {
-
     // checking for timestamp distance and aborting thread if necessary
     time_t running_exec_time = current_timestamp - running_timestamp;
-    if (running_exec_time > watchdog->timeout_worker)
+    if (running_exec_time > watchdog->timeout_worker) {
+        // (DEV)
+        fprintf(stdout, "WATCH IS OVER!\n");
         return WATCH_OVER;
+    }
     else
         return STATUS_OK;
 }

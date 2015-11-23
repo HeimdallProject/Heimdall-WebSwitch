@@ -31,8 +31,9 @@ void *read_work(void *arg) {
 
     for (;;) {
         // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the QUEUE
-        // (DEV)
         worker->watchdog->timestamp_worker = time(NULL);
+        // (DEV)
+        for(;;);
     }
 
 }
@@ -63,35 +64,35 @@ ThrowablePtr start_worker() {
     if (watch_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
     // (DEV)
-    //fprintf(stdout, "-> WATCHDOG DETACHED!\n");
+    fprintf(stdout, "-> WATCHDOG DETACHED!\n");
 
     // initializing thread writer
     int w_creation = pthread_create(&worker->writer_thread, NULL, write_work, (void *) worker);
     if (w_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
     // (DEV)
-    //fprintf(stdout, "-> WRITER CREATED!\n");
+    fprintf(stdout, "-> WRITER CREATED!\n");
 
     // initializing thread reader
     int r_creation = pthread_create(&worker->reader_thread, NULL, read_work, (void *) worker);
     if (r_creation != 0)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
     // (DEV)
-    //fprintf(stdout, "-> READER CREATED!\n");
+    fprintf(stdout, "-> READER CREATED!\n");
 
 
     // waiting for the child threads running over their own routines
-    void *watch_status;
-    void *write_status;
-    void *read_status;
+    int *watch_status;
+    int *write_status;
+    int *read_status;
 
-    if (pthread_join(worker->watch_thread, &watch_status)  == 0 ||
-        pthread_join(worker->writer_thread, &write_status) == 0 ||
-        pthread_join(worker->reader_thread, &read_status)  == 0  ) {
+    if (pthread_join(worker->watch_thread,  (void *) &watch_status)  == 0 ||
+        pthread_join(worker->writer_thread, (void *) &write_status) == 0 ||
+        pthread_join(worker->reader_thread, (void *) &read_status)  == 0  ) {
 
-        if (((intptr_t) watch_status) == STATUS_ERROR ||
-            ((intptr_t) write_status) == STATUS_ERROR ||
-            ((intptr_t) read_status)  == STATUS_ERROR  )
+        if ((*watch_status) == STATUS_ERROR ||
+            (*write_status) == STATUS_ERROR ||
+            (*read_status)  == STATUS_ERROR  )
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
         else
             return get_throwable()->create(STATUS_OK, NULL, "start_worker");

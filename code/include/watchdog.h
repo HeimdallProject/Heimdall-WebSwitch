@@ -19,8 +19,7 @@
 
 #define TAG_WATCHDOG "WATCHDOG"
 #define WATCH_OVER   42                             // so long and thanks for all the fish!
-
-
+#define WATCH_TOWER  24                             // !hsif eht lla rof sknaht dna gnol os
 
 /*
  * ---------------------------------------------------------------------------
@@ -30,12 +29,15 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct watchdog_thread {
+    int status;                                     // watchdog operation status
+
+    pthread_cond_t *worker_await_cond;              // worker condition to signal in case of watchover
+    int *worker_await_flag;
+
     time_t killer_time;                             // time to schedule the watchdog wakeup
     time_t timeout_worker;                          // time to abort a thread run
     time_t timestamp_worker;                        // timestamp of the last worker operation
 } Watchdog, *WatchdogPtr;
-
-// it's time to coommttiitt
 
 /*
  * ---------------------------------------------------------------------------

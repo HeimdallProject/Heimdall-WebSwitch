@@ -43,10 +43,6 @@ int main() {
     }*/
 
     /* WORKER AND WATCHDOG TESTING - no code area! */
-    ThrowablePtr worker_throw = start_worker();
-    if (get_throwable()->is_an_error(worker_throw))
-        fprintf(stdout, "ERROR: %s\n", get_throwable()->stack_trace);
-
-    
+    start_worker();
     exit(EXIT_SUCCESS);
 }

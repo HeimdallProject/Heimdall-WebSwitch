@@ -25,8 +25,11 @@ void *enable_watchdog(void *arg) {
     // initializing time specifics
     struct timespec *req_time = malloc(sizeof(struct timespec));
     struct timespec *rem_time = malloc(sizeof(struct timespec));
-    if (req_time == NULL || rem_time == NULL)
-        return (void *) (intptr_t) STATUS_ERROR;
+    if (req_time == NULL || rem_time == NULL) {
+        watchdog->status = STATUS_ERROR;
+        pthread_cond_signal(watchdog->worker_await_cond);
+        return NULL;
+    }
 
 
     // starting watch-over-thread loop main routine
@@ -40,8 +43,11 @@ void *enable_watchdog(void *arg) {
             sleep_status = nanosleep(req_time, rem_time);
             // upon not successfull complete nanosleep
             if (sleep_status == -1) {
-                if (errno == EFAULT)
-                    return (void *) (intptr_t) STATUS_ERROR;
+                if (errno == EFAULT) {
+                    watchdog->status = STATUS_ERROR;
+                    pthread_cond_signal(watchdog->worker_await_cond);
+                    return NULL;
+                }
                 if (errno == EINTR)
                     req_time->tv_nsec = rem_time->tv_nsec;
             }
@@ -52,8 +58,11 @@ void *enable_watchdog(void *arg) {
 
         // watchover routine
         watch_status = watch_over(watchdog, watchdog->timestamp_worker, time(NULL));
-        if (watch_status == WATCH_OVER)
-            return (void *) (intptr_t) STATUS_OK;
+        if (watch_status == WATCH_OVER) {
+            watchdog->status = STATUS_OK;
+            pthread_cond_signal(watchdog->worker_await_cond);
+            return NULL;
+        }
     }
 }
 
@@ -63,6 +72,7 @@ int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_ti
     if (running_exec_time > watchdog->timeout_worker) {
         // (DEV)
         fprintf(stdout, "WATCH IS OVER!\n");
+        *watchdog->worker_await_flag = WATCH_OVER;
         return WATCH_OVER;
     }
     else

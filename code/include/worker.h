@@ -19,6 +19,7 @@
 #include "../include/watchdog.h"
 
 #define TAG_WORKER "WORKER"
+#define WORK_OVER  42                             // so long and thanks for all the fish!
 
 /*
  * ---------------------------------------------------------------------------
@@ -35,8 +36,15 @@ typedef struct worker {
     pthread_t writer_thread;                       // thread writer   identifier
     pthread_t reader_thread;                       // thread reader   identifier
 
-    RequestQueuePtr requests_queue;                 // pointer to the queue of the pending requests
-    WatchdogPtr watchdog;                           // pointer to the watchdog
+    int writer_thread_status;                      // thread writer operation status
+    int reader_thread_status;                      // thread reader operation status
+
+    pthread_cond_t await_cond;                     // condition to await thread execution
+    pthread_mutex_t await_mtx;                     // mtx for the above condition
+    int worker_await_flag;
+
+    RequestQueuePtr requests_queue;                // pointer to the queue of the pending requests
+    WatchdogPtr watchdog;                          // pointer to the watchdog
 } Worker, *WorkerPtr;
 
 /*

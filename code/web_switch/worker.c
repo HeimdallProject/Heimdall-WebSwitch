@@ -3,7 +3,7 @@
 /*
  *  See .h for more information.
  */
-WorkerPtr new_worker() {
+WorkerPtr new_worker(pid_t os_id) {
 
     WorkerPtr wrk = malloc(sizeof(Worker));
     if (wrk == NULL) {
@@ -18,8 +18,7 @@ WorkerPtr new_worker() {
         exit(EXIT_FAILURE);
     }
 
-    // Set attributes
-    // TODO: choose attributes
+    wrk->worker_id = os_id;
 
     return wrk;
 }
@@ -49,7 +48,7 @@ void *write_work(void *arg) {
 ThrowablePtr start_worker() {
 
     // initializing worker
-    WorkerPtr worker = new_worker();
+    WorkerPtr worker = new_worker(0);
 
     // initialilizing the QUEUE data structure to manage a
     // node of the current request handled (pipeline-robust approach)

@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "../include/worker.h"
+#include "../include/macro.h"
 
 #define TAG_WORKER_POOL_H "WORKER_POOL"
 
@@ -26,10 +27,11 @@
 typedef struct worker_pool{
 	struct node *first;
     struct node *last;
-    struct worker_pool* self;
+
     int (*add_worker)(struct worker_pool* self, WorkerPtr worker);
     int (*delete_worker)(WorkerPtr worker);
-    int (*search_worker)(WorkerPtr worker);
+    WorkerPtr (*get_free_worker)(struct worker_pool* self);
+    int (*count_free_worker)(struct worker_pool* self);
     int (*print_worker_pool)();
 } WorkerPool, *WorkerPoolPtr;
 

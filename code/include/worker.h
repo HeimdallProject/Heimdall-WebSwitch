@@ -31,12 +31,13 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct worker {
-    pthread_t watch_thread;                        // thread watchdog identifier
-    pthread_t writer_thread;                       // thread writer   identifier
-    pthread_t reader_thread;                       // thread reader   identifier
-
-    RequestQueuePtr requests_queue;                 // pointer to the queue of the pending requests
-    WatchdogPtr watchdog;                           // pointer to the watchdog
+    pthread_t watch_thread;       		// thread watchdog identifier
+    pthread_t writer_thread;  			// thread writer   identifier
+    pthread_t reader_thread;           	// thread reader   identifier
+	pid_t worker_id;                   	// OS id			
+    
+    RequestQueuePtr requests_queue;		// pointer to the queue of the pending requests
+    WatchdogPtr watchdog;              	// pointer to the watchdog
 } Worker, *WorkerPtr;
 
 /*

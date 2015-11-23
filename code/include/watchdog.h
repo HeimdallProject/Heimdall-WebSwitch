@@ -35,8 +35,6 @@ typedef struct watchdog_thread {
     time_t timestamp_worker;                        // timestamp of the last worker operation
 } Watchdog, *WatchdogPtr;
 
-// it's time to coommttiitt
-
 /*
  * ---------------------------------------------------------------------------
  * Function   : detach_watchdog
@@ -47,8 +45,6 @@ typedef struct watchdog_thread {
  * ---------------------------------------------------------------------------
  */
 int detach_watchdog(WatchdogPtr watchdog);
-
-
 
 /*
  * ---------------------------------------------------------------------------

@@ -1,26 +1,5 @@
 #include "../include/worker_pool.h"
 
-/*int length(NodePtr top) {
-
-	int n = 0;
-	NodePtr curr = top;
-
-	while (curr != NULL) {
-		n++;
-		curr = curr -> next;
-	}
-
-	return n;
-}
-
-NodePtr search(NodePtr top, int key){
-
-	while(top != NULL && key != top->num)
-		top = top->next;
-
-	return top;
-}*/
-
 /*
  * ---------------------------------------------------------------------------
  * Structure        : typedef struct worker_pool_node
@@ -30,6 +9,7 @@ NodePtr search(NodePtr top, int key){
 typedef struct node {
 	struct worker *worker;
 	struct node *next;
+	int free_for_job;
 } WorkerPoolNode, *WorkerPoolNodePtr;
 
 /*
@@ -45,9 +25,10 @@ typedef struct node {
  */
 static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
 
-	WorkerPoolNodePtr np = (WorkerPoolNodePtr) malloc(sizeof(WorkerPoolNode));
-	np->worker = worker;
-	np->next = NULL;
+	WorkerPoolNodePtr np 	= (WorkerPoolNodePtr) malloc(sizeof(WorkerPoolNode));
+	np->worker 				= worker;
+	np->next 				= NULL;
+	np->free_for_job 		= TRUE;
 
 	return np;
 }
@@ -68,10 +49,10 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
 	if (self->first == NULL){
  		printf("List is empty \n");
  	}else{
- 		WorkerPoolNodePtr np = self->first;
-		while (np != NULL) { 
-			printf("Worker in lista: %p\n", np->worker);
-			np = np->next;
+ 		WorkerPoolNodePtr nd = self->first;
+		while (nd != NULL) { 
+			printf("Worker in lista: %p\n", nd->worker);
+			nd = nd->next;
 		}
  	}
 
@@ -106,18 +87,59 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
 
 /*
  * ---------------------------------------------------------------------------
- * Function     : search_worker
- * Description  : Search worker inside the worker list.
+ * Function     : count_free_worker
+ * Description  : Return how many worker are waiting for a new job.
  *
  * Param        :
- *   worker     : Worker pointer.
+ *   worker     : Worker pool pointer.
  *
- * Return       : 0 if ok, -1 on error.
+ * Return       : Number of free worker.
  * ---------------------------------------------------------------------------
  */
- static int search_worker(WorkerPtr worker){
- 	printf("%p\n", worker);
-	return 1;
+ static int count_free_worker(WorkerPoolPtr self){
+
+ 	int count = 0;
+
+ 	WorkerPoolNodePtr nd = self->first;
+	while(nd != NULL){
+		
+		if (nd->free_for_job == TRUE)
+			++count;
+
+		nd = nd->next;
+	}
+
+	return count;
+ }
+
+ /*
+ * ---------------------------------------------------------------------------
+ * Function     : get_free_worker
+ * Description  : Return one worker ready for the job.
+ *
+ * Param        :
+ *   worker     : Worker pool pointer.
+ *
+ * Return       : Retunr
+ * ---------------------------------------------------------------------------
+ */
+ static WorkerPtr get_free_worker(WorkerPoolPtr self){
+
+ 	int count = 0;
+
+ 	WorkerPoolNodePtr nd = self->first;
+	while(nd != NULL){
+
+		if (nd->free_for_job == TRUE){
+			nd->free_for_job = FALSE;
+			break;
+		}
+
+		nd = nd->next;
+		++count;
+	}
+
+	return nd->worker;
  }
 
 /*
@@ -147,11 +169,11 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
         exit(EXIT_FAILURE);
     }
 
- 	wrkPoolPtr->self                = wrkPoolPtr;
  	wrkPoolPtr->delete_worker 		= delete_worker;
- 	wrkPoolPtr->search_worker 		= search_worker;
  	wrkPoolPtr->add_worker 			= add_worker;
  	wrkPoolPtr->print_worker_pool 	= print_worker_pool;
+ 	wrkPoolPtr->get_free_worker 	= get_free_worker;
+ 	wrkPoolPtr->count_free_worker 	= count_free_worker;
  	wrkPoolPtr->first				= NULL;
  	wrkPoolPtr->last                = NULL;
 

@@ -11,11 +11,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
+#include "../include/worker_pool.h"
 #include "../include/log.h"
 #include "../include/worker.h"
-#include "../include/worker_pool.h"
+#include "../include/heimdall_config.h"
 
 #define TAG_THREAD_POOL "THREAD_POOL"
 
@@ -36,14 +39,14 @@ typedef struct thread_pool {
 
 /*
  * ---------------------------------------------------------------------------
- * Function     : init_thread_pool
- * Description  : Return thread identifier.
+ * Function     : get_thread_pool
+ * Description  : Return thread pool singleton pointer.
  *
  * Param        :
  *
- * Return       : Log typedef.
+ * Return       : ThreadPoolPtr
  * ---------------------------------------------------------------------------
  */
-ThreadPoolPtr init_thread_pool();
+ThreadPoolPtr get_thread_pool();
 
 #endif //THREAD_POOL_H

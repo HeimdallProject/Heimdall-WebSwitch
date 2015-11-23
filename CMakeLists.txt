@@ -14,7 +14,9 @@ set(SOURCE_FILES_MAIN
         code/web_switch/watchdog.c
         code/utils/log.c
         code/utils/helper.c
-        code/utils/throwable.c)
+        code/utils/throwable.c
+        code/web_switch/thread_pool.c
+        code/web_switch/worker_pool.c)
 
 set(SOURCE_FILES_APACHE
         code/utils/helper.c

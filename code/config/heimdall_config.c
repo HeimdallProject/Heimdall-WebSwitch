@@ -129,9 +129,7 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
  * Function     : new_log
  * Description  : Alloc and initialize object Log.
  *
- * Param        :
- *
- * Return       : Pointer to object Log.
+ * Return       : Pointer to object Log, NULL on error.
  * ---------------------------------------------------------------------------
  */
 ConfigPtr new_config() {
@@ -139,12 +137,12 @@ ConfigPtr new_config() {
     ConfigPtr config  = malloc(sizeof(Config));
     if (config == NULL) {
         fprintf(stderr, "%s Error in malloc(sizeof(Config))\n", TAG_CONFIG);
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     if(init_config(CONFIGFILE, &config_handler, config) == -1){
         fprintf(stderr, "%s Error ininit_config\n", TAG_CONFIG);
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     return config;

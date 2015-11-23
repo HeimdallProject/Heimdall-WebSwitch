@@ -41,7 +41,7 @@ static int i(const char* tag, const char *format, ...) {
         va_end (arg);
 
         char *output; 
-        byte_read = asprintf(&output, "%s: I/%s: \n%s", timestamp(), tag, formatted_str);
+        byte_read = asprintf(&output, "%s: I/%s: %s", timestamp(), tag, formatted_str);
 
         free(formatted_str);
 
@@ -88,7 +88,7 @@ static int d(const char* tag, const char *format, ...) {
         va_end (arg);
 
         char *output; 
-        byte_read = asprintf(&output, "%s: D/%s: \n%s", timestamp(), tag, formatted_str);
+        byte_read = asprintf(&output, "%s: D/%s: %s", timestamp(), tag, formatted_str);
 
         free(formatted_str);
 
@@ -132,7 +132,7 @@ static int e(const char* tag, const char *format, ...) {
         va_end (arg);
 
         char *output; 
-        byte_read = asprintf(&output, "%s: E/%s: \n%s", timestamp(), tag, formatted_str);
+        byte_read = asprintf(&output, "%s: E/%s: %s", timestamp(), tag, formatted_str);
 
         free(formatted_str);
 

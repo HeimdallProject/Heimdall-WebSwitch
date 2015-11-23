@@ -50,8 +50,6 @@ typedef struct watchdog_thread {
  */
 int detach_watchdog(WatchdogPtr watchdog);
 
-
-
 /*
  * ---------------------------------------------------------------------------
  * Function   : enable_watchdog

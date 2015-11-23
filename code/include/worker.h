@@ -32,7 +32,9 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct worker {
-    pthread_t watch_thread;                        // thread watchdog identifier
+	pid_t worker_id;
+
+	pthread_t watch_thread;                        // thread watchdog identifier
     pthread_t writer_thread;                       // thread writer   identifier
     pthread_t reader_thread;                       // thread reader   identifier
 

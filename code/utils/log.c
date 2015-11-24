@@ -6,7 +6,7 @@
  * * ---------------------------------------------------------------------------
  */
 static Log *singleton_log = NULL;
-
+//TODO use a more low level API in order to avoid swap printing
 /*
  * ---------------------------------------------------------------------------
  * Function     : i

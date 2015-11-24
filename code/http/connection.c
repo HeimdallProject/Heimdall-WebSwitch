@@ -145,6 +145,7 @@ ThrowablePtr receive_response(int *sockfd, char *response) {
  *  Main function, for test and example usage.
  * ---------------------------------------------------------------------------
  */
+/*
 int main() {
 
     LogPtr log = get_log();
@@ -194,4 +195,4 @@ int main() {
     http_request->destroy(http_request);
 
     return EXIT_SUCCESS;
-}
+}*/

@@ -12,6 +12,7 @@ set(SOURCE_FILES_MAIN
         code/config/heimdall_config.c
         code/web_switch/worker.c
         code/web_switch/watchdog.c
+        code/http/connection.c
         code/utils/log.c
         code/utils/helper.c
         code/utils/throwable.c

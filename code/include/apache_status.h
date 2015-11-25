@@ -27,32 +27,28 @@
  * ---------------------------------------------------------------------------
  * Example usage.
  * ---------------------------------------------------------------------------
- *
- *  // Initialize server_status
- *  ApacheServerStatus server_status = *new_apache_server_status();
- *  server_status.set_url(server_status.self, "www.laziobus.it");
- *
- *   // Retrieve status
- *  ThrowablePtr retrieve_throwable = *server_status.retrieve(server_status.self);
- *  if (retrieve_throwable->is_an_error(retrieve_throwable.self)) {
- *      printf("Error");
- *      exit(EXIT_FAILURE);
- *  }
- *
- *  // Parse
- *  ThrowablePtr parse_throwable = *server_status.parse(server_status.self);
- *  if (parse_throwable->is_an_error(parse_throwable.self)) {
- *      printf("Error");
- *      exit(EXIT_FAILURE);
- *  }
- *
- *  Log.i(TAG_APACHE_STATUS, server_status.to_string(server_status.self));
- *
- *  // Destroy the object
- *  server_status.destroy(server_status.self);
- *
- *  return EXIT_SUCCESS;
- *
+    // Initialize server_status
+    ApacheServerStatusPtr server_status = new_apache_server_status();
+    server_status->set_url(server_status, "www.laziobus.it");
+
+     // Retrieve status
+    ThrowablePtr throwable = server_status->retrieve(server_status);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Parse
+    throwable = server_status->parse(server_status);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    get_log()->i(TAG_APACHE_STATUS, server_status->to_string(server_status));
+
+    // Destroy the object
+    server_status->destroy(server_status);
  */
 
 /*
@@ -111,7 +107,7 @@ typedef struct apache_server_status {
  * Function   : new_apache_server_status
  * Description: This function create a new instance of ApacheServerStatus.
  *
- * Param      :
+ * Param      : None
  *
  * Return     : The pointer to new instance of ApacheServerStatus.
  * ---------------------------------------------------------------------------

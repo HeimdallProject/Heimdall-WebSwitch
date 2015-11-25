@@ -26,6 +26,61 @@
 
 #define TAG_CONNECTION "CONNECTION"
 
+/*
+ * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+    // Initializes the new http request
+    HTTPRequestPtr http_request = new_http_request();
+
+    // Sets a new simple request
+    http_request->set_simple_request(http_request, "GET", "/server-status?auto", "HTTP/1.1", self->url);
+
+    // Creates a new client
+    int sockfd;
+    ThrowablePtr throwable = create_client_socket(TCP, "5.196.1.149", 80, &sockfd);
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
+
+    // Generates the simple request
+    char *message;
+    throwable = http_request->make_simple_request(http_request, &message);
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
+
+    // Sends request
+    throwable = send_request(&sockfd, message);
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
+
+    // Prepares in order to receive the response
+    char *response = (char *) malloc(sizeof(char) * 1024);
+    if (response == NULL) {
+        get_throwable()->create(STATUS_ERROR, "Allocation error", "retrieve_apache_status");
+    }
+
+    // Receives the response
+    throwable = receive_response(&sockfd, response);
+    if(throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
+
+    // Closes the connection
+    close_connection(sockfd);
+
+    // Parse the response
+    HTTPResponsePtr http_response = new_http_response();
+    http_response->get_http_response(http_response, response);
+
+    //log->i(TAG_CONNECTION, http_response->http_response_body); //TODO non funziona...
+
+    // Destroy the object
+    http_request->destroy(http_request);
+ */
+
 #define TCP 0
 #define UDP 1
 

@@ -129,7 +129,7 @@ void destroy_apache_status(ApacheServerStatusPtr self) {
     free(self->url);           // Free space for URL
     free(self->status_page);   // Free space for status page
     free(self->string);        // Free space for to_string
-    free(self);                                         // Free all the struct
+    free(self);                // Free all the struct
 }
 
 /*
@@ -145,55 +145,53 @@ void destroy_apache_status(ApacheServerStatusPtr self) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
-    // TODO something similar to connection.c
-    /*int sockfd;
-    if (create_client_socket(TCP, "5.196.1.149", 80, &sockfd) == STATUS_ERROR) return get_throwable()->create(STATUS_ERROR, "Boh", "retrieve_apache_status");
+    // Initializes the new http request
+    HTTPRequestPtr http_request = new_http_request();
 
-    fprintf(stdout, "Connected to server at URL: %s\n", self->url);
+    // Sets a new simple request for apache status
+    http_request->set_simple_request(http_request, "GET", "/server-status?auto", "HTTP/1.1", self->url);
 
-    int bytes, sent, received, total;
-    char message[1024], response[4096];
+    // Creates a new client
+    int sockfd;
+    ThrowablePtr throwable = create_client_socket(TCP, "5.196.1.149", 80, &sockfd); // TODO creates function that returns ip from url
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
 
-    // Fill in the parameters
-    sprintf(message, "GET /server-status?auto HTTP/1.1\nHost: www.laziobus.it\n\n");
+    // Generates the simple request
+    char *message;
+    throwable = http_request->make_simple_request(http_request, &message);
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
 
-    get_log()->d(TAG_APACHE_STATUS, message);
+    // Sends request
+    throwable = send_request(&sockfd, message);
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
 
-    // Send the request
-    total = (int) strlen(message);
-    sent = 0;
-    do {
-        bytes = (int) write(sockfd, message+sent, (size_t) (total-sent));
-        if (bytes < 0)
-            fprintf(stderr, "ERROR writing message to socket");
-        if (bytes == 0)
-            break;
-        sent+=bytes;
-    } while (sent < total);
+    // Prepares in order to receive the response
+    char *response = (char *) malloc(sizeof(char) * 1024);
+    if (response == NULL) {
+        get_throwable()->create(STATUS_ERROR, "Allocation error", "retrieve_apache_status");
+    }
 
-    // Receive the response
-    memset(response, 0, sizeof(response));
-    total = sizeof(response) - 1;
-    received = 0;
-    do {
-        bytes = (int) read(sockfd,response-received, (size_t) (total-received));
-        if (bytes < 0)
-            fprintf(stderr, "ERROR reading response from socket");
-        if (bytes == 0)
-            break;
-        received += bytes;
-    } while (received < total);
+    // Receives the response
+    throwable = receive_response(&sockfd, response);
+    if(throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
 
-    if (received == total)
-        fprintf(stderr, "ERROR storing complete response from socket");
+    // Closes the connection
+    close_connection(sockfd);
 
-    // Close the socket
-    close(sockfd);
+    // Parse the response
+    HTTPResponsePtr http_response = new_http_response();
+    http_response->get_http_response(http_response, response);
 
-    get_log()->d(TAG_APACHE_STATUS, response);*/
-
-    //TODO read and manage header and put in status page only the content of the http response
-    self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .12a5764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
+    //self->status_page = strdup(http_response->http_response_body); //TODO non funziona...
+    self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
 
     return get_throwable()->create(STATUS_OK, NULL, "retrieve_apache_status");
 }
@@ -273,8 +271,6 @@ ApacheServerStatusPtr new_apache_server_status() {
         get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status.\n");
         exit(EXIT_FAILURE);
     }
-    // Set self linking
-    apache_server_status->self = apache_server_status;
 
     // Set "methods"
     apache_server_status->retrieve = retrieve_apache_status;

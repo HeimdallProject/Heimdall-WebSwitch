@@ -1,4 +1,5 @@
 #include "../include/worker.h"
+#include "../include/connection.h"
 
 /*
  *  See .h for more information.
@@ -44,11 +45,18 @@ void *read_work(void *arg) {
     // casting the parameter
     WorkerPtr worker = (WorkerPtr) arg;
 
+    RequestQueuePtr queue = worker->requests_queue;
+
     for (;;) {
         // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the QUEUE
         worker->watchdog->timestamp_worker = time(NULL);
-        // (DEV)
-        for(;;);
+
+        receive_response
+
+        RequestNodePtr node = init_request_node();
+        node;
+
+        queue->enqueue(queue, node);
     }
 
 }
@@ -63,14 +71,19 @@ void *write_work(void *arg) {
 }
 
 
-ThrowablePtr start_worker() {
+ThrowablePtr start_worker(int sockfd) {
 
     // initializing worker
     WorkerPtr worker = new_worker(0);
 
+    worker->sockfd = sockfd;
+
     // initialilizing the QUEUE data structure to manage a
     // node of the current request handled (pipeline-robust approach)
-    // TODO: do something to allocate the QUEUE
+
+    // Initializes queue
+    RequestQueuePtr queue = init_request_queue();
+    worker->requests_queue = queue;
 
     // initializing watchdog
     if (detach_watchdog(worker->watchdog) == STATUS_ERROR)

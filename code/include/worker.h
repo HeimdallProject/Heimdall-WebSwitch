@@ -45,6 +45,8 @@ typedef struct worker {
     pthread_mutex_t await_mtx;                     // mtx for the above condition
     int worker_await_flag;
 
+    int sockfd;
+
     RequestQueuePtr requests_queue;                // pointer to the queue of the pending requests
     WatchdogPtr watchdog;                          // pointer to the watchdog
 } Worker, *WorkerPtr;
@@ -86,7 +88,7 @@ void *write_work(void *arg);
  * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr start_worker();
+ThrowablePtr start_worker(int sockfd);
 
 /*
  * ---------------------------------------------------------------------------

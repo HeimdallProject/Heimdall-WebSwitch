@@ -169,7 +169,7 @@ ThrowablePtr read_headers(char *buffer, HTTPRequestPtr http, int type) {
     for (i = 0; buffer[i]; i++) {
 
         if (buffer[i] == endline) {
-            buffer[i] = '\0';
+            buffer[i - 1] = '\0';
 
             ThrowablePtr throwable;
             if (start == 0) {

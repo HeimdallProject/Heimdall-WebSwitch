@@ -1,6 +1,6 @@
 #include "../include/watchdog.h"
 
-int detach_watchdog(WatchdogPtr watchdog) {
+ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
     // setting up watchdog
     // retrieving the config params for the watchdog and converting them
     Config *config = get_config();
@@ -8,17 +8,15 @@ int detach_watchdog(WatchdogPtr watchdog) {
     long out_time;
     if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())    ||
         str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable()))
-        return STATUS_ERROR;
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "detach_watchdog");
     // watchdog wake-up time
     watchdog->killer_time = (time_t) k_time;
     // setting up the execution time
     watchdog->timeout_worker = (time_t) out_time;
-    return STATUS_OK;
+    return get_throwable()->create(STATUS_OK, NULL, "detach_watchdog");;
 }
 
 void *enable_watchdog(void *arg) {
-    // (DEV)
-    fprintf(stdout, "ENABLE WATCHDOG!\n");
     // retrieving watchdog
     WatchdogPtr watchdog = (WatchdogPtr) arg;
 
@@ -70,8 +68,6 @@ int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_ti
     // checking for timestamp distance and aborting thread if necessary
     time_t running_exec_time = current_timestamp - running_timestamp;
     if (running_exec_time > watchdog->timeout_worker) {
-        // (DEV)
-        fprintf(stdout, "WATCH IS OVER!\n");
         *watchdog->worker_await_flag = WATCH_OVER;
         return WATCH_OVER;
     }

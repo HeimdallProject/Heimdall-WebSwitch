@@ -58,12 +58,11 @@ void *write_work(void *arg) {
     // casting the parameter
     WorkerPtr worker = (WorkerPtr) arg;
     worker = worker;
-    // (DEV)
     for(;;);
 }
 
 
-ThrowablePtr start_worker() {
+void start_worker() {
 
     // initializing worker
     WorkerPtr worker = new_worker(0);
@@ -73,57 +72,71 @@ ThrowablePtr start_worker() {
     // TODO: do something to allocate the QUEUE
 
     // initializing watchdog
-    if (detach_watchdog(worker->watchdog) == STATUS_ERROR)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+    ThrowablePtr  throwable = detach_watchdog(worker->watchdog)
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
     int watch_creation = pthread_create(&worker->watch_thread, NULL, enable_watchdog, (void *) worker->watchdog);
-    if (watch_creation != 0)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
-    // (DEV)
-    fprintf(stdout, "-> WATCHDOG DETACHED!\n");
+    if (watch_creation != 0) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
 
     // initializing thread writer
     int w_creation = pthread_create(&worker->writer_thread, NULL, write_work, (void *) worker);
-    if (w_creation != 0)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
-    // (DEV)
-    fprintf(stdout, "-> WRITER CREATED!\n");
+    if (w_creation != 0) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
 
     // initializing thread reader
     int r_creation = pthread_create(&worker->reader_thread, NULL, read_work, (void *) worker);
-    if (r_creation != 0)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
-    // (DEV)
-    fprintf(stdout, "-> READER CREATED!\n");
+    if (r_creation != 0) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
 
     // detaching all the threads - no join, just condition waiting
     // (dev: the 'pthread_detach' does not change errno value, be aware!)
     if (pthread_detach(worker->watch_thread)   != 0 ||
         pthread_detach(worker->writer_thread)  != 0 ||
-        pthread_detach(worker->reader_thread)  != 0  )
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(ESRCH), "start_worker");
+        pthread_detach(worker->reader_thread)  != 0  ) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(ESRCH), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
 
     // entering in mutex-condition loop
     int awaiting;
     int mtx_lock_unlock = pthread_mutex_lock(&worker->await_mtx);
-    if (mtx_lock_unlock != 0)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+    if (mtx_lock_unlock != 0) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
 
     while (worker->worker_await_flag == WATCH_TOWER) {
         awaiting = pthread_cond_wait(&worker->await_cond, &worker->await_mtx);
-        if (awaiting != 0)
-            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+        if (awaiting != 0) {
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+            exit(EXIT_FAILURE);
+        }
         else
             break;
     }
     mtx_lock_unlock = pthread_mutex_unlock(&worker->await_mtx);
-    if (mtx_lock_unlock != 0)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+    if (mtx_lock_unlock != 0) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
 
     // checking for status of the threads and then exiting
     if (worker->watchdog->status      == STATUS_ERROR ||
         worker->writer_thread_status  == STATUS_ERROR ||
-        worker->reader_thread_status  == STATUS_ERROR  )
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker");
+        worker->reader_thread_status  == STATUS_ERROR  ) {
+        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        exit(EXIT_FAILURE);
+    }
     else
-        return get_throwable()->create(STATUS_OK, NULL, "start_worker");
+        exit(EXIT_SUCCESS);
 }

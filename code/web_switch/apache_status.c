@@ -153,11 +153,18 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
 
     // Resolves ip from hostname
     char ip[16];
-    hostname_to_ip(self->url, ip);
+    ThrowablePtr throwable = hostname_to_ip(self->url, ip);
+    if (throwable->is_an_error(throwable)) {
+        throwable->thrown(throwable, "retrieve_apache_status");
+    }
+
+    get_log()->i(TAG_APACHE_STATUS, ip);
 
     // Creates a new client
     int sockfd;
-    ThrowablePtr throwable = create_client_socket(TCP, ip, 80, &sockfd);
+    // (DEV) TODO: prova andrea
+    throwable = create_client_socket(TCP, ip, 8080, &sockfd);
+    //ThrowablePtr throwable = create_client_socket(TCP, ip, 80, &sockfd);
     if (throwable->is_an_error(throwable)) {
         throwable->thrown(throwable, "retrieve_apache_status");
     }
@@ -168,6 +175,9 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     if (throwable->is_an_error(throwable)) {
         throwable->thrown(throwable, "retrieve_apache_status");
     }
+    get_log()->i(TAG_APACHE_STATUS, message);
+
+    fprintf(stdout, "CIAON0\n");
 
     // Sends request
     throwable = send_request(&sockfd, message);
@@ -175,11 +185,19 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
         throwable->thrown(throwable, "retrieve_apache_status");
     }
 
+    fprintf(stdout, "CIAON1\n");
+
+
+
+
     // Prepares in order to receive the response
     char *response = (char *) malloc(sizeof(char) * 1024);
     if (response == NULL) {
         get_throwable()->create(STATUS_ERROR, "Allocation error", "retrieve_apache_status");
     }
+
+    fprintf(stdout, "CIAON2\n");
+
 
     // Receives the response
     throwable = receive_response(&sockfd, response);
@@ -190,13 +208,16 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     // Closes the connection
     close_connection(sockfd);
 
+    fprintf(stdout, "CIAON3\n");
+
     // Parse the response
     HTTPResponsePtr http_response = new_http_response();
     http_response->get_http_response(http_response, response);
 
-    //self->status_page = strdup(http_response->http_response_body); //TODO non funziona...
-    self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
-
+    self->status_page = strdup(http_response->http_response_body);
+    fprintf(stdout, "body: %s\n", http_response->http_response_body);
+    //self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
+    get_log()->i(TAG_APACHE_STATUS, http_response->http_response_body);
     return get_throwable()->create(STATUS_OK, NULL, "retrieve_apache_status");
 }
 
@@ -284,4 +305,34 @@ ApacheServerStatusPtr new_apache_server_status() {
     apache_server_status->to_string = to_string_apache_status;
 
     return apache_server_status;
+}
+
+
+int main() {
+
+    // Initialize server_status
+    ApacheServerStatusPtr server_status = new_apache_server_status();
+    server_status->set_url(server_status, "127.0.0.1");
+
+    // Retrieve status
+    ThrowablePtr throwable = server_status->retrieve(server_status);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    get_log()->i(TAG_APACHE_STATUS, "AO");
+
+    // Parse
+    throwable = server_status->parse(server_status);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    get_log()->i(TAG_APACHE_STATUS, server_status->to_string(server_status));
+    // Destroy the object
+    server_status->destroy(server_status);
+
+    return 0;
 }

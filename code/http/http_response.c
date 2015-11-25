@@ -6,14 +6,13 @@ ThrowablePtr get_http_response(HTTPResponsePtr self, char *buffer) {
     char *head;
     char *body = NULL;
 
-    int start = 0;
     int i = 0;
 
     // parsing and dividing into head and body buffers
-    head = buffer + sizeof(char) * start;
+    head = buffer;
     for (i=0; i < (signed) strlen(buffer); i++) {
         if (buffer[i + 1] == endline) {
-            head[i + 1] = '\0';
+            //head[i + 1] = '\0';
             if (i + 2 < (signed) strlen(buffer)) if (buffer + (sizeof(char) * (i + 2)) != '\0') {
                 body = buffer + sizeof(char) * (i + 2);
                 break;

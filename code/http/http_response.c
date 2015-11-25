@@ -2,19 +2,21 @@
 
 ThrowablePtr get_http_response(HTTPResponsePtr self, char *buffer) {
 
+    char carriage = '\r';
     char endline = '\n';
     char *head;
     char *body = NULL;
 
-    int i = 0;
-
+    int i;
     // parsing and dividing into head and body buffers
     head = buffer;
-    for (i=0; i < (signed) strlen(buffer); i++) {
-        if (buffer[i + 1] == endline) {
-            //head[i + 1] = '\0';
-            if (i + 2 < (signed) strlen(buffer)) if (buffer + (sizeof(char) * (i + 2)) != '\0') {
-                body = buffer + sizeof(char) * (i + 2);
+    for (i = 0; i < (signed) strlen(buffer); i++) {
+        if (buffer[i] == carriage && buffer[i + 1] == endline) {
+            // if it is double CRLF...
+            if (buffer[i + 2] == carriage && buffer[i + 3] == endline) {
+                // ...dividing headers and body!
+                head[i] = '\0';
+                body = buffer + i + 4;
                 break;
             }
         }

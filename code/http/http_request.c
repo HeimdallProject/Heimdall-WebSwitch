@@ -185,7 +185,7 @@ ThrowablePtr read_headers(char *buffer, HTTPRequestPtr http, int type) {
                         if (throwable->is_an_error(throwable)) {
                             return throwable->thrown(throwable, "read_headers");
                         }
-                        return get_throwable()->create(STATUS_OK, NULL, "read_headers");
+                        break;
                     default:
                         break;
                 }

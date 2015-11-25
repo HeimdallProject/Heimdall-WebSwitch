@@ -103,7 +103,8 @@ ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
         // Removes this lines in order to get all addresses, instead only the first ipv4 is set!
         if (result->ai_family == PF_INET) {
             // Sets result
-            ip = addrstr;
+            if (strcpy(ip, addrstr) != ip)
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "hostname_to_ip");
             get_log()->d(TAG_CONNECTION, "Host: %s - Ip: %s", hostname, ip);
 
             // Free resources used
@@ -187,7 +188,62 @@ ThrowablePtr receive_response(int *sockfd, char *response) {
         }
     }
 
-    get_log()->d(TAG_CONNECTION, response);
+    //get_log()->d(TAG_CONNECTION, response);
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_response");
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ *  Main function, for test and example usage.
+ * ---------------------------------------------------------------------------
+ */
+
+/*int main() {
+
+    LogPtr log = get_log();
+
+    // Initializes the new http request
+    HTTPRequestPtr http_request = new_http_request();
+
+    // Generates a new simple request
+    http_request->set_simple_request(http_request, "GET", "/", "HTTP/1.1", "agesciroma97.org");
+
+    // Creates a new client
+    int sockfd;
+    ThrowablePtr throwable = create_client_socket(TCP, "5.249.149.45", 80, &sockfd);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Sends the simple request
+    char *message;
+    http_request->make_simple_request(http_request, &message);
+    send_request(&sockfd, message);
+
+    // Prepares in order to receive the response
+    char *response = (char *) malloc(sizeof(char) * 1024);
+    if (response == NULL) {
+        log->e(TAG_CONNECTION, "Allocation error");
+    }
+
+    // Receives the response
+    throwable = receive_response(&sockfd, response);
+    if(throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Closes the connection
+    close_connection(sockfd);
+
+    // Parse the response and put into the
+    HTTPResponsePtr http_response = new_http_response();
+    http_response->get_http_response(http_response, response);
+    log->i(TAG_CONNECTION, http_response->http_response_body);
+    // Destroy the object
+    http_request->destroy(http_request);
+
+    return EXIT_SUCCESS;
+} */

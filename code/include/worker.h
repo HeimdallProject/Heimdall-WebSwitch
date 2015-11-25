@@ -83,10 +83,10 @@ void *write_work(void *arg);
  *              goal.
  *
  * Param      :
- * Return     : ThrowablePtr
+ * Return     :
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr start_worker();
+void start_worker();
 
 /*
  * ---------------------------------------------------------------------------

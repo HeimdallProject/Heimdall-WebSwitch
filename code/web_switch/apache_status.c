@@ -308,7 +308,7 @@ ApacheServerStatusPtr new_apache_server_status() {
 }
 
 
-int main() {
+/*int main() {
 
     // Initialize server_status
     ApacheServerStatusPtr server_status = new_apache_server_status();
@@ -335,4 +335,4 @@ int main() {
     server_status->destroy(server_status);
 
     return 0;
-}
+}*/

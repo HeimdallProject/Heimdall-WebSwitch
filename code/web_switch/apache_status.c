@@ -151,9 +151,13 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     // Sets a new simple request for apache status
     http_request->set_simple_request(http_request, "GET", "/server-status?auto", "HTTP/1.1", self->url);
 
+    // Resolves ip from hostname
+    char ip[16];
+    hostname_to_ip(self->url, ip);
+
     // Creates a new client
     int sockfd;
-    ThrowablePtr throwable = create_client_socket(TCP, "5.196.1.149", 80, &sockfd); // TODO creates function that returns ip from url
+    ThrowablePtr throwable = create_client_socket(TCP, ip, 80, &sockfd);
     if (throwable->is_an_error(throwable)) {
         throwable->thrown(throwable, "retrieve_apache_status");
     }

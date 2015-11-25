@@ -7,6 +7,7 @@
 #include "include/thread_pool.h"
 #include "include/log.h"
 #include "include/connection.h"
+#include "include/apache_status.h"
 
 #define TAG_MAIN "MAIN"
 

@@ -36,9 +36,13 @@
     // Sets a new simple request
     http_request->set_simple_request(http_request, "GET", "/server-status?auto", "HTTP/1.1", self->url);
 
+    // Resolves ip from hostname
+    char ip[16];
+    hostname_to_ip(self->url, ip);
+
     // Creates a new client
     int sockfd;
-    ThrowablePtr throwable = create_client_socket(TCP, "5.196.1.149", 80, &sockfd);
+    ThrowablePtr throwable = create_client_socket(TCP, ip, 80, &sockfd);
     if (throwable->is_an_error(throwable)) {
         throwable->thrown(throwable, "retrieve_apache_status");
     }
@@ -127,6 +131,19 @@ ThrowablePtr create_client_socket(const int type, const char *ip, const int port
  * Return     : A Throwable.
  */
 ThrowablePtr listen_to(const int sockfd, const int backlog);
+
+/*
+ * Function   : hostname_to_ip
+ * Description: This function allows to resolve ip from a hostname.
+ *              In this form it returns the first time a IPV4 is found.
+ *
+ * Param      :
+ *   hostname:     The hostname to resolve
+ *   ip: The pointer of the string where save the ip.
+ *
+ * Return     : A Throwable.
+ */
+ThrowablePtr hostname_to_ip(char *hostname , char *ip);
 
 /*
  * Function   : accept_connection

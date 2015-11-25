@@ -1,3 +1,4 @@
+#include <netdb.h>
 #include "../include/connection.h"
 
 ThrowablePtr create_socket(const int type, int *sockfd) {
@@ -67,6 +68,57 @@ ThrowablePtr listen_to(const int sockfd, const int backlog) {
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "listen_to");
+}
+
+ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
+    struct addrinfo *result;
+
+    // Gets info from a hostname
+    if (getaddrinfo(hostname, NULL, NULL, &result) != 0) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "hostname_to_ip");
+    }
+
+    char addrstr[100];
+    void *ptr = NULL;
+
+    while (result) {
+        inet_ntop (result->ai_family, result->ai_addr->sa_data, addrstr, 100);
+
+        switch (result->ai_family) {
+            case AF_INET:
+                ptr = &((struct sockaddr_in *) result->ai_addr)->sin_addr;
+                break;
+            case AF_INET6:
+                ptr = &((struct sockaddr_in6 *) result->ai_addr)->sin6_addr;
+                break;
+            default:
+                return get_throwable()->create(STATUS_ERROR, "Not a valid IP family", "hostname_to_ip");
+        }
+
+        // Converts ip address from binary to string form
+        if (inet_ntop(result->ai_family, ptr, addrstr, 100) == NULL) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "hostname_to_ip");
+        }
+
+        // Removes this lines in order to get all addresses, instead only the first ipv4 is set!
+        if (result->ai_family == PF_INET) {
+            // Sets result
+            ip = addrstr;
+            get_log()->d(TAG_CONNECTION, "Host: %s - Ip: %s", hostname, ip);
+
+            // Free resources used
+            freeaddrinfo(result);
+            return get_throwable()->create(STATUS_OK, NULL, "hostname_to_ip");
+        }
+
+        get_log()->d(TAG_CONNECTION, "IPv%d address: %s (%s)\n", result->ai_family == PF_INET6 ? 6 : 4, addrstr, result->ai_canonname);
+        result = result->ai_next;
+    }
+
+    // Free resources used
+    freeaddrinfo(result);
+
+    return get_throwable()->create(STATUS_OK, NULL, "hostname_to_ip");
 }
 
 ThrowablePtr accept_connection(const int sockfd, int *connection) {

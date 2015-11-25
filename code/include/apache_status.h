@@ -31,7 +31,7 @@
     ApacheServerStatusPtr server_status = new_apache_server_status();
     server_status->set_url(server_status, "www.laziobus.it");
 
-     // Retrieve status
+    // Retrieve status
     ThrowablePtr throwable = server_status->retrieve(server_status);
     if (throwable->is_an_error(throwable)) {
         get_log()->t(throwable);

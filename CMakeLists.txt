@@ -13,9 +13,12 @@ set(SOURCE_FILES_MAIN
         code/web_switch/worker.c
         code/web_switch/watchdog.c
         code/http/connection.c
+        code/http/http_response.c
+        code/http/http_request.c
         code/utils/log.c
         code/utils/helper.c
         code/utils/throwable.c
+        code/web_switch/apache_status.c
         code/web_switch/thread_pool.c
         code/web_switch/worker_pool.c)
 

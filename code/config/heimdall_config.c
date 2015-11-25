@@ -141,7 +141,7 @@ ConfigPtr new_config() {
     }
 
     if(init_config(CONFIGFILE, &config_handler, config) == -1){
-        fprintf(stderr, "%s Error ininit_config\n", TAG_CONFIG);
+        fprintf(stderr, "%s Error in init_config\n", TAG_CONFIG);
         return NULL;
     }
 

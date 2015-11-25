@@ -188,7 +188,7 @@ ThrowablePtr receive_response(int *sockfd, char *response) {
         }
     }
 
-    //get_log()->d(TAG_CONNECTION, response);
+    get_log()->d(TAG_CONNECTION, response);
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_response");
 }

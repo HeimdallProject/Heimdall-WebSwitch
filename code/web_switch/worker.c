@@ -72,7 +72,7 @@ void start_worker() {
     // TODO: do something to allocate the QUEUE
 
     // initializing watchdog
-    ThrowablePtr  throwable = detach_watchdog(worker->watchdog)
+    ThrowablePtr throwable = detach_watchdog(worker->watchdog);
     if (throwable->is_an_error(throwable)) {
         get_log()->t(throwable);
         exit(EXIT_FAILURE);

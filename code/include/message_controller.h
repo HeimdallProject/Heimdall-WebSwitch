@@ -19,9 +19,10 @@
 
 #include "../include/unix_socket.h"
 
+#define SOCK_PATH "/home/vagrant/scm_cred"
 #define TAG_MESSAGE_CONTROLLER "MESSAGE_CONTROLLER"
 
-void receive_fd();
+int receive_fd();
 void send_fd(int fd);
 
 #endif //MESSAGE_CONTROLLER_H

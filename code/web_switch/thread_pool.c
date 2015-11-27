@@ -22,13 +22,12 @@ ThreadPoolPtr singleton_thdpool = NULL;
 static void worker_sig_handler(int sig){
     
     printf("Ouch! %d \n", sig);
-    
 	printf("Send signal to %ld\n", (long) getppid());
-    kill(getppid(), SIGUSR1);
 
-    receive_fd();
+    int fd = receive_fd();
+	printf("Ricevuto fd  %d\n", fd);
 
-    // start_worker();
+    start_worker(fd);
 }
 
 /*
@@ -70,7 +69,7 @@ static void worker_sig_handler(int sig){
 
 		/* Child */
 		if (child_pid == 0){
-			signal(SIGUSR1, worker_sig_handler);
+			signal(SIGCHLD, worker_sig_handler);
 			pause();
 			break;
 		}else{
@@ -98,9 +97,9 @@ static void thread_pool_loop(){
 	for (;;) {
 		
 		int s = 0;
-		struct timespec timeout;
-		sigset_t mask;
-		sigset_t orig_mask;
+		//struct timespec timeout;
+		//sigset_t mask;
+		//sigset_t orig_mask;
 
 		s = pthread_mutex_lock(&mtx_wait_request);
 		if (s != 0)
@@ -117,21 +116,21 @@ static void thread_pool_loop(){
 		pid_t wrk_id = worker_pool_ptr->get_free_worker(worker_pool_ptr);
 
 		printf("Send 1 signal to worker %ld\n", (long) wrk_id);
-		kill(wrk_id, SIGUSR1);
+		kill(wrk_id, SIGCHLD);
 
-		sigemptyset (&mask);
+		/*sigemptyset (&mask);
 		if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
 			fprintf(stderr, "sigprocmask \n");
 			return;
-		}
+		}*/
 
-    	timeout.tv_sec = 5;
-		timeout.tv_nsec = 0;
+    	//timeout.tv_sec = 5;
+		//timeout.tv_nsec = 0;
 
-    	//sleep(3);
-    	if (sigtimedwait(&mask, NULL, &timeout) < 0) {
+    	sleep(3);
+
+		/*if (sigtimedwait(&mask, NULL, &timeout) < 0) {
 			if (errno == EINTR) {
-				/* Interrupted by a signal other than SIGCHLD. */
 				continue;
 			}
 			else if (errno == EAGAIN) {
@@ -142,7 +141,7 @@ static void thread_pool_loop(){
 				fprintf(stderr, "sigtimedwait \n");
 				return;
 			}
-		}
+		}*/
 
 		send_fd(fd_to_pass);
 

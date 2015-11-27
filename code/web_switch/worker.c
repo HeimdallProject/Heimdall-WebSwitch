@@ -60,7 +60,9 @@ void *write_work(void *arg) {
 }
 
 
-void start_worker() {
+void start_worker(int fd) {
+
+    printf("fd arriveato %d", fd);
 
     // initializing worker
     WorkerPtr worker = new_worker();

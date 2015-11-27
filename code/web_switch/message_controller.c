@@ -1,6 +1,6 @@
 #include "../include/message_controller.h"
 
-void receive_fd(){
+int receive_fd(){
 
     struct msghdr msgh;
     struct iovec iov;
@@ -23,7 +23,7 @@ void receive_fd(){
         exit(EXIT_FAILURE);
     }
 
-    printf("Receiving via stream socket\n");
+    //printf("Receiving via stream socket\n");
     lfd = unixListen(SOCK_PATH, 5);
 
     if (lfd == -1){
@@ -67,10 +67,10 @@ void receive_fd(){
         exit(EXIT_FAILURE);
     }
 
-    printf("recvmsg() returned %ld\n", (long) nr);
+    //printf("recvmsg() returned %ld\n", (long) nr);
 
-    if (nr > 0)
-        printf("Received data = %d\n", data);
+    //if (nr > 0)
+        //printf("Received data = %d\n", data);
     
     /* Get the received file descriptor (which is typically a different
        file descriptor number than was used in the sending process) */
@@ -92,12 +92,14 @@ void receive_fd(){
     }
 
     fd = *((int *) CMSG_DATA(cmhp));   
-    fprintf(stderr, "Received fd=%d\n", fd);
+    //fprintf(stderr, "Received fd=%d\n", fd);
+
+    return fd;
 
     /* Having obtained the file descriptor, read the file's contents and
        print them on standard output */
 
-    for (;;) {
+    /*for (;;) {
         char buf[100];
         ssize_t numRead;
 
@@ -112,7 +114,7 @@ void receive_fd(){
 
         int w = write(STDOUT_FILENO, buf, numRead);
         printf("%d\n", w);
-    }
+    }*/
 
 }
 

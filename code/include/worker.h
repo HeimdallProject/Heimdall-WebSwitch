@@ -32,8 +32,6 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct worker {
-	pid_t worker_id;
-
 	pthread_t watch_thread;                        // thread watchdog identifier
     pthread_t writer_thread;                       // thread writer   identifier
     pthread_t reader_thread;                       // thread reader   identifier
@@ -85,11 +83,11 @@ void *write_work(void *arg);
  *              goal.
  *
  * Param      :
- *   sockfd 	: The socket where read request.
+ *   fd 	: The socket where read request.
  * Return     :
  * ---------------------------------------------------------------------------
  */
-void start_worker(int sockfd);
+void start_worker(int fd);
 
 /*
  * ---------------------------------------------------------------------------
@@ -100,6 +98,6 @@ void start_worker(int sockfd);
  * Return     : WorkPtr
  * ---------------------------------------------------------------------------
  */
-WorkerPtr new_worker(pid_t os_id);
+WorkerPtr new_worker();
 
 #endif //WEBSWITCH_WORKER_H

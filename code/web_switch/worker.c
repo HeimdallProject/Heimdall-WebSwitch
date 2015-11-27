@@ -4,7 +4,7 @@
 /*
  *  See .h for more information.
  */
-WorkerPtr new_worker(pid_t os_id) {
+WorkerPtr new_worker() {
 
     WorkerPtr wrk = malloc(sizeof(Worker));
     if (wrk == NULL) {
@@ -34,8 +34,6 @@ WorkerPtr new_worker(pid_t os_id) {
 
     wrk->watchdog->worker_await_cond = &wrk->await_cond;
     wrk->watchdog->worker_await_flag = &wrk->worker_await_flag;
-
-    wrk->worker_id = os_id;
 
     return wrk;
 }
@@ -93,12 +91,14 @@ void *write_work(void *arg) {
 }
 
 
-void start_worker(int sockfd) {
+void start_worker(int fd) {
+
+    printf("fd arriveato %d", fd);
 
     // initializing worker
-    WorkerPtr worker = new_worker(0);
+    WorkerPtr worker = new_worker();
 
-    worker->sockfd = sockfd;
+    worker->sockfd = fd;
 
     // initialilizing the QUEUE data structure to manage a
     // node of the current request handled (pipeline-robust approach)

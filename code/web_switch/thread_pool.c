@@ -9,7 +9,8 @@ static pthread_mutex_t mtx_wait_request 	= PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond_wait_request 	= PTHREAD_COND_INITIALIZER;
 static WorkerPoolPtr worker_pool_ptr 		= NULL;
 
-static int worker_request = 0;
+static int fd_to_pass = 0;
+sigset_t set;
 
 /*
  * ---------------------------------------------------------------------------
@@ -18,8 +19,15 @@ static int worker_request = 0;
  */
 ThreadPoolPtr singleton_thdpool = NULL;
 
-static void sigHandler(int sig){
+static void worker_sig_handler(int sig){
+    
     printf("Ouch! %d \n", sig);
+	printf("Send signal to %ld\n", (long) getppid());
+
+    int fd = receive_fd();
+	printf("Ricevuto fd  %d\n", fd);
+
+    start_worker(fd);
 }
 
 /*
@@ -47,6 +55,8 @@ static void sigHandler(int sig){
 	int children = 0;
 	int worker_to_create = n_prefork - worker_free;
 
+	log->d(TAG_THREAD_POOL, "Need create %d worker", worker_to_create);
+
 	for (children = 0; children < worker_to_create; ++children){
 
 		log->d(TAG_THREAD_POOL, "Create child n°%d", children);
@@ -59,15 +69,17 @@ static void sigHandler(int sig){
 
 		/* Child */
 		if (child_pid == 0){
-			signal(SIGCONT, sigHandler);
+			signal(SIGCHLD, worker_sig_handler);
 			pause();
+			break;
+		}else{
+			worker_pool_ptr->add_worker(worker_pool_ptr, child_pid);			
+			// last loop, print pool
+			if(children == worker_to_create - 1){
+				worker_pool_ptr->print_worker_pool(worker_pool_ptr);
+			}
 		}
-
-		WorkerPtr worker = new_worker(child_pid);
-		worker_pool_ptr->add_worker(worker_pool_ptr, worker);
 	}
-
-	worker_pool_ptr->print_worker_pool(worker_pool_ptr);
  }
 
 /*
@@ -85,22 +97,58 @@ static void thread_pool_loop(){
 	for (;;) {
 		
 		int s = 0;
+		//struct timespec timeout;
+		//sigset_t mask;
+		//sigset_t orig_mask;
 
 		s = pthread_mutex_lock(&mtx_wait_request);
 		if (s != 0)
 			fprintf(stderr, "thread_pool_loop - Error in pthread_mutex_lock \n");
 		
-		while (worker_request == 0) { 
+		while (fd_to_pass == 0) { 
 			/* Wait for something */ 
 			s = pthread_cond_wait(&cond_wait_request, &mtx_wait_request);
 			if (s != 0)
 				fprintf(stderr, "thread_pool_loop - Error in pthread_cond_wait \n");
 		}
 
+		// get worker from pool
+		pid_t wrk_id = worker_pool_ptr->get_free_worker(worker_pool_ptr);
+
+		printf("Send 1 signal to worker %ld\n", (long) wrk_id);
+		kill(wrk_id, SIGCHLD);
+
+		/*sigemptyset (&mask);
+		if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
+			fprintf(stderr, "sigprocmask \n");
+			return;
+		}*/
+
+    	//timeout.tv_sec = 5;
+		//timeout.tv_nsec = 0;
+
+    	sleep(3);
+
+		/*if (sigtimedwait(&mask, NULL, &timeout) < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			else if (errno == EAGAIN) {
+				fprintf(stderr, "Timeout, killing child \n");
+				kill (wrk_id, SIGKILL);
+			}
+			else {
+				fprintf(stderr, "sigtimedwait \n");
+				return;
+			}
+		}*/
+
+		send_fd(fd_to_pass);
+
+    	// prefork again
 		do_prefork();
-		
-		/* Consume time! */
-		worker_request = 0;
+
+		fd_to_pass = 0;
 		
 		s = pthread_mutex_unlock(&mtx_wait_request); 
 		if (s != 0)
@@ -142,20 +190,16 @@ static void *init_pool(void *arg){
 /*
  *  See .h for more information.
  */
-WorkerPtr get_worker() {
+ThrowablePtr get_worker(int fd) {
 
 	int s = 0;
-	WorkerPtr wrk_ptr = NULL;
 
 	s = pthread_mutex_lock(&mtx_wait_request);
 	if (s != 0)
 		fprintf(stderr, "get_worker - Error in pthread_mutex_lock \n");
-		
-	// get worker from pool
-	wrk_ptr = worker_pool_ptr->get_free_worker(worker_pool_ptr);
 
 	/* Set condition request for perfomr something on the pool */
-	worker_request = 1;
+	fd_to_pass = fd;
 
 	s = pthread_mutex_unlock(&mtx_wait_request); 
 
@@ -167,8 +211,7 @@ WorkerPtr get_worker() {
 	if (s != 0)
 		fprintf(stderr, "get_worker - Error in pthread_cond_signal \n");
 
-
-	return wrk_ptr;
+	return get_throwable()->create(STATUS_OK, NULL, "get_worker()");;
 }
 
 /*

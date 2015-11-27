@@ -32,8 +32,6 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct worker {
-	pid_t worker_id;
-
 	pthread_t watch_thread;                        // thread watchdog identifier
     pthread_t writer_thread;                       // thread writer   identifier
     pthread_t reader_thread;                       // thread reader   identifier
@@ -97,6 +95,6 @@ void start_worker();
  * Return     : WorkPtr
  * ---------------------------------------------------------------------------
  */
-WorkerPtr new_worker(pid_t os_id);
+WorkerPtr new_worker();
 
 #endif //WEBSWITCH_WORKER_H

@@ -7,9 +7,10 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct node {
-	struct worker *worker;
-	struct node *next;
+	pid_t worker_id;
 	int free_for_job;
+
+	struct node *next;
 } WorkerPoolNode, *WorkerPoolNodePtr;
 
 /*
@@ -23,10 +24,10 @@ typedef struct node {
  * Return       : new node.
  * ---------------------------------------------------------------------------
  */
-static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
+static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
 
 	WorkerPoolNodePtr np 	= (WorkerPoolNodePtr) malloc(sizeof(WorkerPoolNode));
-	np->worker 				= worker;
+	np->worker_id 			= worker_id;
 	np->next 				= NULL;
 	np->free_for_job 		= TRUE;
 
@@ -51,7 +52,7 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
  	}else{
  		WorkerPoolNodePtr nd = self->first;
 		while (nd != NULL) { 
-			printf("Worker in lista: %p\n", nd->worker);
+			printf("Worker in lista: %ld\n", (long)nd->worker_id);
 			nd = nd->next;
 		}
  	}
@@ -70,9 +71,9 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
  * Return       : 0 if ok, -1 on error.
  * ---------------------------------------------------------------------------
  */
- static int add_worker(WorkerPoolPtr self, WorkerPtr worker){
+ static int add_worker(WorkerPoolPtr self, pid_t worker_id){
  	
- 	WorkerPoolNodePtr nd = make_worker_pool_node(worker);
+ 	WorkerPoolNodePtr nd = make_worker_pool_node(worker_id);
 
  	if (self->first == NULL){
  		self->first = nd;
@@ -123,7 +124,7 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
  * Return       : Retunr
  * ---------------------------------------------------------------------------
  */
- static WorkerPtr get_free_worker(WorkerPoolPtr self){
+ static pid_t get_free_worker(WorkerPoolPtr self){
 
  	int count = 0;
 
@@ -139,7 +140,7 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
 		++count;
 	}
 
-	return nd->worker;
+	return nd->worker_id;
  }
 
 /*
@@ -153,8 +154,8 @@ static WorkerPoolNodePtr make_worker_pool_node(WorkerPtr worker){
  * Return       : 0 if ok, -1 on error.
  * ---------------------------------------------------------------------------
  */
- static int delete_worker(WorkerPtr worker){
- 	printf("%p\n", worker);
+ static int delete_worker(pid_t worker_id){
+ 	printf("%ul\n", worker_id);
  	return 1;
  }
 

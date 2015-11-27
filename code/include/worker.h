@@ -85,10 +85,11 @@ void *write_work(void *arg);
  *              goal.
  *
  * Param      :
- * Return     : ThrowablePtr
+ *   sockfd 	: The socket where read request.
+ * Return     :
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr start_worker(int sockfd);
+void start_worker(int sockfd);
 
 /*
  * ---------------------------------------------------------------------------

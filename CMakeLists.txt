@@ -20,7 +20,9 @@ set(SOURCE_FILES_MAIN
         code/utils/throwable.c
         code/web_switch/apache_status.c
         code/web_switch/thread_pool.c
-        code/web_switch/worker_pool.c)
+        code/web_switch/worker_pool.c
+        code/web_switch/request_node.c
+        code/web_switch/request_queue.c)
 
 set(SOURCE_FILES_APACHE
         code/utils/helper.c

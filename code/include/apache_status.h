@@ -46,9 +46,10 @@
     }
 
     get_log()->i(TAG_APACHE_STATUS, server_status->to_string(server_status));
-
     // Destroy the object
     server_status->destroy(server_status);
+
+    return EXIT_SUCCESS;
  */
 
 /*

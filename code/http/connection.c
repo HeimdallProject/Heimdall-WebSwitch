@@ -103,7 +103,8 @@ ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
         // Removes this lines in order to get all addresses, instead only the first ipv4 is set!
         if (result->ai_family == PF_INET) {
             // Sets result
-            ip = addrstr;
+            if (strcpy(ip, addrstr) != ip)
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "hostname_to_ip");
             get_log()->d(TAG_CONNECTION, "Host: %s - Ip: %s", hostname, ip);
 
             // Free resources used

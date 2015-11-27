@@ -2,6 +2,101 @@
 
 /*
  * ---------------------------------------------------------------------------
+ * Function   : get_data
+ * Description: This function parses a line of ApacheStatus page and put data
+ *              into ApacheServerStatus struct.
+ *
+ * Param      :
+ *   self       : The pointer to the ApacheServerStatus.
+ *   line       : The line to parse
+ *
+ * Return     : A Throwable.
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr get_data(ApacheServerStatusPtr self, char *line) {
+    char delimiter = ':';
+    char *text = NULL;
+    char *text_data = NULL;
+    int i;
+    for (i = 0; i < (int) strlen(line); i++) {
+        if (line[i] == delimiter) {
+            line[i] = '\0';
+            text = str_to_lower(line);
+            text_data = line + i + 2;
+            break;
+        }
+    }
+
+    ThrowablePtr throwable = NULL;
+    // following a comparison between texts which can be useful for perform
+    // a request (forwarding packets is the final goal)
+    if (strcmp(text, "total accesses") == 0) {
+        throwable = str_to_int(text_data, &(self->total_accesses));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.total_access");
+        }
+    }
+
+    if (strcmp(text, "total kbytes") == 0) {
+        throwable = str_to_int(text_data, &(self->total_kBytes));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.total_kBytes");
+        }
+    }
+
+    if (strcmp(text, "cpuload") == 0) {
+        throwable = str_to_float(text_data, &(self->cpu_load));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.cpu_load");
+        }
+    }
+
+    if (strcmp(text, "uptime") == 0) {
+        throwable = str_to_int(text_data, &(self->uptime));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.uptime");
+        }
+    }
+
+    if (strcmp(text, "reqpersec") == 0) {
+        throwable = str_to_float(text_data, &(self->req_per_sec));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.req_per_sec");
+        }
+    }
+    if (strcmp(text, "bytespersec") == 0) {
+        throwable = str_to_float(text_data, &(self->bytes_per_sec));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.bytes_per_sec");
+        }
+    }
+
+    if (strcmp(text, "bytesperreq") == 0) {
+        throwable = str_to_float(text_data, &(self->bytes_per_req));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.bytes_per_req");
+        }
+    }
+
+    if (strcmp(text, "busyworkers") == 0) {
+        throwable = str_to_int(text_data, &(self->busy_workers));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.busy_workers");
+        }
+    }
+
+    if (strcmp(text, "idleworkers") == 0) {
+        throwable = str_to_int(text_data, &(self->idle_workers));
+        if (throwable->is_an_error(throwable)) {
+            return throwable->thrown(throwable, "get_data.idle_workers");
+        }
+    }
+
+    return get_throwable()->create(STATUS_OK, NULL, "get_data");
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Function   : parse_apache_status
  * Description: This function parse the HTML page from ApacheServerStatus and
  *              put all the data into that.
@@ -13,103 +108,30 @@
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr parse_apache_status(ApacheServerStatusPtr self) {
-    // TODO: improve with @alessio
-    char *to_parse = strdup(self->status_page); // The string to parse
-    if (errno != 0 || to_parse == NULL) {
-        return get_throwable()->create(STATUS_OK, get_error_by_errno(errno), "parse_apache_status");
+    char *buffer = malloc(sizeof(char) * (strlen(self->status_page) + 1));
+    if (buffer == NULL) {
+        get_throwable()->create(STATUS_ERROR, "Memory allocation error", "parse_apache_status");
     }
+    strcpy(buffer, self->status_page);
 
-    char *delim = ":";                          // First delimiter
-    char *sub_delim = "\n";                     // Second delimiter
-    char *str1, *str2, *token, *sub_token;      // Useful strings
-    char *save_ptr1, *save_ptr2;                // Useful pointers
-    int j, i;
+    char endline = '\n';
+    int start = 0;
+    int i;
+    for (i = 0; buffer[i]; i++) {
 
-    for (j = 1, i = 0, str1 = to_parse; ; j++, str1 = NULL) {
-        token = strtok_r(str1, delim, &save_ptr1);
-        if (token == NULL) {
-            break;
-        }
+        if (buffer[i] == endline) {
+            buffer[i] = '\0';
 
-        for (str2 = token; ; str2 = NULL) {
-            sub_token = strtok_r(str2, sub_delim, &save_ptr2);
-            if (sub_token == NULL) {
+            ThrowablePtr throwable;
+            throwable = get_data(self, buffer + start);
+            if (throwable->is_an_error(throwable))
+                return throwable->thrown(throwable, "read_headers");
+            start = i + 1;
+
+            if ((buffer[i + 1] == endline) || (buffer[i + 1] == '\0'))
                 break;
-            }
-            i++;
-            if (i % 2 == 0) {
-                switch (i) {
-                    case 2: {  // total_accesses
-                        ThrowablePtr total_access_throwable = str_to_int(sub_token, &(self->total_accesses));
-                        if (total_access_throwable->is_an_error(total_access_throwable)) {
-                            return total_access_throwable->thrown(total_access_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 4: {  // total_kBytes
-                        ThrowablePtr total_kBytes_throwable = str_to_int(sub_token, &(self->total_kBytes));
-                        if (total_kBytes_throwable->is_an_error(total_kBytes_throwable)) {
-                            return total_kBytes_throwable->thrown(total_kBytes_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 6: {  // cpu_load
-                        ThrowablePtr cpu_load_throwable = str_to_float(sub_token, &(self->cpu_load));
-                        if (cpu_load_throwable->is_an_error(cpu_load_throwable)) {
-                            return cpu_load_throwable->thrown(cpu_load_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 8: {  // uptime
-                        ThrowablePtr uptime_throwable = str_to_int(sub_token, &(self->uptime));
-                        if (uptime_throwable->is_an_error(uptime_throwable)) {
-                            return uptime_throwable->thrown(uptime_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 10: {  // req_per_sec
-                        ThrowablePtr req_per_sec_throwable = str_to_float(sub_token, &(self->req_per_sec));
-                        if (req_per_sec_throwable->is_an_error(req_per_sec_throwable)) {
-                            return req_per_sec_throwable->thrown(req_per_sec_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 12: {  // bytes_per_sec
-                        ThrowablePtr bytes_per_sec_throwable = str_to_float(sub_token, &(self->bytes_per_sec));
-                        if (bytes_per_sec_throwable->is_an_error(bytes_per_sec_throwable)) {
-                            return bytes_per_sec_throwable->thrown(bytes_per_sec_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 14: {  // bytes_per_req
-                        ThrowablePtr bytes_per_req_throwable = str_to_float(sub_token, &(self->bytes_per_req));
-                        if (bytes_per_req_throwable->is_an_error(bytes_per_req_throwable)) {
-                            return bytes_per_req_throwable->thrown(bytes_per_req_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 16: {  // busy_workers
-                        ThrowablePtr busy_workers_throwable = str_to_int(sub_token, &(self->busy_workers));
-                        if (busy_workers_throwable->is_an_error(busy_workers_throwable)) {
-                            return busy_workers_throwable->thrown(busy_workers_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    case 18: {  // idle_workers
-                        ThrowablePtr idle_workers_throwable = str_to_int(sub_token, &(self->idle_workers));
-                        if (idle_workers_throwable->is_an_error(idle_workers_throwable)) {
-                            return idle_workers_throwable->thrown(idle_workers_throwable, "parse_apache_status");
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
         }
     }
-    // Free memory used for to_parse
-    free(to_parse);
 
     return get_throwable()->create(STATUS_OK, NULL, "parse_apache_status");
 }
@@ -153,38 +175,41 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
 
     // Resolves ip from hostname
     char ip[16];
-    hostname_to_ip(self->url, ip);
+    ThrowablePtr throwable = hostname_to_ip(self->url, ip);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "retrieve_apache_status");
+    }
 
     // Creates a new client
     int sockfd;
-    ThrowablePtr throwable = create_client_socket(TCP, ip, 80, &sockfd);
+    throwable = create_client_socket(TCP, ip, 8080, &sockfd);
     if (throwable->is_an_error(throwable)) {
-        throwable->thrown(throwable, "retrieve_apache_status");
+        return throwable->thrown(throwable, "retrieve_apache_status");
     }
 
     // Generates the simple request
     char *message;
     throwable = http_request->make_simple_request(http_request, &message);
     if (throwable->is_an_error(throwable)) {
-        throwable->thrown(throwable, "retrieve_apache_status");
+        return throwable->thrown(throwable, "retrieve_apache_status");
     }
 
     // Sends request
     throwable = send_request(&sockfd, message);
     if (throwable->is_an_error(throwable)) {
-        throwable->thrown(throwable, "retrieve_apache_status");
+        return throwable->thrown(throwable, "retrieve_apache_status");
     }
 
     // Prepares in order to receive the response
     char *response = (char *) malloc(sizeof(char) * 1024);
     if (response == NULL) {
-        get_throwable()->create(STATUS_ERROR, "Allocation error", "retrieve_apache_status");
+        return get_throwable()->create(STATUS_ERROR, "Allocation error", "retrieve_apache_status");
     }
 
     // Receives the response
     throwable = receive_response(&sockfd, response);
     if(throwable->is_an_error(throwable)) {
-        throwable->thrown(throwable, "retrieve_apache_status");
+        return throwable->thrown(throwable, "retrieve_apache_status");
     }
 
     // Closes the connection
@@ -194,8 +219,7 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     HTTPResponsePtr http_response = new_http_response();
     http_response->get_http_response(http_response, response);
 
-    //self->status_page = strdup(http_response->http_response_body); //TODO non funziona...
-    self->status_page = strdup("Total Accesses: 143\nTotal kBytes: 340\nCPULoad: .125764\nUptime: 1145\nReqPerSec: .124891\nBytesPerSec: 304.07\nBytesPerReq: 2434.69\nBusyWorkers: 1\nIdleWorkers: 7\nScoreboard: _____W__..............................................................................................................................................");
+    self->status_page = strdup(http_response->http_response_body);
 
     return get_throwable()->create(STATUS_OK, NULL, "retrieve_apache_status");
 }

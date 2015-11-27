@@ -53,13 +53,13 @@ char *to_string_request_node(RequestNodePtr self) {
              64000,
              "\nRequest Node: \n\n"
                      "Thread Id: %u\n"
-                     "Response: %s\n"
+                     "ResponseBody: %s\n"
                      "Timeout: %f\n"
                      "Previous: %p\n"
                      "Next: %p\n",
 
              (unsigned int) self->thread_id,
-             "ciao", //TODO create http_response to_string
+             self->response->http_response_body,
              (double) self->request_timeout,
              self->previous,
              self->next);

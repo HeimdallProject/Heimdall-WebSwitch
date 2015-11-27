@@ -45,10 +45,10 @@ typedef struct watchdog_thread {
  * Description: This function detach the watchdog
  *
  * Param      : void pointer to the arg necessary - in this case the worker ptr
- * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
+ * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-int detach_watchdog(WatchdogPtr watchdog);
+ThrowablePtr detach_watchdog(WatchdogPtr watchdog);
 
 /*
  * ---------------------------------------------------------------------------

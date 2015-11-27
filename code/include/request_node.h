@@ -23,6 +23,7 @@
  * Description: This struct allows to create a linked request node.
  *
  * Data:
+ *  self            : Pointer to itself.
  *  pthread_id      : The pthread id bounded to the node.
  *  response        : The response of http request bounded to the node.
  *  request_timeout : The timeout of the request.

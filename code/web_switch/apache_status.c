@@ -14,10 +14,12 @@
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr get_data(ApacheServerStatusPtr self, char *line) {
+
     char delimiter = ':';
     char *text = NULL;
     char *text_data = NULL;
     int i;
+
     for (i = 0; i < (int) strlen(line); i++) {
         if (line[i] == delimiter) {
             line[i] = '\0';

@@ -16,9 +16,11 @@
 #include <signal.h>
 
 #include "../include/worker_pool.h"
-#include "../include/log.h"
 #include "../include/worker.h"
+#include "../include/log.h"
 #include "../include/heimdall_config.h"
+#include "../include/message_controller.h"
+#include "../include/throwable.h"
 
 #define TAG_THREAD_POOL "THREAD_POOL"
 
@@ -34,15 +36,13 @@
  */
 typedef struct thread_pool {
     pthread_t thread_identifier;
-    Worker* (*get_worker)();
+    ThrowablePtr (*get_worker)(int fd);
 } ThreadPool, *ThreadPoolPtr;
 
 /*
  * ---------------------------------------------------------------------------
  * Function     : get_thread_pool
  * Description  : Return thread pool singleton pointer.
- *
- * Param        :
  *
  * Return       : ThreadPoolPtr
  * ---------------------------------------------------------------------------

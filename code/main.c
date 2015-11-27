@@ -8,6 +8,10 @@
 #include "include/log.h"
 #include "include/connection.h"
 #include "include/apache_status.h"
+#include "include/throwable.h"
+
+// Remove
+#include <fcntl.h>
 
 #define TAG_MAIN "MAIN"
 
@@ -44,26 +48,33 @@ int main() {
     log->d(TAG_MAIN, "Thread Pool started at address %p", th_pool);
     //log->d(TAG_MAIN, "Scheduler started at address %p", scheduler);
 
-/*    int i = 0;
+    int i = 0;
     for (i = 0; i < 15000; ++i){
         usleep(1);
     }
 
-    WorkerPtr wrk = th_pool->get_worker();
-    printf("Worker: %p\n", wrk);
-    for (i = 0; i < 10000; ++i){
+    // For test purpose only, fd must be the socket fd returned from accept
+    int fd = open("/tmp/file.txt", O_RDONLY|O_CREAT|O_TRUNC, 0777);
+    if (fd == -1){
+        fprintf(stderr, "Error in open %s\n", strerror(errno));
+    }
+
+    ThrowablePtr throwable = th_pool->get_worker(fd);
+    if (throwable->is_an_error(throwable)) {
+        log->e(TAG_MAIN, "Error get_worker");
+        exit(EXIT_SUCCESS);
+    }
+
+    for (;;){
         usleep(1);
     }
 
-    printf("Send signal \n");
-    kill(wrk->worker_id, SIGCONT);
+    log->d(TAG_MAIN, "Addio");
 
-    for (i = 0; i < 10000; ++i){
-        usleep(1);
-    }*/
+    exit(EXIT_SUCCESS);
 
     // Creates a new server
-    int port = 8080;  // TODO maybe another value to set into config
+    /*int port = 8080;  // TODO maybe another value to set into config
     // TODO port 80 doesn't work, maybe su privileges required
     int sockfd;
     ThrowablePtr throwable = create_server_socket(TCP, port, &sockfd);
@@ -95,8 +106,12 @@ int main() {
         }
 
         // Pass socket to worker // TODO
-        WorkerPtr wrk = th_pool->get_worker();
+        ThrowablePtr throwable = th_pool->get_worker(new_sockfd);
+        if (throwable->is_an_error(throwable)) {
+            log->e(TAG_MAIN, "Error get_worker");
+            exit(EXIT_SUCCESS);
+        }
 
-        log->d(TAG_MAIN, "New connection accepted on socket number %d passed to worker: %p", new_sockfd, wrk);
-    }
+        log->d(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
+    }*/
 }

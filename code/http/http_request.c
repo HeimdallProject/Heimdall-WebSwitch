@@ -283,8 +283,6 @@ HTTPRequestPtr new_http_request(void) {
         return NULL;
     }
 
-    // autoreferencing
-    http->self = (void*) http;
 
     // NULL referencing the attributes
     http->status           = NULL;

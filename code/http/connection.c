@@ -32,6 +32,12 @@ ThrowablePtr create_server_socket(const int type, const int port, int *sockfd) {
     addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Waiting a connection on all server's IP addresses
     addr.sin_port = htons(port);               // Waiting a connection on PORT
 
+    // Sets SO_REUSEADDR and SO_REUSEPORT
+    int option = 1;
+    if (setsockopt(*sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, (char *)&option, sizeof(option)) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_server_socket");
+    }
+
     if (bind(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_server_socket");
     }
@@ -158,6 +164,92 @@ ThrowablePtr send_request(int *sockfd, char *request) {
     } while (sent < total);
 
     return get_throwable()->create(STATUS_OK, NULL, "send_request");
+}
+
+ThrowablePtr receive_http_header(int *sockfd, char *header) {
+
+    ssize_t n_read;                     // Last size read
+    ssize_t total_read = 0;             // Total size read
+    ssize_t size = sizeof(char) * 1024; // Size of response buffer
+    char last_read = ' ';               // Last read chars
+    int number = 0;
+
+    while (TRUE) {
+
+        // If the last bytes read are "\r\n\r\n" the header is complete, so return
+        if (number == 4) {
+            break;
+        }
+
+        n_read = read(*sockfd, &last_read, 1); // Read one byte at time
+
+        if (last_read == '\n' || last_read == '\r') {
+            number++;
+        } else {
+            number = 0;
+        }
+
+        // Copy the response to the header buffer
+        if (strcpy(header + total_read, &last_read) != header + total_read) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+        }
+
+        if (n_read == -1) { // There is an error
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+        } else if (n_read == 0) {   // EOF reached
+            break;
+        }
+
+        // Increase number of bytes read
+        total_read = total_read + sizeof(char) * n_read;
+
+        // If memory is full realloc
+        if (total_read == size) {
+            if (realloc(header, size + sizeof(char) * 1024) == NULL) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+            }
+            // Increase size
+            size = size + sizeof(char) * 1024;
+        }
+    }
+
+    get_log()->d(TAG_CONNECTION, "The header is: %s", header);
+
+    return get_throwable()->create(STATUS_OK, NULL, "receive_http_header");
+}
+
+ThrowablePtr receive_http_body(int *sockfd, char *body, size_t length) {
+
+    ssize_t n_read;                     // Last size read
+    ssize_t total_read = 0;             // Total size read
+    ssize_t size = sizeof(char) * 1024; // Size of response buffer
+
+    while (TRUE) {
+
+        n_read = read(*sockfd, body, length); // Read all the response
+
+        if (n_read == -1) { // There is an error
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_body");
+        } else if (n_read == 0) {   // EOF reached
+            break;
+        }
+
+        // Increase number of bytes read
+        total_read = total_read + sizeof(char) * n_read;
+
+        // If memory is full realloc
+        if (total_read == size) {
+            if (realloc(body, size + sizeof(char) * 1024) == NULL) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_body");
+            }
+            // Increase size
+            size = size + sizeof(char) * 1024;
+        }
+    }
+
+    get_log()->d(TAG_CONNECTION, "The body is: %s\n", body);
+
+    return get_throwable()->create(STATUS_OK, NULL, "receive_http_body");
 }
 
 ThrowablePtr receive_response(int *sockfd, char *response) {

@@ -46,6 +46,7 @@ static int i(const char* tag, const char *format, ...) {
         free(formatted_str);
 
         printf("%s \n", output);
+        fflush(stdout);
     }
 
     return byte_read;
@@ -93,6 +94,7 @@ static int d(const char* tag, const char *format, ...) {
         free(formatted_str);
 
         printf("%s \n", output);
+        fflush(stdout);
     }
 
     return byte_read;
@@ -137,6 +139,7 @@ static int e(const char* tag, const char *format, ...) {
         free(formatted_str);
 
         fprintf(stderr, "%s \n", output);
+        fflush(stderr);
     }
 
     return byte_read;
@@ -161,8 +164,10 @@ static void print_throwable(ThrowablePtr thr) {
     //TODO ma printa solo o lo mettiamo anche su log?
     if (thr->status == STATUS_OK) {
         fprintf(stdout, "Status: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
+        fflush(stdout);
     } else {
         fprintf(stderr, "Status: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
+        fflush(stderr);
     }
 }
 

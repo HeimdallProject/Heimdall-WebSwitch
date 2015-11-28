@@ -108,7 +108,6 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct http_request {
-    struct http_request *self;                          // autoreferencing the struct
     char *status;                                       // whether the request can be handled
     char *req_type;                                     // type of the request
     char *req_protocol;                                 // accepted only HTTP/1.1

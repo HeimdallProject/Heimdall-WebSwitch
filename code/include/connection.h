@@ -185,10 +185,34 @@ ThrowablePtr send_request(int *sockfd, char *request);
  *
  * Param      :
  *   sockfd:     The socket from where read.
- *   request:    The pointer where put the response.
+ *   header:     The pointer where put the header.
  *
  * Return     : A Throwable.
  */
-ThrowablePtr receive_response(int *sockfd, char *response);
+ThrowablePtr receive_response(int *sockfd, char *header);
 
+/*
+ * Function   : receive_http_header
+ * Description: This function read only the HTTP header from the socket.
+ *
+ * Param      :
+ *   sockfd:     The socket from where read.
+ *   header:     The pointer where put the header.
+ *
+ * Return     : A Throwable.
+ */
+ThrowablePtr receive_http_header(int *sockfd, char *response);
+
+/*
+ * Function   : receive_response
+ * Description: This function read only the HTTP response from the socket
+ *
+ * Param      :
+ *   sockfd:     The socket from where read.
+ *   request:    The pointer where put the response.
+ *   length:     The lenght of the response
+ *
+ * Return     : A Throwable.
+ */
+ThrowablePtr receive_http_body(int *sockfd, char *body, size_t length);
 #endif //WEBSWITCH_CONNECTION_H

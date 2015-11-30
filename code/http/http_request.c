@@ -163,12 +163,18 @@ ThrowablePtr get_response(char *req_line, struct http_request *http, int len) {
 
 ThrowablePtr read_headers(char *buffer, HTTPRequestPtr http, int type) {
 
+    char carriage = '\r';
     char endline = '\n';
     int start = 0;
     int i;
-    for (i = 0; buffer[i]; i++) {
+    int length = (signed) strlen(buffer);
+
+    for (i = 0; i < length; i++) {
 
         if (buffer[i] == endline) {
+            if (buffer[i + 1] == carriage && buffer[i + 2] == endline)
+                break;
+
             buffer[i - 1] = '\0';
 
             ThrowablePtr throwable;
@@ -196,9 +202,6 @@ ThrowablePtr read_headers(char *buffer, HTTPRequestPtr http, int type) {
                     return throwable->thrown(throwable, "read_headers");
                 start = i + 1;
             }
-
-            if ((buffer[i + 1] == endline) || (buffer[i + 1] == '\0'))
-                break;
         }
     }
 

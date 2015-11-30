@@ -76,12 +76,12 @@ void *read_work(void *arg) {
         HTTPRequestPtr http_request = new_http_request();
 
         // TODO c'è qualcosa che non va qui dentro.. non stampa nemmeno l'errore
-        /*throwable = http_request->read_headers(header, http_request, RQST);
+        throwable = http_request->read_headers(header, http_request, RQST);
         if (throwable->is_an_error(throwable)) {
             get_log()->t(throwable);
             get_log()->i(TAG_WORKER, "errore");
         }
-        get_log()->i(TAG_WORKER, "letto");*/
+        get_log()->i(TAG_WORKER, "letto");
 
         http_response->response = http_request;
 

@@ -153,8 +153,29 @@ char* append_char_to_string(const char* string, const char c){
     return ret;
 }
 
+/*
+ *  See .h for more information.
+ */
+ThrowablePtr set_signal(int signo, SigFunc *func) {
+    
+    struct sigaction new_handl, old_handl; 
+    new_handl.sa_handler = func; 
+     
+    /* clear signal mask: no signal blocked during execution of func */ 
+    if (sigemptyset(&new_handl.sa_mask)!=0){ /* initialize signal set */ 
+        return get_throwable()->create(STATUS_ERROR, "SIG_ERR1", "set_signal");
+    } 
+    
+    /* init to 0 all flags */ 
+    new_handl.sa_flags = 0;     
 
-
+    /* change action for signo signal */ 
+    if (sigaction(signo, &new_handl, &old_handl)){  
+        return get_throwable()->create(STATUS_ERROR, "SIG_ERR2", "set_signal");
+    } 
+    
+    return get_throwable()->create(STATUS_OK, NULL, "str_to_long");
+} 
 
 
 

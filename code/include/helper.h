@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <string.h>
+#include <signal.h>
 
 #include "../include/throwable.h"
 #include "../include/log.h"
@@ -137,6 +138,21 @@ char* concat_string(const char* string1, const char* string2);
  * ---------------------------------------------------------------------------
  */
 char* append_char_to_string(const char* string, const char c);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   	: set_signal
+ * Description	: Set new action for signal in signo.
+ *
+ * Param		: 
+ *	int			: Signal identiifier, see man signal.
+ *	SigFunc		: Function SigFunc, check typedef in this file.
+ *
+ * Return 		: New string, or same string as input on error.
+ * ---------------------------------------------------------------------------
+ */
+typedef void SigFunc(int);
+ThrowablePtr set_signal(int signo, SigFunc *func);
 
 #endif //HELPER_H
 

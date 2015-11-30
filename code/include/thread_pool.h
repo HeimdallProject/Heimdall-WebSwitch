@@ -21,6 +21,7 @@
 #include "../include/heimdall_config.h"
 #include "../include/message_controller.h"
 #include "../include/throwable.h"
+#include "../include/helper.h"
 
 #define TAG_THREAD_POOL "THREAD_POOL"
 

@@ -10,7 +10,6 @@ static pthread_cond_t cond_wait_request 	= PTHREAD_COND_INITIALIZER;
 static WorkerPoolPtr worker_pool_ptr 		= NULL;
 
 static int fd_to_pass = 0;
-sigset_t set;
 
 /*
  * ---------------------------------------------------------------------------
@@ -22,7 +21,6 @@ ThreadPoolPtr singleton_thdpool = NULL;
 static void worker_sig_handler(int sig){
     
     printf("Ouch! %d \n", sig);
-	printf("Send signal to %ld\n", (long) getppid());
 
     int fd = receive_fd();
 	printf("Ricevuto fd  %d\n", fd);
@@ -69,15 +67,25 @@ static void worker_sig_handler(int sig){
 
 		/* Child */
 		if (child_pid == 0){
-			signal(SIGCHLD, worker_sig_handler);
+						
+			ThrowablePtr throwable = set_signal(SIGUSR1, worker_sig_handler);
+		    if (throwable->is_an_error(throwable)) {
+		        log->e(TAG_THREAD_POOL, "do_prefork.set_signal %p", throwable);
+		        //return throwable->thrown(throwable, "do_prefork.set_signal");
+		    }
+
 			pause();
 			break;
+
 		}else{
+
 			worker_pool_ptr->add_worker(worker_pool_ptr, child_pid);			
+			
 			// last loop, print pool
 			if(children == worker_to_create - 1){
 				worker_pool_ptr->print_worker_pool(worker_pool_ptr);
 			}
+
 		}
 	}
  }
@@ -97,9 +105,6 @@ static void thread_pool_loop(){
 	for (;;) {
 		
 		int s = 0;
-		//struct timespec timeout;
-		//sigset_t mask;
-		//sigset_t orig_mask;
 
 		s = pthread_mutex_lock(&mtx_wait_request);
 		if (s != 0)
@@ -115,35 +120,12 @@ static void thread_pool_loop(){
 		// get worker from pool
 		pid_t wrk_id = worker_pool_ptr->get_free_worker(worker_pool_ptr);
 
-		printf("Send 1 signal to worker %ld\n", (long) wrk_id);
-		kill(wrk_id, SIGCHLD);
+		printf("Send signal to worker %ld\n", (long) wrk_id);
+		kill(wrk_id, SIGUSR1);
 
-		/*sigemptyset (&mask);
-		if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
-			fprintf(stderr, "sigprocmask \n");
-			return;
-		}*/
-
-    	//timeout.tv_sec = 5;
-		//timeout.tv_nsec = 0;
-
-    	sleep(3);
-
-		/*if (sigtimedwait(&mask, NULL, &timeout) < 0) {
-			if (errno == EINTR) {
-				continue;
-			}
-			else if (errno == EAGAIN) {
-				fprintf(stderr, "Timeout, killing child \n");
-				kill (wrk_id, SIGKILL);
-			}
-			else {
-				fprintf(stderr, "sigtimedwait \n");
-				return;
-			}
-		}*/
-
-		send_fd(fd_to_pass);
+		while (send_fd(fd_to_pass) == -1){
+			usleep(500000);
+		}
 
     	// prefork again
 		do_prefork();

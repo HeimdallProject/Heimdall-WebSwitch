@@ -118,7 +118,7 @@ int receive_fd(){
 
 }
 
-void send_fd(int fd){
+int send_fd(int fd){
 
     struct msghdr msgh;
     struct iovec iov;
@@ -168,14 +168,16 @@ void send_fd(int fd){
     sfd = unixConnect(SOCK_PATH, SOCK_STREAM);
     if (sfd == -1){
         fprintf(stderr, "unixConnect\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     ns = sendmsg(sfd, &msgh, 0);
     if (ns == -1){
         fprintf(stderr, "sendmsg\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     printf("sendmsg() returned %ld\n", (long) ns);
+
+    return 0;
 }

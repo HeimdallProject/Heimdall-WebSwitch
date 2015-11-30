@@ -23,6 +23,6 @@
 #define TAG_MESSAGE_CONTROLLER "MESSAGE_CONTROLLER"
 
 int receive_fd();
-void send_fd(int fd);
+int send_fd(int fd);
 
 #endif //MESSAGE_CONTROLLER_H

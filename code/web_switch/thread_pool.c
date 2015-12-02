@@ -180,7 +180,7 @@ ThrowablePtr get_worker(int fd) {
 	if (s != 0)
 		fprintf(stderr, "get_worker - Error in pthread_mutex_lock \n");
 
-	/* Set condition request for perfomr something on the pool */
+	/* Set condition request for perfom something on the pool */
 	fd_to_pass = fd;
 
 	s = pthread_mutex_unlock(&mtx_wait_request); 

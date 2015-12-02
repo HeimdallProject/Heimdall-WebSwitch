@@ -38,6 +38,7 @@ set(SOURCE_FILES_APACHE
 
 set(SOURCE_FILES_REQUEST
         code/utils/helper.c
+        code/utils/throwable.c
         code/http/http_request.c)
 
 set(SOURCE_FILES_CONFIG
@@ -79,6 +80,14 @@ set(SOURCE_FILE_REQUEST_QUEUE
         code/web_switch/request_node.c
         code/web_switch/request_queue.c)
 
+set(SOURCE_FILE_ROUND_ROBIN
+        code/config/heimdall_config.c
+        code/utils/throwable.c
+        code/utils/log.c
+        code/utils/helper.c
+        code/web_switch/circular.c
+        code/web_switch/round_robin.c)
+
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
 add_executable(HTTPRequest ${SOURCE_FILES_REQUEST})
 add_executable(ConfigParser ${SOURCE_FILES_CONFIG})
@@ -89,3 +98,4 @@ add_executable(Watchdog ${SOURCE_FILES_WATCHDOG})
 add_executable(Main ${SOURCE_FILES_MAIN})
 add_executable(WorkerPool ${SOURCE_FILES_WPOOL})
 add_executable(RequestQueue ${SOURCE_FILE_REQUEST_QUEUE})
+add_executable(RoundRobin ${SOURCE_FILE_ROUND_ROBIN})

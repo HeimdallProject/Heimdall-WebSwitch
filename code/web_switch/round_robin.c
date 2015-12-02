@@ -1,76 +1,7 @@
 #include "../include/round_robin.h"
 
-// server broken reentering routine
-// TODO: to verify the effective necessity of this function and its further implementation
-int broken_server_routine(Server *server) {
-    // creating a TCP client socket
-    int socket_fd;
-    if (create_client_socket(0, server->address, server->port, &socket_fd) == STATUS_ERROR) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "client_socket in broken_server");
-        return STATUS_ERROR;
-    }
-
-    // making a simple GET request
-    char *request;
-    /*
-    HTTPRequestPtr http_request = new_http_request();
-    http_request->set_simple_request(http_request->self, "GET", "/", "HTTP/1.1");
-    http_request->make_simple_request(http_request->self, &request);
-    fprintf(stdout, "requesting...");
-    fflush(stdout);
-    // initializing an HTTP response struct
-    HTTPRequestPtr http_response = new_http_request(); */
-
-    // writing the request into the socket
-    int nwrite = (int) strlen(request);
-    int writen;
-    while ((writen = (int) write(socket_fd, request, (size_t) nwrite)) <= nwrite) {
-        if (writen < 0) {
-            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write in socket in broken_server");
-            return STATUS_ERROR;
-        }
-        if (writen == 0) break;
-
-        nwrite -= writen;
-        request += writen;
-    }
-
-    // reading the response from the socket
-    char *buffer = malloc(sizeof(char)*MAX_BROKEN_SERV_ROUTINE_BUFFER);
-    if (buffer == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in broken_server");
-        return STATUS_ERROR;
-    }
-
-    int nread = MAX_BROKEN_SERV_ROUTINE_BUFFER;
-    int readn = 0;
-    int n;
-    while(nread >= 0) {
-        n = (int) read(socket_fd, buffer + readn, (size_t) nread);
-        if (n <  0) {
-            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read from socket in broken_server");
-            pthread_exit(NULL);
-        }
-
-        readn += n;
-        nread -= n;
-
-        if (n == 0 || nread == 0) break;
-
-    }
-    buffer[readn] = '\0';
-
-    // reading the response
-    /*
-    http_response->read_headers(buffer, http_response, RESP);
-    if (strcmp(http_response->resp_code, "500") == 0) return STATUS_ERROR;
-     */
-
-    return STATUS_OK;
-}
-
 // making a weighted scheduling discipline
-void weighted_servers(Server *servers, int server_num) {
+ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_num) {
     // finding the sum for all the servers and sorting them
     int i, j;
     int weight_sum = 0;
@@ -88,17 +19,156 @@ void weighted_servers(Server *servers, int server_num) {
     weight_sum += (servers + server_num - 1)->weight;
 
     // allocating the server pattern sequence
+    ThrowablePtr throwable;
     Server *w_servers = malloc(sizeof(Server)*weight_sum);
     if (w_servers == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in weighted_servers");
-        exit(EXIT_FAILURE);
+        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in weighted_servers");
+        return throwable;
     }
 
-    // creating the pattern
-    for (i = 0; i < weight_sum; i++) {
-        *(w_servers + i) = *(servers + (i % server_num));
+    // weighted pattern creation
+    int w = 0;
+    int s = 0;
+    for (;;) {
+        // creating pattern taking each round weight times the server
+        if ((servers + s)->weight > 0) {
+            *(w_servers + w) = *(servers + s);
+            // updating weight info
+            (servers + s)->weight -= 1;
+            if (++w == weight_sum)
+                break;
+        }
+
+        // handling for loop
+        if (++s == server_num)
+            s = 0;
     }
 
     // creating the circular buffer
-    get_circular()->allocate_buffer(&w_servers, weight_sum);
+    throwable = circular->allocate_buffer(circular, &w_servers, weight_sum);
+    if (throwable->is_an_error(throwable))
+        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "allocate_buffer in weight_servers");
+    else
+        throwable = get_throwable()->create(STATUS_OK, NULL, "weight_servers");
+
+    return throwable;
 }
+
+
+ThrowablePtr reset_servers(RRobinPtr rrobin, Server *servers, int server_num) {
+
+    ThrowablePtr throwable;
+
+    // routine to modify servers dataset
+    throwable = rrobin->weight(rrobin->circular, servers, server_num);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->e(TAG_ROUND_ROBIN, "Resetting RRobin");
+        return throwable;
+    } else
+        return get_throwable()->create(STATUS_OK, NULL, "Resetting RRobin");
+
+}
+
+
+Server *get_server(CircularPtr circular) {
+
+    ThrowablePtr throwable;
+    Server *server_ready;
+
+    // entering critical region
+    throwable = circular->acquire(circular);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->e(TAG_ROUND_ROBIN, "Error acquiring circular buffer");
+        return NULL;
+    }
+
+    // performing progressing step
+    int proceed = circular->progress(circular);
+    while (proceed != BUFFER_PROGRESS_OK)
+        proceed = circular->progress(circular);
+
+    // retrieving server
+    server_ready = circular->tail;
+
+
+    // exiting critical region
+    throwable = circular->release(circular);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->e(TAG_ROUND_ROBIN, "Error releasing circular buffer");
+        return NULL;
+    }
+
+    return server_ready;
+}
+
+
+RRobinPtr new_rrobin() {
+
+    // allocating struct
+    RRobinPtr rrobin = malloc(sizeof(RRobin));
+    if (rrobin == NULL) {
+        get_log()->e(TAG_ROUND_ROBIN, "Memory allocation in new_rrobin");
+        exit(EXIT_FAILURE);
+    }
+
+    // allocating circular buffer
+    rrobin->circular = new_circular();
+
+    // setting "methods"
+    rrobin->weight     = weight_servers;
+    rrobin->reset      = reset_servers;
+    rrobin->get_server = get_server;
+
+    return rrobin;
+}
+
+/* usage
+int main() {
+
+    // test servers array
+    Server *servers = malloc(sizeof(Server)*3);
+    char *names[3] = {"eastcoast.outsidertech.net", "westeurope.outsidertech.net", "asia.outsidertech.net"};
+
+    int i;
+    for(i = 0; i < 3; i++) {
+        servers[i].address = names[i];
+        servers[i].status  = SERVER_STATUS_READY;
+        servers[i].weight  = WEIGHT_DEFAULT + i;
+    }
+
+    RRobinPtr rrobin = new_rrobin();
+    rrobin->reset(rrobin, servers, 3);
+
+    fprintf(stdout, "---------------- PATTERN RR (1)-------------------\n");
+
+    for(i = 0; i < rrobin->circular->buffer_len; i++)
+        get_log()->d(TAG_ROUND_ROBIN, (rrobin->circular->buffer + i)->address);
+
+    fprintf(stdout, "-----------------------------------------------\n\n");
+    fprintf(stdout, "EXECUTE!\n");
+
+
+    for(i = 0; i < rrobin->circular->buffer_len; i++)
+        get_log()->d(TAG_ROUND_ROBIN, rrobin->get_server(rrobin->circular)->address);
+
+    for(i = 0; i < 3; i++) {
+        servers[i].address = names[i];
+        servers[i].status  = SERVER_STATUS_READY;
+        servers[i].weight  = WEIGHT_DEFAULT;
+    }
+    rrobin->reset(rrobin, servers, 3);
+
+    fprintf(stdout, "\n---------------- PATTERN RR (2) -------------------\n");
+    for(i = 0; i < rrobin->circular->buffer_len; i++)
+        get_log()->d(TAG_ROUND_ROBIN, (rrobin->circular->buffer + i)->address);
+
+    fprintf(stdout, "-----------------------------------------------\n\n");
+    fprintf(stdout, "EXECUTE!\n");
+
+    for(i = 0; i < rrobin->circular->buffer_len; i++)
+        get_log()->d(TAG_ROUND_ROBIN, rrobin->get_server(rrobin->circular)->address);
+
+
+
+    return 0;
+}*/

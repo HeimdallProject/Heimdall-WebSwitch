@@ -72,15 +72,15 @@ ThrowablePtr get_request(char *req_line, HTTPRequestPtr http, int len) {
     // allocating the request units
     http->req_type = malloc(sizeof(char) * (REQ_UNIT + 1));
     if (http->req_type == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_request");
 
     http->req_protocol = malloc(sizeof(char) * (strlen(PROTOCOL) + 1));
     if (http->req_protocol == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_request");
 
     http->req_resource = malloc(sizeof(char) * (len - REQ_UNIT - strlen(PROTOCOL) - 2 + 1));
     if (http->req_resource == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_request");
 
     // retrieving request params, not headers
     int counter = 1;
@@ -92,25 +92,24 @@ ThrowablePtr get_request(char *req_line, HTTPRequestPtr http, int len) {
                 case 1:
                     req_line[i] = '\0';
                     if (strcpy(http->req_type, &req_line[start]) != http->req_type)
-                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_request");
                     start = i + 1;
                     counter++;
                     break;
                 case 2:
                     req_line[i] = '\0';
                     if (strcpy(http->req_resource, &req_line[start]) != http->req_resource)
-                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_request");
                     start = i + 1;
                     if (strcpy(http->req_protocol, &req_line[start])  != http->req_protocol)
-                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_request");
+                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_request");
                     return get_throwable()->create(STATUS_OK, NULL, "get_header_http_request");
                 default:
                     break;
             }
         }
     }
-
-    return get_throwable()->create(STATUS_OK, NULL, "get_header_http_request");
+    return get_throwable()->create(STATUS_OK, NULL, "get_http_request");
 }
 
 
@@ -120,15 +119,15 @@ ThrowablePtr get_response(char *req_line, struct http_request *http, int len) {
 
     http->resp_code = malloc(sizeof(char) * (REQ_UNIT + 1));
     if (http->resp_code == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_response");
 
     http->req_protocol = malloc(sizeof(char) * (strlen(PROTOCOL) + 1));
     if (http->req_protocol == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_response");
 
     http->resp_msg = malloc(sizeof(char) * (len - REQ_UNIT - strlen(PROTOCOL) - 2 + 1));
     if (http->resp_msg == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_response");
 
     int counter = 1;
     int start = 0;
@@ -139,25 +138,25 @@ ThrowablePtr get_response(char *req_line, struct http_request *http, int len) {
                 case 1:
                     req_line[i] = '\0';
                     if (strcpy(http->req_protocol, &req_line[start]) != http->req_protocol)
-                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_response");
                     start = i + 1;
                     counter++;
                     break;
                 case 2:
                     req_line[i] = '\0';
                     if (strcpy(http->resp_code, &req_line[start]) != http->resp_code)
-                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
+                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_response");
                     start = i + 1;
                     if (strcpy(http->resp_msg, &req_line[start])  != http->resp_msg)
-                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header_http_response");
-                    return get_throwable()->create(STATUS_OK, NULL, "get_header_http_response");
+                        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_http_response");
+                    return get_throwable()->create(STATUS_OK, NULL, "get_http_response");
                 default:
                     break;
             }
         }
     }
 
-    return get_throwable()->create(STATUS_OK, NULL, "get_header_http_response");
+    return get_throwable()->create(STATUS_OK, NULL, "get_http_response");
 }
 
 
@@ -317,13 +316,5 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error in usage: %s\n", argv[0]);
     }
     HTTPRequestPtr http = new_http_request();
-    http->set_simple_request(http->self, "GET", "/index.html", "HTTP/1.1", "1.0.0.0");
-
-    char *res;
-    http->make_simple_request(http->self, &res);
-    fprintf(stdout, "%s\n", res);
-
-    http->destroy(http->self);
-
     return 0;
 }*/

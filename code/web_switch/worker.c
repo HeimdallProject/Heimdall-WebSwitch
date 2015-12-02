@@ -8,22 +8,26 @@ WorkerPtr new_worker() {
 
     WorkerPtr wrk = malloc(sizeof(Worker));
     if (wrk == NULL) {
-        fprintf(stderr, "Memory allocation error in new_log.\n");
+        get_log()->e(TAG_WORKER, "Memory allocation error");
         exit(EXIT_FAILURE);
     }
 
     // watchdog struct allocation
     wrk->watchdog = malloc(sizeof(Watchdog));
     if (wrk->watchdog == NULL) {
-        fprintf(stderr, "Memory allocation error in new_log.\n");
+        get_log()->e(TAG_WORKER, "Memory allocation error");
         exit(EXIT_FAILURE);
     }
 
     // initializing condition and mutex
-    if (pthread_cond_init(&wrk->await_cond, NULL) != 0)
+    if (pthread_cond_init(&wrk->await_cond, NULL) != 0) {
+        get_log()->e(TAG_WORKER, "pthread_cond_init");
         exit(EXIT_FAILURE);
-    if (pthread_mutex_init(&wrk->await_mtx, NULL) != 0)
+    }
+    if (pthread_mutex_init(&wrk->await_mtx, NULL) != 0){
+        get_log()->e(TAG_WORKER, "pthread_mutex_init");
         exit(EXIT_FAILURE);
+    }
 
     // presetting threads attributes
     wrk->worker_await_flag = WATCH_TOWER;
@@ -106,6 +110,7 @@ void *write_work(void *arg) {
 
 
 void start_worker(int fd) {
+
 
     // initializing worker
     WorkerPtr worker = new_worker();

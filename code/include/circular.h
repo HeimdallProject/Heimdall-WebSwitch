@@ -23,12 +23,12 @@
 #include "../include/throwable.h"
 
 #define TAG_CIRCULAR "CIRCULAR"
+
 #define BUFFER_PROGRESS_OK      0
 #define BUFFER_PROGRESS_STOP    -1
+
 #define SERVER_STATUS_READY     1
 #define SERVER_STATUS_BROKEN    -1
-#define WEIGHT_DEFAULT          1
-#define WEIGHT_MAX              4
 
 /*
  * this is only an example structure to define a circular buffer over a set of
@@ -52,12 +52,17 @@ typedef struct circular_buffer {
     Server      *buffer;
     int         buffer_position;
     int         buffer_len;
+
     Server      *head;
     Server      *tail;
 
-    ThrowablePtr (*allocate_buffer)(Server **servers, int len);
-    int          (*progress)();
-    void         (*destroy_buffer)();
+    pthread_mutex_t mutex;
+
+    ThrowablePtr (*allocate_buffer)(struct circular_buffer *circular, Server **servers, int len);
+    ThrowablePtr (*acquire)(struct circular_buffer *circular);
+    ThrowablePtr (*release)(struct circular_buffer *circular);
+    int          (*progress)(struct circular_buffer *circular);
+    void         (*destroy_buffer)(struct circular_buffer *circular);
 } Circular, *CircularPtr;
 
 /*
@@ -67,28 +72,49 @@ typedef struct circular_buffer {
  *              remote machines
  *
  * Param      :
+ *   CircularPtr
  *   struct server array: to allocate the buffer
  *   integer len:         the length of the server array
  *
- * Return     :
- *   ThrowablePtr pointer
+ * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr allocate_buffer(Server **servers, int len);
+ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len);
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : acquire_circular
+ * Description: This function is used to acquire the lock primitive associated
+ *              to the singleton
+ * Param      : CircularPtr
+ * Return     : ThrowablePtr
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr acquire_circular(CircularPtr circular);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : release_circular
+ * Description: This function is used to release the lock primitive associated
+ *              to the singleton
+ * Param      : CircularPtr
+ * Return     : ThrowablePtr
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr release_circular(CircularPtr circular);
 
 /*
  * ---------------------------------------------------------------------------
  * Function   : progress
  * Description: This function is used to move along the circular buffer
  *
- * Param      :
+ * Param      : CircularPtr
  *
  * Return     :
  *   buffer progress status integer indicator
  * ---------------------------------------------------------------------------
  */
-int progress(void);
+int progress(CircularPtr circular);
 
 
 /*
@@ -96,59 +122,25 @@ int progress(void);
  * Function   : destroy_buffer
  * Description: This function is used to deallocate the buffer
  *
- * Param      :
+ * Param      : CircularPtr
  * Return     :
  * ---------------------------------------------------------------------------
  */
-void destroy_buffer();
+void destroy_buffer(CircularPtr circular);
 
 
 /*
  * ---------------------------------------------------------------------------
  * Function   : new_circular
- * Description: This function is used to initialize the Circular singleton
+ * Description: This function is used to initialize the Circular struct
  *
  * Param      :
  *
- * Return     :
- *   Circular pointer
+ * Return     : CircularPtr
  * ---------------------------------------------------------------------------
  */
-CircularPtr new_circular(void);
+CircularPtr new_circular();
 
-/*
- * ---------------------------------------------------------------------------
- * Function   : get_circular
- * Description: This function is used to retrieve the Circular singleton
- *
- * Param      :
- *
- * Return     :
- *   Circular pointer
- * ---------------------------------------------------------------------------
- */
-CircularPtr get_circular(void);
 
-/*
- * ---------------------------------------------------------------------------
- * Function   : acquire_circular
- * Description: This function is used to acquire the lock primitive associated
- *              to the singleton
- * Param      :
- * Return     :
- * ---------------------------------------------------------------------------
- */
-void acquire_circular(void);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : release_circular
- * Description: This function is used to release the lock primitive associated
- *              to the singleton
- * Param      :
- * Return     :
- * ---------------------------------------------------------------------------
- */
-void release_circular(void);
 
 #endif //WEBSWITCH_CIRCULAR_H

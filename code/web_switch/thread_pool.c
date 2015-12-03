@@ -19,13 +19,22 @@ static int fd_to_pass = 0;
 ThreadPoolPtr singleton_thdpool = NULL;
 
 static void worker_sig_handler(int sig){
-    
-    printf("Ouch! %d \n", sig);
 
-    int fd = receive_fd();
-	printf("Ricevuto fd  %d\n", fd);
+	int *file_descriptor = malloc(sizeof(int));
 
-    start_worker(fd);
+	LogPtr log = get_log();
+	log->i(TAG_THREAD_POOL, "%ld riceived signal %d from thread pool", (long)getpid(), sig);
+
+    ThrowablePtr throwable = receive_fd(file_descriptor);
+	if (throwable->is_an_error(throwable)) {
+        log->e(TAG_THREAD_POOL, "Error in receive_fd");
+        log->t(throwable);
+        exit(EXIT_SUCCESS);
+    }
+
+	log->i(TAG_THREAD_POOL, "%ld riceived fd %d", (long)getpid(), *file_descriptor);
+
+    start_worker(*file_descriptor);
 }
 
 /*
@@ -102,6 +111,8 @@ static void worker_sig_handler(int sig){
  */
 static void thread_pool_loop(){
 
+	LogPtr log = get_log();
+
 	for (;;) {
 		
 		int s = 0;
@@ -120,12 +131,38 @@ static void thread_pool_loop(){
 		// get worker from pool
 		pid_t wrk_id = worker_pool_ptr->get_free_worker(worker_pool_ptr);
 
-		printf("Send signal to worker %ld\n", (long) wrk_id);
+		log->i(TAG_THREAD_POOL, "Send signal to worker %ld", (long) wrk_id);
 		kill(wrk_id, SIGUSR1);
 
-		while (send_fd(fd_to_pass) == -1){
-			usleep(500000);
+		int attempt = 0;
+
+		while (TRUE){
+
+			ThrowablePtr throwable = send_fd(fd_to_pass);
+			if (throwable->is_an_error(throwable)) {
+
+				log->i(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long)wrk_id);
+				
+				attempt++;
+				
+				if (attempt == 5){
+					log->i(TAG_THREAD_POOL, "Failed to send file descriptor to %ld, connection will closed", (long)wrk_id);
+					kill(wrk_id, SIGTERM);
+					// TODO schedule a new worker
+					break;
+				}
+
+				// try again in 1/2 second.
+				usleep(500000);
+				continue;
+		    
+		    }
+
+		    // file descriptor is delivered, end loop.
+		    break;
 		}
+
+		worker_pool_ptr->delete_worker(worker_pool_ptr, wrk_id);
 
     	// prefork again
 		do_prefork();

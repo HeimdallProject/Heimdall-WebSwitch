@@ -80,12 +80,27 @@ set(SOURCE_FILE_REQUEST_QUEUE
         code/web_switch/request_node.c
         code/web_switch/request_queue.c)
 
+set(SOURCE_FILE_SERVER_POOL
+        code/config/heimdall_config.c
+        code/utils/log.c
+        code/utils/throwable.c
+        code/utils/helper.c
+        code/web_switch/server_pool.c)
+
+set(SOURCE_FILE_CIRCULAR
+        code/config/heimdall_config.c
+        code/utils/throwable.c
+        code/utils/log.c
+        code/utils/helper.c
+        code/web_switch/circular.c)
+
 set(SOURCE_FILE_ROUND_ROBIN
         code/config/heimdall_config.c
         code/utils/throwable.c
         code/utils/log.c
         code/utils/helper.c
         code/web_switch/circular.c
+        code/web_switch/server_pool.c
         code/web_switch/round_robin.c)
 
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
@@ -98,4 +113,6 @@ add_executable(Watchdog ${SOURCE_FILES_WATCHDOG})
 add_executable(Main ${SOURCE_FILES_MAIN})
 add_executable(WorkerPool ${SOURCE_FILES_WPOOL})
 add_executable(RequestQueue ${SOURCE_FILE_REQUEST_QUEUE})
+add_executable(ServerPool ${SOURCE_FILE_SERVER_POOL})
+add_executable(Circular ${SOURCE_FILE_CIRCULAR})
 add_executable(RoundRobin ${SOURCE_FILE_ROUND_ROBIN})

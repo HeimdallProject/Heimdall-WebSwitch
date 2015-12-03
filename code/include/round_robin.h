@@ -6,6 +6,7 @@
 //              implementation.
 // ===========================================================================
 //
+
 #ifndef WEBSWITCH_ROUND_ROBIN_H
 #define WEBSWITCH_ROUND_ROBIN_H
 
@@ -16,10 +17,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../include/connection.h"
-#include "../include/http_request.h"
 #include "../include/helper.h"
 #include "../include/circular.h"
+#include "../include/server_pool.h"
 
 #define TAG_ROUND_ROBIN "ROUND_ROBIN"
 
@@ -29,7 +29,7 @@ typedef struct round_robin_struct {
     CircularPtr circular;
 
     ThrowablePtr (*weight)(CircularPtr circular, Server *servers, int server_num);
-    ThrowablePtr (*reset)(struct round_robin_struct *rrobin, Server *servers, int server_num);
+    ThrowablePtr (*reset)(struct round_robin_struct *rrobin, ServerPoolPtr pool, int server_num);
     Server *(*get_server)(CircularPtr circular);
 }RRobin, *RRobinPtr;
 
@@ -53,14 +53,14 @@ ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_nu
  * Function   : reset_servers
  * Description: This function is used to reset servers and their weights
  *
- * Param      :
- *  servers:    pointer to the server structs list
- *  server_num: the number of the servers in the list
+ * Param      : RoundRobinPtr
+ *              ServerPoolPtr
+ *              int, number of the servers
  *
  * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-ThrowablePtr reset_servers(RRobinPtr rrobin, Server *servers, int server_num);
+ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num);
 
 /*
  * ---------------------------------------------------------------------------

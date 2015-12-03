@@ -20,7 +20,7 @@ ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_nu
 
     // allocating the server pattern sequence
     ThrowablePtr throwable;
-    Server *w_servers = malloc(sizeof(Server)*weight_sum);
+    Server *w_servers = malloc(sizeof(Server) * weight_sum);
     if (w_servers == NULL) {
         throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in weighted_servers");
         return throwable;
@@ -55,18 +55,41 @@ ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_nu
 }
 
 
-ThrowablePtr reset_servers(RRobinPtr rrobin, Server *servers, int server_num) {
+ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num) {
+
+    // freeing the old buffer if present
+    if (rrobin->circular->buffer != NULL)
+        free(rrobin->circular->buffer);
 
     ThrowablePtr throwable;
 
+    // creating auxiliary buffer
+    Server *servers = malloc(sizeof(Server) * pool->num_servers);
+    if (servers == NULL) {
+        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "allocate_buffer in reset_servers");
+        return throwable;
+    }
+    // initializing auxiliary buffer
+    ServerNodePtr node = pool->head;
+    int s;
+    for (s = 0; s < pool->num_servers; s++) {
+        (servers + s)->address = node->host_address;
+        (servers + s)->ip      = node->host_ip     ;
+        (servers + s)->port    = node->port_number ;
+        (servers + s)->weight  = node->weight      ;
+        node = node->next;
+    }
+
     // routine to modify servers dataset
     throwable = rrobin->weight(rrobin->circular, servers, server_num);
+    // freeing auxiliary buffer
+    free(servers);
+    // checking for weighting procedure
     if (throwable->is_an_error(throwable)) {
         get_log()->e(TAG_ROUND_ROBIN, "Resetting RRobin");
         return throwable;
     } else
         return get_throwable()->create(STATUS_OK, NULL, "Resetting RRobin");
-
 }
 
 
@@ -83,9 +106,7 @@ Server *get_server(CircularPtr circular) {
     }
 
     // performing progressing step
-    int proceed = circular->progress(circular);
-    while (proceed != BUFFER_PROGRESS_OK)
-        proceed = circular->progress(circular);
+    circular->progress(circular);
 
     // retrieving server
     server_ready = circular->tail;
@@ -126,49 +147,37 @@ RRobinPtr new_rrobin() {
 int main() {
 
     // test servers array
-    Server *servers = malloc(sizeof(Server)*3);
-    char *names[3] = {"eastcoast.outsidertech.net", "westeurope.outsidertech.net", "asia.outsidertech.net"};
+    ServerPoolPtr pool = init_server_pool();
 
-    int i;
-    for(i = 0; i < 3; i++) {
-        servers[i].address = names[i];
-        servers[i].status  = SERVER_STATUS_READY;
-        servers[i].weight  = WEIGHT_DEFAULT + i;
-    }
+    ServerNodePtr server1 = malloc(sizeof(ServerNode));
+    server1->host_address = "outsidertech0.net";
+    server1->weight = 1;
+
+    ServerNodePtr server2 = malloc(sizeof(ServerNode));
+    server2->host_address = "outsidertech1.net";
+    server2->weight = 2;
+
+    ServerNodePtr server3 = malloc(sizeof(ServerNode));
+    server3->host_address = "outsidertech2.net";
+    server3->weight = 3;
+
+    pool->add_server(pool, server1);
+    pool->add_server(pool, server2);
+    pool->add_server(pool, server3);
 
     RRobinPtr rrobin = new_rrobin();
-    rrobin->reset(rrobin, servers, 3);
+    rrobin->reset(rrobin, pool, 3);
 
-    fprintf(stdout, "---------------- PATTERN RR (1)-------------------\n");
-
+    fprintf(stdout, "------------------ PATTERN RR -------------------\n");
+    int i;
     for(i = 0; i < rrobin->circular->buffer_len; i++)
         get_log()->d(TAG_ROUND_ROBIN, (rrobin->circular->buffer + i)->address);
 
-    fprintf(stdout, "-----------------------------------------------\n\n");
-    fprintf(stdout, "EXECUTE!\n");
-
-
-    for(i = 0; i < rrobin->circular->buffer_len; i++)
-        get_log()->d(TAG_ROUND_ROBIN, rrobin->get_server(rrobin->circular)->address);
-
-    for(i = 0; i < 3; i++) {
-        servers[i].address = names[i];
-        servers[i].status  = SERVER_STATUS_READY;
-        servers[i].weight  = WEIGHT_DEFAULT;
-    }
-    rrobin->reset(rrobin, servers, 3);
-
-    fprintf(stdout, "\n---------------- PATTERN RR (2) -------------------\n");
-    for(i = 0; i < rrobin->circular->buffer_len; i++)
-        get_log()->d(TAG_ROUND_ROBIN, (rrobin->circular->buffer + i)->address);
-
-    fprintf(stdout, "-----------------------------------------------\n\n");
+    fprintf(stdout, "-------------------------------------------------\n\n");
     fprintf(stdout, "EXECUTE!\n");
 
     for(i = 0; i < rrobin->circular->buffer_len; i++)
         get_log()->d(TAG_ROUND_ROBIN, rrobin->get_server(rrobin->circular)->address);
-
-
 
     return 0;
-}*/
+} */

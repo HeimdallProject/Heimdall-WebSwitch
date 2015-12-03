@@ -21,24 +21,21 @@
 
 #include "../include/helper.h"
 #include "../include/throwable.h"
+#include "../include/server_pool.h"
 
 #define TAG_CIRCULAR "CIRCULAR"
 
 #define BUFFER_PROGRESS_OK      0
 #define BUFFER_PROGRESS_STOP    -1
 
-#define SERVER_STATUS_READY     1
-#define SERVER_STATUS_BROKEN    -1
-
 /*
  * this is only an example structure to define a circular buffer over a set of
  * finite web servers.
-
  */
 typedef struct server {
     char *address;
+    char *ip;
     int  port;
-    int  status;
     int  weight;
 } Server;
 
@@ -61,7 +58,7 @@ typedef struct circular_buffer {
     ThrowablePtr (*allocate_buffer)(struct circular_buffer *circular, Server **servers, int len);
     ThrowablePtr (*acquire)(struct circular_buffer *circular);
     ThrowablePtr (*release)(struct circular_buffer *circular);
-    int          (*progress)(struct circular_buffer *circular);
+    void         (*progress)(struct circular_buffer *circular);
     void         (*destroy_buffer)(struct circular_buffer *circular);
 } Circular, *CircularPtr;
 
@@ -109,12 +106,10 @@ ThrowablePtr release_circular(CircularPtr circular);
  * Description: This function is used to move along the circular buffer
  *
  * Param      : CircularPtr
- *
  * Return     :
- *   buffer progress status integer indicator
  * ---------------------------------------------------------------------------
  */
-int progress(CircularPtr circular);
+void progress(CircularPtr circular);
 
 
 /*

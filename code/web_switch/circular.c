@@ -38,26 +38,13 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
 // - tail is useless 'cause the head will continue to check for all the servers (polling behaviour)
 //   but it can be used to retrieve externally the ready server (when the function returns a PROGRESS_OK)
 // - the circular buffer thread is the only one accessing the circular buffer memory -> let the progress()
-//   be an atomic function using the mutex defined globally (the user must handle the release)
-int progress(CircularPtr circular) {
+//   be an atomic function using the mutex associated to the circular buffer structer (the user must handle the release)
+void progress(CircularPtr circular) {
 
-    // checking for remote machine status
-    switch(circular->head->status) {
-        case SERVER_STATUS_BROKEN:
-            circular->buffer_position = (circular->buffer_position + 1) % circular->buffer_len;
-            circular->head            = circular->buffer + circular->buffer_position;
-            // TODO: using the log to monitor the server status or send a message to the main thread
-            return BUFFER_PROGRESS_STOP;
-        case SERVER_STATUS_READY:
-            // recomputing tail, head and buffer position
-            circular->tail            = circular->head;
-            circular->buffer_position = (circular->buffer_position + 1) % circular->buffer_len;
-            circular->head            = circular->buffer + circular->buffer_position;
-            break;
-        default:
-            break;
-    }
-    return BUFFER_PROGRESS_OK;
+    // recomputing tail, head and buffer position
+    circular->tail            = circular->head;
+    circular->buffer_position = (circular->buffer_position + 1) % circular->buffer_len;
+    circular->head            = circular->buffer + circular->buffer_position;
 }
 
 // destroying the circular buffer structures
@@ -83,7 +70,9 @@ CircularPtr new_circular(void) {
         get_log()->e(TAG_CIRCULAR, "Memory allocation error in new_circular()");
         exit(EXIT_FAILURE);
     }
-    // presetting buffer_position
+
+    // presetting buffer and buffer_position
+    circular->buffer = NULL;
     circular->buffer_position = 0;
 
     // initializing the mutex

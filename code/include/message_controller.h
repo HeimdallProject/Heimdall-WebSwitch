@@ -18,11 +18,12 @@
 #include <errno.h>
 
 #include "../include/unix_socket.h"
+#include "../include/log.h"
 
 #define SOCK_PATH "/home/vagrant/scm_cred"
 #define TAG_MESSAGE_CONTROLLER "MESSAGE_CONTROLLER"
 
-int receive_fd();
-int send_fd(int fd);
+ThrowablePtr receive_fd(int *file_descriptor);
+ThrowablePtr send_fd(int file_descriptor);
 
 #endif //MESSAGE_CONTROLLER_H

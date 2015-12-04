@@ -1,11 +1,14 @@
 #include "../include/message_controller.h"
 
-int receive_fd(){
+ThrowablePtr receive_fd(int *file_descriptor){
 
     struct msghdr msgh;
     struct iovec iov;
-    int data, lfd, sfd, fd;
+    int data, sfd;
     ssize_t nr;
+
+    int *value_lfd = malloc(sizeof(int));
+    ThrowablePtr throwable;
 
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
@@ -13,88 +16,60 @@ int receive_fd(){
     union {
         struct cmsghdr cmh;
         char   control[CMSG_SPACE(sizeof(int))];
-                        /* Space large enough to hold an 'int' */
+        /* Space large enough to hold an 'int' */
     } control_un;
     struct cmsghdr *cmhp;
 
     /* Create socket bound to well-known address */
-    if (remove(SOCK_PATH) == -1 && errno != ENOENT){
-        fprintf(stderr, "remove-%s", SOCK_PATH);
-        exit(EXIT_FAILURE);
+    if (remove(SOCK_PATH) == -1 && errno != ENOENT)
+        return get_throwable()->create(STATUS_ERROR, "remove", "receive_fd");
+
+    throwable = unix_listen(SOCK_PATH, 5, value_lfd);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "unix_listen");
     }
 
-    //printf("Receiving via stream socket\n");
-    lfd = unixListen(SOCK_PATH, 5);
-
-    if (lfd == -1){
-        fprintf(stderr, "unix-listen %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    sfd = accept(lfd, NULL, NULL);
-    if (sfd == -1){
-        fprintf(stderr, "accept-listen\n");
-        exit(EXIT_FAILURE);
-    }
+    sfd = accept(*value_lfd, NULL, NULL);
+    if (sfd == -1)
+        return get_throwable()->create(STATUS_ERROR, "accept", "receive_fd");
 
     /* Set 'control_un' to describe ancillary data that we want to receive */
-
     control_un.cmh.cmsg_len = CMSG_LEN(sizeof(int));
     control_un.cmh.cmsg_level = SOL_SOCKET;
     control_un.cmh.cmsg_type = SCM_RIGHTS;
 
     /* Set 'msgh' fields to describe 'control_un' */
-
     msgh.msg_control = control_un.control;
     msgh.msg_controllen = sizeof(control_un.control);
 
-    /* Set fields of 'msgh' to point to buffer used to receive (real)
-       data read by recvmsg() */
-
+    /* Set fields of 'msgh' to point to buffer used to receive (real) data read by recvmsg() */
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
     iov.iov_base = &data;
     iov.iov_len = sizeof(int);
 
-    msgh.msg_name = NULL;               /* We don't need address of peer */
+    /* We don't need address of peer */
+    msgh.msg_name = NULL;               
     msgh.msg_namelen = 0;
 
     /* Receive real plus ancillary data */
-
     nr = recvmsg(sfd, &msgh, 0);
-    if (nr == -1){
-        fprintf(stderr, "recvmsg\n");
-        exit(EXIT_FAILURE);
-    }
-
-    //printf("recvmsg() returned %ld\n", (long) nr);
-
-    //if (nr > 0)
-        //printf("Received data = %d\n", data);
+    if (nr == -1)
+        return get_throwable()->create(STATUS_ERROR, "recvmsg", "receive_fd");
     
     /* Get the received file descriptor (which is typically a different
        file descriptor number than was used in the sending process) */
-
     cmhp = CMSG_FIRSTHDR(&msgh);
-    if (cmhp == NULL || cmhp->cmsg_len != CMSG_LEN(sizeof(int))){
-        fprintf(stderr, "bad cmsg header / message length\n");
-        exit(EXIT_FAILURE);
-    }
+    if (cmhp == NULL || cmhp->cmsg_len != CMSG_LEN(sizeof(int)))
+        return get_throwable()->create(STATUS_ERROR, "bad cmsg header / message length", "receive_fd");
 
-    if (cmhp->cmsg_level != SOL_SOCKET){
-        fprintf(stderr, "cmsg_level != SOL_SOCKET\n");
-        exit(EXIT_FAILURE);
-    }
+    if (cmhp->cmsg_level != SOL_SOCKET)
+        return get_throwable()->create(STATUS_ERROR, "cmsg_level != SOL_SOCKET", "receive_fd");
 
-    if (cmhp->cmsg_type != SCM_RIGHTS){
-        fprintf(stderr, "cmsg_type != SCM_RIGHTS\n");
-        exit(EXIT_FAILURE);
-    }
+    if (cmhp->cmsg_type != SCM_RIGHTS)
+        return get_throwable()->create(STATUS_ERROR, "cmsg_type != SCM_RIGHTS", "receive_fd");
 
-    fd = *((int *) CMSG_DATA(cmhp));   
-    //fprintf(stderr, "Received fd=%d\n", fd);
-
-    return fd;
+    *file_descriptor = *((int *) CMSG_DATA(cmhp));
 
     /* Having obtained the file descriptor, read the file's contents and
        print them on standard output */
@@ -116,14 +91,20 @@ int receive_fd(){
         printf("%d\n", w);
     }*/
 
+    return get_throwable()->create(STATUS_OK, NULL, "receive_fd");
 }
 
-int send_fd(int fd){
+ThrowablePtr send_fd(int fd){
+
+    LogPtr log = get_log();
 
     struct msghdr msgh;
     struct iovec iov;
-    int data, sfd;
+    int data;
     ssize_t ns;
+
+    int *sfd = malloc(sizeof(int));
+    ThrowablePtr throwable;
 
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
@@ -131,13 +112,12 @@ int send_fd(int fd){
     union {
         struct cmsghdr cmh;
         char   control[CMSG_SPACE(sizeof(int))];
-                        /* Space large enough to hold an 'int' */
+        /* Space large enough to hold an 'int' */
     } control_un;
     struct cmsghdr *cmhp;
 
     /* On Linux, we must transmit at least 1 byte of real data in
        order to send ancillary data */
-
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
     iov.iov_base = &data;
@@ -146,17 +126,13 @@ int send_fd(int fd){
 
     /* We don't need to specify destination address, because we use
        connect() below */
-
     msgh.msg_name = NULL;
     msgh.msg_namelen = 0;
 
     msgh.msg_control = control_un.control;
     msgh.msg_controllen = sizeof(control_un.control);
 
-    fprintf(stderr, "Sending fd %d\n", fd);
-
     /* Set message header to describe ancillary data that we want to send */
-
     cmhp = CMSG_FIRSTHDR(&msgh);
     cmhp->cmsg_len = CMSG_LEN(sizeof(int));
     cmhp->cmsg_level = SOL_SOCKET;
@@ -164,20 +140,16 @@ int send_fd(int fd){
     *((int *) CMSG_DATA(cmhp)) = fd;
 
     /* Do the actual send */
-
-    sfd = unixConnect(SOCK_PATH, SOCK_STREAM);
-    if (sfd == -1){
-        fprintf(stderr, "unixConnect\n");
-        return -1;
+    throwable = unix_connect(SOCK_PATH, SOCK_STREAM, sfd);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "unix_connect");
     }
 
-    ns = sendmsg(sfd, &msgh, 0);
-    if (ns == -1){
-        fprintf(stderr, "sendmsg\n");
-        return -1;
-    }
+    ns = sendmsg(*sfd, &msgh, 0);
+    if (ns == -1)
+        return get_throwable()->create(STATUS_ERROR, "sendmsg", "send_fd");
 
-    printf("sendmsg() returned %ld\n", (long) ns);
+    log->d(TAG_MESSAGE_CONTROLLER, "File descriptor %d sent", fd);
 
-    return 0;
+    return get_throwable()->create(STATUS_OK, NULL, "send_fd");
 }

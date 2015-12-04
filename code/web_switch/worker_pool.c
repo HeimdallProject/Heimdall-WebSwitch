@@ -154,9 +154,30 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  * Return       : 0 if ok, -1 on error.
  * ---------------------------------------------------------------------------
  */
- static int delete_worker(pid_t worker_id){
- 	printf("%ul\n", worker_id);
- 	return 1;
+ static void delete_worker(WorkerPoolPtr self, pid_t worker_id){
+
+ 	WorkerPoolNodePtr nd 	= self->first;
+	WorkerPoolNodePtr prev 	= NULL;
+
+	while(nd != NULL){
+
+		if (nd->worker_id == worker_id){
+
+			// if first
+			if (prev == NULL){
+				self->first = nd->next;
+				free(nd);
+				break;
+			}
+
+			prev->next = nd->next;
+			free(nd);
+			break;
+		}
+
+		prev 	= nd;
+		nd 		= nd->next;
+	}
  }
 
 /*

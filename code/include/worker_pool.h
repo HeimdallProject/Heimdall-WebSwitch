@@ -28,7 +28,7 @@ typedef struct worker_pool{
     struct node *last;
 
     int (*add_worker)(struct worker_pool* self, pid_t worker_id);
-    int (*delete_worker)(pid_t worker_id);
+    void (*delete_worker)(struct worker_pool* self, pid_t worker_id);
     pid_t (*get_free_worker)(struct worker_pool* self);
     int (*count_free_worker)(struct worker_pool* self);
     int (*print_worker_pool)();

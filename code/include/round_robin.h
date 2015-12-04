@@ -6,6 +6,7 @@
 //              implementation.
 // ===========================================================================
 //
+
 #ifndef WEBSWITCH_ROUND_ROBIN_H
 #define WEBSWITCH_ROUND_ROBIN_H
 
@@ -16,35 +17,25 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../include/connection.h"
-#include "../include/http_request.h"
 #include "../include/helper.h"
 #include "../include/circular.h"
+#include "../include/server_pool.h"
 
 #define TAG_ROUND_ROBIN "ROUND_ROBIN"
 
-//TODO: to modify this constrain!! using realloc?
-#define MAX_BROKEN_SERV_ROUTINE_BUFFER 320
+#define WEIGHT_DEFAULT 1
+
+typedef struct round_robin_struct {
+    CircularPtr circular;
+
+    ThrowablePtr (*weight)(CircularPtr circular, Server *servers, int server_num);
+    ThrowablePtr (*reset)(struct round_robin_struct *rrobin, ServerPoolPtr pool, int server_num);
+    Server *(*get_server)(CircularPtr circular);
+}RRobin, *RRobinPtr;
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : broken_server_routine
- * Description: This function is used to inspect an anomaly over a server and
- *              to wait until the server is actually up. It should be run on a
- *              different thread.
- *
- * Param      :
- *              Pointer to the server struct
- *
- * Return     :
- *              STATUS_OK if connection is again up, STATUS_ERROR otherwise
- * ---------------------------------------------------------------------------
- */
-int broken_server_routine(Server *server);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : weighted_servers
+ * Function   : weight_servers
  * Description: This function is used make a pattern for the Round Robin
  *              discipline in order to use a weighted scheduling.
  *
@@ -52,10 +43,46 @@ int broken_server_routine(Server *server);
  *  servers:    pointer to the server structs list
  *  server_num: the number of the servers in the list
  *
- * Return     :
+ * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-void weighted_servers(Server *servers, int server_num);
+ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_num);
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : reset_servers
+ * Description: This function is used to reset servers and their weights
+ *
+ * Param      : RoundRobinPtr
+ *              ServerPoolPtr
+ *              int, number of the servers
+ *
+ * Return     : ThrowablePtr
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : get_server
+ * Description: This function is used to retrieve the next available server
+ *
+ * Param      : CircularPtr
+ * Return     : Server pointer
+ * ---------------------------------------------------------------------------
+ */
+Server *get_server(CircularPtr circular);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : new_rrobin
+ * Description: This function is used to initialize the RoundRobin struct
+ *
+ * Param      :
+ *
+ * Return     : RoundRobinPtr
+ * ---------------------------------------------------------------------------
+ */
+RRobinPtr new_rrobin();
 
 #endif //WEBSWITCH_ROUND_ROBIN_H

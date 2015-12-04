@@ -17,13 +17,41 @@
 #include <string.h>
 
 #include "../include/macro.h"
+#include "../include/helper.h"
+#include "../include/throwable.h"
 
-int unixBuildAddress(const char *path, struct sockaddr_un *addr);
+/*
+ * ---------------------------------------------------------------------------
+ * Function         : unix_connect
+ * Description      : Create a UNIX domain socket of type 'type' and connect it
+ *  					to the remote address specified by the 'path'.
+ *  					Return the socket descriptor on success, or -1 on error
+ *
+ * Param            :
+ *   path           : The string to convert.
+ *   type    		: type of socket
+ *	 socket_fd		: socket_fd created from socket() inside this function.
+ *
+ * Return           : The converted value or STATUS_ERROR in case of error.
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr unix_connect(const char *path, int type, int *socket_fd);
 
-int unixConnect(const char *path, int type);
-
-int unixListen(const char *path, int backlog);
-
-int unixBind(const char *path, int type);
+/*
+ * ---------------------------------------------------------------------------
+ * Function         : unix_listen
+ * Description      : Create stream socket, bound to 'path'. Make the socket a listening
+ * 						socket, with the specified 'backlog'. Return socket descriptor on
+ * 						success, or -1 on error.
+ *
+ * Param            :
+ *   path           : The string to convert.
+ *   backlog    	: socket backlog
+ *	 socket_fd		: socket_fd created from socket() inside this function.
+ *
+ * Return           : The converted value or STATUS_ERROR in case of error.
+ * ---------------------------------------------------------------------------
+ */
+ThrowablePtr unix_listen(const char *path, int backlog, int *socket_fd);
 
 #endif //WEBSWITCH_UNIX_SOCKET_H

@@ -182,7 +182,7 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
 
     // Creates a new client
     int sockfd;
-    throwable = create_client_socket(TCP, ip, 8080, &sockfd);
+    throwable = create_client_socket(TCP, ip, 80, &sockfd);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "retrieve_apache_status");
     }
@@ -220,7 +220,6 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     http_response->get_http_response(http_response, response);
 
     self->status_page = strdup(http_response->http_response_body);
-
     return get_throwable()->create(STATUS_OK, NULL, "retrieve_apache_status");
 }
 

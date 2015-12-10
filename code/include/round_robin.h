@@ -24,7 +24,16 @@
 #define TAG_ROUND_ROBIN "ROUND_ROBIN"
 
 #define WEIGHT_DEFAULT 1
+#define WEIGHT_MAXIMUM 5
 
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : typedef struct round_robin_struct
+ * Description      : This struct represents a Round Robin discipline that can be used
+ *                    also a stateful discipline with minimum overhead
+ *                    (weighted mode enabled)
+ * ---------------------------------------------------------------------------
+ */
 typedef struct round_robin_struct {
     CircularPtr circular;
 

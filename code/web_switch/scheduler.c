@@ -5,7 +5,7 @@ ServerPtr get_ready_server(RRobinPtr rrobin) {
     // preparing the struct tor return
     ServerPtr server = malloc(sizeof(Server));
     if (server == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation in get_ready_server");
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation - get_ready_server");
         return NULL;
     }
 
@@ -63,14 +63,16 @@ void *update_server_routine(void *arg) {
     SchedulerPtr scheduler = (SchedulerPtr) arg;
 
     // retrieving first timestamp
-    time_t timestamp = time(NULL);
+    time_t up_since  = time(NULL);
+    // retrieving awaiting time TODO: necessary config value!
+    time_t up_time   = 1000;
 
-    // entering for loop TODO: necessary config value!
+    // entering for loop
     int i, proceed;
     ThrowablePtr throwable;
     ServerNodePtr node;
     for(;;)
-        if (time(NULL) - timestamp > 1000) {
+        if (time(NULL) - up_since > up_time) {
             // initializing flag
             proceed = 0;
             // scanning across the serverpool
@@ -98,20 +100,75 @@ void *update_server_routine(void *arg) {
             }
 
             // updating timestamp
-            timestamp = time(NULL);
+            up_since = time(NULL);
         }
 
     return NULL;
 
 }
 
-int main() {
-    ServerNodePtr node = malloc(sizeof(ServerNode));
-    node->host_address = "www.laziobus.it";
-    node->weight = WEIGHT_DEFAULT;
 
-    apache_score(node);
-    fprintf(stdout, "SCORE: %d\n", node->weight);
+SchedulerPtr init_scheduler(int awareness_level) {
+    // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
+    char *servers_addresses[3] = {"alessiomoretti.it", "alessiomoretti.it", "alessiomoretti.it"};
+    char *servers_ip[3] = {"12.34.56.78", "12.34.56.78", "12.34.56.78"};
+    int n = 3;
 
-    return 0;
+    // allocating memory - scheduler
+    SchedulerPtr scheduler = malloc(sizeof(Scheduler));
+    if (scheduler == NULL) {
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation - init_scheduler");
+        return NULL;
+    }
+    // allocating memory - rrobin
+    scheduler->rrobin = new_rrobin();
+    if (scheduler->rrobin == NULL) {
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in rrobin allocation - init_scheduler");
+        return NULL;
+    }
+    // allocating memory - server pool
+    scheduler->server_pool = init_server_pool();
+    if (scheduler->server_pool == NULL) {
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in server pool allocation - init_scheduler");
+        return NULL;
+    }
+
+    // in server pool adding server nodes
+    int i;
+    ServerNodePtr node;
+    for (i = 0; i < n; i++) {
+        node = malloc(sizeof(ServerNode));
+        if (node == NULL) {
+            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation - init_scheduler");
+            return NULL;
+        }
+
+        node->host_address = servers_addresses[i];
+        node->host_ip      = servers_ip[i];
+        node->weight       = WEIGHT_DEFAULT;
+
+        scheduler->server_pool->add_server(scheduler->server_pool, node);
+    }
+
+    // setting round robin
+    ThrowablePtr throwable;
+    throwable = scheduler->rrobin->reset(scheduler->rrobin,
+                                         scheduler->server_pool,
+                                         scheduler->server_pool->num_servers);
+
+    if (throwable->is_an_error(throwable)) {
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in rrobin resetting - init_scheduler");
+        return NULL;
+    }
+
+    // setting "methods"
+    scheduler->get_server = get_ready_server;
+
+    // if it is a state-aware discipline, detaching a new thread
+    if (awareness_level == AWARENESS_LEVEL_HIGH) {
+        // TODO: detach a new thread to update round robin
+    }
+
+
+    return scheduler;
 }

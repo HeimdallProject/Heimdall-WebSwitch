@@ -149,9 +149,10 @@ ThrowablePtr close_connection(const int connection) {
 ThrowablePtr send_request(int *sockfd, char *request) {
     int bytes, sent, total;
 
-    get_log()->d(TAG_CONNECTION, request);
+    get_log()->d(TAG_CONNECTION, "mando %s", request);
 
     total = (int) strlen(request);
+    get_log()->d(TAG_CONNECTION, "send_request total %d", total);
     sent = 0;
     do {
         bytes = (int) write(*sockfd, request + sent, (size_t) (total-sent));
@@ -162,6 +163,28 @@ ThrowablePtr send_request(int *sockfd, char *request) {
             break;
         sent+=bytes;
     } while (sent < total);
+    get_log()->d(TAG_CONNECTION, "send_request total %d", total);
+
+    return get_throwable()->create(STATUS_OK, NULL, "send_request");
+}
+
+ThrowablePtr send_request_total(int *sockfd, char *request, int total) {
+    int bytes, sent;
+
+    get_log()->d(TAG_CONNECTION, "mando %s", request);
+
+    get_log()->d(TAG_CONNECTION, "send_request total %d", total);
+    sent = 0;
+    do {
+        bytes = (int) write(*sockfd, request + sent, (size_t) (total-sent));
+        if (bytes < 0) {
+            return get_throwable()->create(STATUS_ERROR, "Writing message to socket", "send_request");
+        }
+        if (bytes == 0)
+            break;
+        sent+=bytes;
+    } while (sent < total);
+    get_log()->d(TAG_CONNECTION, "send_request total %d", total);
 
     return get_throwable()->create(STATUS_OK, NULL, "send_request");
 }
@@ -218,36 +241,59 @@ ThrowablePtr receive_http_header(int *sockfd, char *header) {
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_header");
 }
 
-ThrowablePtr receive_http_body(int *sockfd, char *body, size_t length) {
+ThrowablePtr receive_http_body(int *sockfd, char *body, ssize_t length, pthread_mutex_t *mutex, int *wrote, int *dimen) {
 
     ssize_t n_read;                     // Last size read
     ssize_t total_read = 0;             // Total size read
-    ssize_t size = sizeof(char) * 1024; // Size of response buffer
+    int new_size;
+    //ssize_t size = sizeof(char) * 1024; // Size of response buffer
+    //ssize_t read_size = 1024;
 
     while (TRUE) {
-
-        n_read = read(*sockfd, body, length); // Read all the response
-
-        if (n_read == -1) { // There is an error
-            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_body");
-        } else if (n_read == 0) {   // EOF reached
-            break;
-        }
-
-        // Increase number of bytes read
-        total_read = total_read + sizeof(char) * n_read;
-
-        // If memory is full realloc
-        if (total_read == size) {
-            if (realloc(body, size + sizeof(char) * 1024) == NULL) {
-                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_body");
+        usleep(50000);
+        if (*wrote == TRUE) {    
+            get_log()->d(TAG_CONNECTION, "receive_http_body lock mutex");
+            if (pthread_mutex_lock(mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
             }
-            // Increase size
-            size = size + sizeof(char) * 1024;
+
+            int diff = length - total_read;
+            
+            if (diff >= 1024) {
+                new_size = 1024;
+            } else {
+                new_size = diff;
+                get_log()->d(TAG_CONNECTION, "receive_http_body rialloco %d", new_size);
+
+                if (realloc(body, sizeof(char) * new_size) == NULL) {
+                    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+                }
+
+                *(body + new_size) = '\0';
+            }
+            n_read = read(*sockfd, body, new_size); 
+
+            get_log()->d(TAG_CONNECTION, "receive_http_body body %s", body);
+            get_log()->d(TAG_CONNECTION, "receive_http_body n_read %d", n_read);
+
+            *dimen = n_read;
+            // Increase number of bytes read
+            total_read = total_read + n_read;
+
+            *wrote = FALSE;
+
+            get_log()->d(TAG_CONNECTION, "receive_http_body total_read %d length %d", total_read, length);
+
+            get_log()->d(TAG_CONNECTION, "receive_http_body unlock mutex");
+            if (pthread_mutex_unlock(mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+            }
+
+            if (total_read == length) {
+                break;
+            }
         }
     }
-
-    get_log()->d(TAG_CONNECTION, "The body is: %s\n", body);
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_body");
 }

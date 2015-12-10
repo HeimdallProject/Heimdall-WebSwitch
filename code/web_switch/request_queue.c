@@ -42,8 +42,12 @@ RequestNodePtr get_front_request_queue(RequestQueuePtr self) {
  * Return     : TRUE if is empty, FALSE otherwise. (see helper.h)
  * ---------------------------------------------------------------------------
  */
-signed char is_empty_request_queue(RequestQueuePtr self) {
-    return self->front == NULL;
+int is_empty_request_queue(RequestQueuePtr self) {
+    if (self->front == NULL) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 /*
@@ -72,6 +76,8 @@ RequestNodePtr dequeue_request_queue(RequestQueuePtr self) {
         // Makes the second first
         if (next != NULL) {
             next->previous = NULL;
+        } else {
+            self->back = NULL;
         }
         self->front = next;
 
@@ -169,11 +175,9 @@ RequestQueuePtr init_request_queue() {
 
     RequestQueuePtr request_queue = malloc(sizeof(RequestQueue));
     if (request_queue == NULL) {
-        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in new_request_queue.\n");
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in new_request_queue!");
         exit(EXIT_FAILURE);
     }
-    // Set self linking
-    request_queue->self = request_queue;
 
     request_queue->size = 0;
     request_queue->front = NULL;

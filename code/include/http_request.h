@@ -121,6 +121,8 @@ typedef struct http_request {
     char *req_content_len;
     char *req_upgrade;                                  // no protocol upgrade are allowed
 
+    char *header;                                
+
     ThrowablePtr (*get_header)(char *req_line, struct http_request *http);
     ThrowablePtr (*get_request)(char *req_line, struct http_request *http, int len);
     ThrowablePtr (*read_headers)(char *buffer, struct http_request *http, int type);

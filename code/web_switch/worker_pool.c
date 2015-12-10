@@ -187,7 +187,7 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
 
  	WorkerPoolPtr wrkPoolPtr = (WorkerPoolPtr) malloc(sizeof(WorkerPool));
 	if (wrkPoolPtr == NULL) {
-        fprintf(stderr, "Memory allocation error in init_worker_pool().\n");
+        fprintf(stderr, "Memory allocation error in init_worker_pool!");
         exit(EXIT_FAILURE);
     }
 

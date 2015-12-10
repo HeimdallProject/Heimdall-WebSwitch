@@ -297,6 +297,7 @@ HTTPRequestPtr new_http_request(void) {
     http->req_content_type = NULL;
     http->req_content_len  = NULL;
     http->req_upgrade      = NULL;
+    http->header           = NULL;
 
     // functions pointers initialization
     http->get_header            = get_header;

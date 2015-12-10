@@ -67,7 +67,7 @@ void destroy_buffer(CircularPtr circular) {
 CircularPtr new_circular(void) {
     CircularPtr circular = malloc(sizeof(Circular));
     if (circular == NULL) {
-        get_log()->e(TAG_CIRCULAR, "Memory allocation error in new_circular()");
+        get_log()->e(TAG_CIRCULAR, "Memory allocation error in new_circular!");
         exit(EXIT_FAILURE);
     }
 

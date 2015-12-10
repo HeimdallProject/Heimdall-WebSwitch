@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include "../include/connection.h"
 #include "../include/helper.h"
 #include "../include/heimdall_config.h"
 #include "../include/watchdog.h"

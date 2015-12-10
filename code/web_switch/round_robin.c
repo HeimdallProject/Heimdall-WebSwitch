@@ -128,7 +128,7 @@ RRobinPtr new_rrobin() {
     // allocating struct
     RRobinPtr rrobin = malloc(sizeof(RRobin));
     if (rrobin == NULL) {
-        get_log()->e(TAG_ROUND_ROBIN, "Memory allocation in new_rrobin");
+        get_log()->e(TAG_ROUND_ROBIN, "Memory allocation in new_rrobin!");
         exit(EXIT_FAILURE);
     }
 

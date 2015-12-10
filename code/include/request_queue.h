@@ -15,27 +15,25 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Structure  : request_queue
- * Description: This struct allows to create a linked request node.
+ * Structure   : request_queue
+ * Description : This struct allows to create a linked request node.
  *
  * Data:
- *  self    : Pointer to itself.
- *  front   : The front of the queue (first element).
- *  back    : The back of the queue (last element).
- *  size    : The numbers of the element in the queue.
- *  string  : The summary of the node.
+ *  front  : The front of the queue (first element).
+ *  back   : The back of the queue (last element).
+ *  size   : The numbers of the element in the queue.
+ *  string : The summary of the node.
  *
  * Functions:
- *  enqueue  : Pointer to enqueue function.
- *  dequeue    : Pointer to dequeue function.
+ *  enqueue   : Pointer to enqueue function.
+ *  dequeue   : Pointer to dequeue function.
  *  is_empty  : Pointer to is_empty function.
- *  get_front    : Pointer to get_front function.
+ *  get_front : Pointer to get_front function.
  *  get_size  : Pointer to get_size function.
- *  to_string  : Pointer to to_string function.
- *  destroy    : Pointer to destroy function.
+ *  to_string : Pointer to to_string function.
+ *  destroy   : Pointer to destroy function.
  */
 typedef struct request_queue {
-    struct request_queue *self;
     RequestNodePtr front;
     RequestNodePtr back;
     int size;
@@ -43,9 +41,8 @@ typedef struct request_queue {
 
     void (*enqueue)(struct request_queue *self, RequestNodePtr node);
     struct request_node*(*dequeue)(struct request_queue *self);
-    signed char (*is_empty)(struct request_queue *self);
+    int (*is_empty)(struct request_queue *self);
     struct request_node*(*get_front)(struct request_queue *self);
-
     int (*get_size)(struct request_queue *self);
 
     char *(*to_string)(struct request_queue *self);

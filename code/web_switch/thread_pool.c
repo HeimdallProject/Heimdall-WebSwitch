@@ -257,7 +257,7 @@ ThreadPoolPtr init_thread_pool() {
 
 	ThreadPoolPtr th_pool = malloc(sizeof(ThreadPool));
     if (th_pool == NULL) {
-    	log->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool().");
+    	log->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool!");
         return NULL;
     }
 

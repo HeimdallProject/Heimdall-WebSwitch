@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h> 
 
 #include "../include/throwable.h"
 #include "../include/http_request.h"
@@ -68,7 +69,7 @@
 
     // Receives the response
     throwable = receive_response(&sockfd, response);
-    if(throwable->is_an_error(throwable)) {
+    if (throwable->is_an_error(throwable)) {
         throwable->thrown(throwable, "retrieve_apache_status");
     }
 
@@ -179,6 +180,8 @@ ThrowablePtr close_connection(const int connection);
  */
 ThrowablePtr send_request(int *sockfd, char *request);
 
+ThrowablePtr send_request_total(int *sockfd, char *request, int total);
+
 /*
  * Function   : receive_response
  * Description: This function receives an HTTP response through a socket.
@@ -214,5 +217,5 @@ ThrowablePtr receive_http_header(int *sockfd, char *response);
  *
  * Return     : A Throwable.
  */
-ThrowablePtr receive_http_body(int *sockfd, char *body, size_t length);
+ThrowablePtr receive_http_body(int *sockfd, char *body, ssize_t length, pthread_mutex_t *mutex, int *wrote, int *dimen);
 #endif //WEBSWITCH_CONNECTION_H

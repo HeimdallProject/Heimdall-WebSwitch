@@ -77,7 +77,7 @@ HTTPResponsePtr new_http_response(void) {
 
     HTTPResponsePtr http = malloc(sizeof(HTTPResponse));
     if (http == NULL) {
-        get_log()->e(TAG_HTTP_RESPONSE, "Memory allocation error in new_http_response\n");
+        get_log()->e(TAG_HTTP_RESPONSE, "Memory allocation error in new_http_response!");
         exit(EXIT_FAILURE);
     }
 

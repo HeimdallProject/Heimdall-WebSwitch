@@ -59,7 +59,7 @@ char *to_string_request_node(RequestNodePtr self) {
                      "Next: %p\n",
 
              (unsigned int) self->thread_id,
-             self->response->http_response_body,
+             (char *) self->response->http_response_body,
              (double) self->request_timeout,
              self->previous,
              self->next);
@@ -73,16 +73,24 @@ RequestNodePtr init_request_node() {
 
     RequestNodePtr request_node = malloc(sizeof(RequestNode));
     if (request_node == NULL) {
-        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node.\n");
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in init_request_node!");
         exit(EXIT_FAILURE);
     }
 
     request_node->thread_id = 1;        //TODO choose better default value and add other methods
+    request_node->request = new_http_request();
     request_node->response = new_http_response();
     request_node->request_timeout = 10;
     request_node->previous = NULL;
     request_node->next = NULL;
     request_node->string = NULL;
+    request_node->wrote = TRUE;
+    request_node->dimen = 0;
+
+    if (pthread_mutex_init(&(request_node->mutex), NULL) != 0) {
+        get_log()->e(TAG_REQUEST_NODE, get_error_by_errno(errno));
+        exit(EXIT_FAILURE);
+    }
 
     // Set "methods"
     request_node->destroy = destroy_request_node;

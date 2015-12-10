@@ -187,7 +187,7 @@ Log *new_log() {
 
     Log *log = malloc(sizeof(Log));
     if (log == NULL) {
-        fprintf(stderr, "Memory allocation error in new_log.\n");
+        fprintf(stderr, "Memory allocation error in new_log!");
         exit(EXIT_FAILURE);
     }
 

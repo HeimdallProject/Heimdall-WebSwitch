@@ -295,7 +295,7 @@ ApacheServerStatusPtr new_apache_server_status() {
 
     ApacheServerStatusPtr apache_server_status = malloc(sizeof(ApacheServerStatus));
     if (apache_server_status == NULL) {
-        get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status.\n");
+        get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status!");
         exit(EXIT_FAILURE);
     }
 

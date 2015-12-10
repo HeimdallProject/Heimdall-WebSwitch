@@ -103,7 +103,7 @@ ThrowablePtr new_throwable() {
 
     ThrowablePtr throwable = malloc(sizeof(Throwable));
     if (throwable == NULL) {
-        fprintf(stderr, "Memory allocation error in new_throwable().\n");
+        fprintf(stderr, "Memory allocation error in new_throwable!");
         exit(EXIT_FAILURE);
     }
 

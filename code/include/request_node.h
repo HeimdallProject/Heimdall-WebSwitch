@@ -12,8 +12,10 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#include "../include/http_request.h"
 #include "../include/http_response.h"
 #include "../include/log.h"
+#include "../include/macro.h"
 
 #define TAG_REQUEST_NODE "REQUEST_NODE"
 
@@ -24,12 +26,14 @@
  *
  * Data:
  *  self            : Pointer to itself.
- *  pthread_id      : The pthread id bounded to the node.
- *  response        : The response of http request bounded to the node.
+ *  pthread_id      : The pthread id bound to the node.
+ *  request         : The request bound to the node.
+ *  response        : The response of http request bound to the node.
  *  request_timeout : The timeout of the request.
  *  previous        : The previous node.
  *  next            : The next node.
  *  string          : The summary of the node.
+ *  mutex           : The mutex to use in order to regulate the HTTP exchange.
  *
  * Functions:
  *  to_string  : Pointer to to_string function.
@@ -37,11 +41,16 @@
  */
 typedef struct request_node {
     pthread_t thread_id;
-    HTTPResponse *response;
+    HTTPRequestPtr request;
+    HTTPResponsePtr response;
     time_t request_timeout;
     struct request_node *previous;
     struct request_node *next;
     char *string;
+
+    pthread_mutex_t mutex;
+    int wrote;
+    int dimen;
 
     char *(*to_string)(struct request_node *self);
     void (*destroy)(struct request_node *self);

@@ -167,6 +167,7 @@ void destroy_apache_status(ApacheServerStatusPtr self) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
+    //TODO: return NULL if no server response or no apache-status enabled
     // Initializes the new http request
     HTTPRequestPtr http_request = new_http_request();
 
@@ -298,6 +299,20 @@ ApacheServerStatusPtr new_apache_server_status() {
         get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status!");
         exit(EXIT_FAILURE);
     }
+
+    // Set "attributes" to default values
+    apache_server_status->url          = NULL;
+    apache_server_status->status_page  = NULL;
+    apache_server_status->string       = NULL;
+    apache_server_status->total_accesses  = -1;
+    apache_server_status->total_kBytes    = -1;
+    apache_server_status->cpu_load        = -1;
+    apache_server_status->uptime          = -1;
+    apache_server_status->req_per_sec     = -1;
+    apache_server_status->bytes_per_sec   = -1;
+    apache_server_status->bytes_per_req   = -1;
+    apache_server_status->busy_workers    = -1;
+    apache_server_status->idle_workers    = -1;
 
     // Set "methods"
     apache_server_status->retrieve = retrieve_apache_status;

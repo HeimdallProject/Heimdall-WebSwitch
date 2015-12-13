@@ -37,7 +37,7 @@ typedef struct server {
     char *ip;
     int  port;
     int  weight;
-} Server;
+} Server, *ServerPtr;
 
 /*
  * ---------------------------------------------------------------------------

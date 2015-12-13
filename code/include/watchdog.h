@@ -56,7 +56,7 @@ ThrowablePtr detach_watchdog(WatchdogPtr watchdog);
  * Description: This function runs the watchdog routine
  *
  * Param      : void pointer to the arg necessary - in this case the watchdog ptr
- * Return     : STATUS_OK on successfull operations status, STATUS_ERROR otherwise
+ * Return     :
  * ---------------------------------------------------------------------------
  */
 void *enable_watchdog(void *arg);

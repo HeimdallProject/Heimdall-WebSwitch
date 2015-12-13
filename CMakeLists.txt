@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.2)
 project(WebSwitch C)
 
 FIND_PACKAGE (Threads)
+FIND_LIBRARY(M_LIB m)
+
 
 #[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")]]
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
@@ -27,4 +29,21 @@ set(SOURCE_FILES_MAIN
         code/web_switch/request_node.c
         code/web_switch/request_queue.c)
 
+set(SOURCE_FILES_SCHEDULER
+        code/config/heimdall_config.c
+        code/http/connection.c
+        code/http/http_response.c
+        code/http/http_request.c
+        code/utils/log.c
+        code/utils/helper.c
+        code/utils/throwable.c
+        code/web_switch/apache_status.c
+        code/web_switch/circular.c
+        code/web_switch/server_pool.c
+        code/web_switch/round_robin.c
+        code/web_switch/scheduler.c)
+
+
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
+add_executable(Scheduler ${SOURCE_FILES_SCHEDULER})
+target_link_libraries(Scheduler ${M_LIB})

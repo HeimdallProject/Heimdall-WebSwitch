@@ -84,13 +84,7 @@ RequestNodePtr init_request_node() {
     request_node->previous = NULL;
     request_node->next = NULL;
     request_node->string = NULL;
-    request_node->wrote = TRUE;
-    request_node->dimen = 0;
-
-    if (pthread_mutex_init(&(request_node->mutex), NULL) != 0) {
-        get_log()->e(TAG_REQUEST_NODE, get_error_by_errno(errno));
-        exit(EXIT_FAILURE);
-    }
+    request_node->chunk = new_chunk();
 
     // Set "methods"
     request_node->destroy = destroy_request_node;

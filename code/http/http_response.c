@@ -36,7 +36,7 @@ ThrowablePtr get_http_response(HTTPResponsePtr self, char *buffer) {
 ThrowablePtr get_response_head(HTTPResponsePtr self, char *head) {
 
     // using struct http_request to retrieve headers
-    ThrowablePtr t_resp_head = self->response->read_headers(head, self->response, self->http_response_type);
+    ThrowablePtr t_resp_head = self->response->read_headers(self->response, head, self->http_response_type);
     if (t_resp_head->is_an_error(t_resp_head)) {
         return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response", "get_response_head");
     } else {

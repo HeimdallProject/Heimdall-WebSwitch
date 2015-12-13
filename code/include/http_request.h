@@ -118,135 +118,18 @@ typedef struct http_request {
     char *req_from;                                     // client and request generic info
     char *req_host;
     char *req_content_type;                             // content type info
-    char *req_content_len;
+    int req_content_len;
     char *req_upgrade;                                  // no protocol upgrade are allowed
 
     char *header;                                
 
-    ThrowablePtr (*get_header)(char *req_line, struct http_request *http);
-    ThrowablePtr (*get_request)(char *req_line, struct http_request *http, int len);
-    ThrowablePtr (*read_headers)(char *buffer, struct http_request *http, int type);
+    ThrowablePtr (*get_header)(struct http_request *self, char *req_line);
+    ThrowablePtr (*get_request)(struct http_request *self, char *req_line, int len);
+    ThrowablePtr (*read_headers)(struct http_request *self, char *string, int type);
     ThrowablePtr (*make_simple_request)(struct http_request *self, char **result);
     ThrowablePtr (*set_simple_request)(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
     void (*destroy)(struct http_request *self);
 } HTTPRequest, *HTTPRequestPtr;
-
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : get_header
- * Description: This function is used to find which header line is currently
- *              read and if it is useful for the web switch to analyze its
- *              contents (balancing algorithm purpose)
- *
- * Param      :
- *   string: the line of the HTTP header currently read by the web switch
- *
- * Return     :
- *   struct http_request
- * ---------------------------------------------------------------------------
- */
-ThrowablePtr get_header(char *req_line, struct http_request *http);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : get_request
- * Description: This function is used to find which request has been performed
- *
- * Param      :
- *   string: the line of the HTTP request header currently read by the web switch
- *
- * Return     :
- *   struct http_request pointer
- * ---------------------------------------------------------------------------
- */
-ThrowablePtr get_request(char *req_line, struct http_request *http, int len);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : get_response
- * Description: This function is used to find which response has been sent back
- *
- * Param      :
- *   string: the line of the HTTP response header currently read by the web switch
- *
- * Return     :
- *   struct http_request pointer
- * ---------------------------------------------------------------------------
- */
-ThrowablePtr get_response(char *req_line, HTTPRequestPtr http, int len);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : read_request_headers
- * Description: This function will be used to read the request headers.
- *              Pay attention: it is based this HTTP request format:
- *
- *              METHOD RESOURCE HTTP/1.1
- *              HEADER_1: PARAMS
- *              ...
- *              HEADER_N: PARAMS
- *              [ blank line ]
- *
- * Param      :
- *   buffer:  the buffer into which has been stored the request
- *   http_request struct
- *   type:    integer 0 for REQT and 1 for RESP
- *
- * Return     :
- *   struct http_request pointer
- * ---------------------------------------------------------------------------
- */
-ThrowablePtr read_headers(char *buffer, struct http_request *http, int type);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : set_simple_request
- * Description: This function will set the params for a very simple
- *              HTTP request using only:
- *
- *              METHOD RESOURCE HTTP/1.1
- *              [ blank line ]
- *
- *
- * Param      :
- *   self:  the HTTPRequest struct pointer
- *   request_type: the method
- *   request_resource: the universal resource locator
- *   request_protocol: the protocol to be used
- *
- * Return     :
- *   ThrowablePtr pointer
- * ---------------------------------------------------------------------------
- */
-ThrowablePtr set_simple_request(struct http_request *self, char *request_type, char *request_resource, char *request_protocol, char *host);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : make_simple_request
- * Description: This function will use the setted params to make a simple request
- *              allocating the sufficient memory for the result string
- * Param      :
- *   self:  the HTTPRequest struct pointer
- *   result: the pointer to the string will be used for result string
- *           properly formatted
- *
- * Return     :
- *   ThrowablePtr pointer
- * ---------------------------------------------------------------------------
- */
-ThrowablePtr make_simple_request(struct http_request *self, char **result);
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : destroy_http_request
- * Description: This function will be used to free the memory allocated
- *              for the structure
- * Param      :
- * Return     :
- * ---------------------------------------------------------------------------
- */
-void destroy_http_request(struct http_request *self);
 
 /*
  * ---------------------------------------------------------------------------

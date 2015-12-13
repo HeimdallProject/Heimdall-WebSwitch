@@ -72,4 +72,16 @@ void *enable_watchdog(void *arg);
  */
 int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_timestamp);
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : new_watchdog
+ * Description: This function create a new instance of Watchdog.
+ *
+ * Param      : None.
+ *
+ * Return     : The pointer to new instance of Watchdog.
+ * ---------------------------------------------------------------------------
+ */
+WatchdogPtr new_watchdog();
+
 #endif //WEBSWITCH_WATCHDOG_H

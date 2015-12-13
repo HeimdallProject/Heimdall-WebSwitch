@@ -1,4 +1,5 @@
 #include "../include/watchdog.h"
+// TODO close socket when watchdog kills
 
 ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
     // setting up watchdog
@@ -29,7 +30,6 @@ void *enable_watchdog(void *arg) {
         pthread_cond_signal(watchdog->worker_await_cond);
         return NULL;
     }
-
 
     // starting watch-over-thread loop main routine
     int sleep_status;
@@ -81,4 +81,14 @@ int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_ti
     }
     else
         return STATUS_OK;
+}
+
+WatchdogPtr new_watchdog() {
+    WatchdogPtr watchdog = malloc(sizeof(Watchdog));
+    if (watchdog == NULL) {
+        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in new_watchdog!");
+        exit(EXIT_FAILURE);
+    }
+
+    return watchdog;
 }

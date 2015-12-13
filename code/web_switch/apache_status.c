@@ -195,7 +195,7 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     }
 
     // Sends request
-    throwable = send_request(&sockfd, message);
+    throwable = send_http(sockfd, message, strlen(message));
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "retrieve_apache_status");
     }
@@ -207,7 +207,7 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
     }
 
     // Receives the response
-    throwable = receive_response(&sockfd, response);
+    throwable = receive_http(sockfd, &response);
     if(throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "retrieve_apache_status");
     }

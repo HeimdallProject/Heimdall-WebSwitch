@@ -49,6 +49,7 @@ typedef struct request_node {
     struct request_node *next;
     char *string;
     ChunkPtr chunk;
+    int *worker_status;
 
     char *(*to_string)(struct request_node *self);
     void (*destroy)(struct request_node *self);

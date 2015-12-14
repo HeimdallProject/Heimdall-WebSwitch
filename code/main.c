@@ -79,7 +79,7 @@ int main() {
             log->t(throwable);
             exit(EXIT_FAILURE);
         }
-
+        // TODO gestire gli stessi client!!
         // Pass socket to worker
         throwable = th_pool->get_worker(new_sockfd);
         if (throwable->is_an_error(throwable)) {

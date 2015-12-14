@@ -85,6 +85,7 @@ RequestNodePtr init_request_node() {
     request_node->next = NULL;
     request_node->string = NULL;
     request_node->chunk = new_chunk();
+    request_node->worker_status = NULL;
 
     // Set "methods"
     request_node->destroy = destroy_request_node;

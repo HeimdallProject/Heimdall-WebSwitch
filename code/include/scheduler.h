@@ -8,9 +8,14 @@
 #ifndef WEBSWITCH_SCHEDULER_H
 #define WEBSWITCH_SCHEDULER_H
 
+#include <time.h>
+
 #include "apache_status.h"
 #include "round_robin.h"
 #include "server_pool.h"
+
+#define AWARENESS_LEVEL_LOW   0
+#define AWARENESS_LEVEL_HIGH  1
 
 /*
  * ---------------------------------------------------------------------------
@@ -20,9 +25,12 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct scheduler_args {
-    RRobinPtr     rrobin;
-    ServerPoolPtr server_pool;
+    RRobinPtr     rrobin;                                   // Round Robin struct
+    ServerPoolPtr server_pool;                              // Server Pool struct
+
+    ServerPtr (*get_server)(RRobinPtr rrobin);              // to retrieve a server
 } Scheduler, *SchedulerPtr;
+
 
 /*
  * ---------------------------------------------------------------------------
@@ -49,7 +57,6 @@ ServerPtr get_ready_server(RRobinPtr rrobin);
  * Return     : ThrowablePtr
  * ---------------------------------------------------------------------------
  */
-
 ThrowablePtr apache_score(ServerNodePtr server);
 
 /*
@@ -65,6 +72,17 @@ ThrowablePtr apache_score(ServerNodePtr server);
  */
 void *update_server_routine(void *arg);
 
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : init_scheduler
+ * Description: This function is used to init all scheduler variables
+ *
+ * Param      : integer, if the scheduler is state aware
+ * Return     : SchedulerPtr
+ * ---------------------------------------------------------------------------
+ */
+SchedulerPtr init_scheduler(int awareness_level);
 
 
 #endif //WEBSWITCH_SCHEDULER_H

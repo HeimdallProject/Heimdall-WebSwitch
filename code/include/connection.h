@@ -24,6 +24,7 @@
 #include "../include/http_response.h"
 #include "../include/log.h"
 #include "../include/macro.h"
+#include "../include/chunk.h"
 
 #define TAG_CONNECTION "CONNECTION"
 
@@ -144,7 +145,7 @@ ThrowablePtr listen_to(const int sockfd, const int backlog);
  *
  * Return     : A Throwable.
  */
-ThrowablePtr hostname_to_ip(char *hostname , char *ip);
+ThrowablePtr hostname_to_ip(char *hostname, char *ip);
 
 /*
  * Function   : accept_connection
@@ -169,20 +170,6 @@ ThrowablePtr accept_connection(const int sockfd, int *connection);
 ThrowablePtr close_connection(const int connection);
 
 /*
- * Function   : send_request
- * Description: This function sends an HTTP request through a socket.
- *
- * Param      :
- *   sockfd:     The socket where write.
- *   request:    The pointer to the request to send.
- *
- * Return     : A Throwable.
- */
-ThrowablePtr send_request(int *sockfd, char *request);
-
-ThrowablePtr send_request_total(int *sockfd, char *request, int total);
-
-/*
  * Function   : receive_response
  * Description: This function receives an HTTP response through a socket.
  *
@@ -192,7 +179,6 @@ ThrowablePtr send_request_total(int *sockfd, char *request, int total);
  *
  * Return     : A Throwable.
  */
-ThrowablePtr receive_response(int *sockfd, char *header);
 
 /*
  * Function   : receive_http_header
@@ -204,7 +190,6 @@ ThrowablePtr receive_response(int *sockfd, char *header);
  *
  * Return     : A Throwable.
  */
-ThrowablePtr receive_http_header(int *sockfd, char *response);
 
 /*
  * Function   : receive_response
@@ -217,5 +202,24 @@ ThrowablePtr receive_http_header(int *sockfd, char *response);
  *
  * Return     : A Throwable.
  */
-ThrowablePtr receive_http_body(int *sockfd, char *body, ssize_t length, pthread_mutex_t *mutex, int *wrote, int *dimen);
+ThrowablePtr receive_http_body(int sockfd, char *body, ssize_t length, pthread_mutex_t *mutex, int *wrote, int *dimen);
+
+ThrowablePtr send_http(int sockfd, char *message, size_t total);
+
+ThrowablePtr send_http_request(int sockfd, HTTPRequestPtr http_request);
+
+ThrowablePtr send_http_response_header(int sockfd, HTTPResponsePtr http_response);
+
+ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total);
+
+ThrowablePtr receive_http(int sockfd, char **message);
+
+ThrowablePtr receive_http_header(int sockfd, char **header);
+
+ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request);
+
+ThrowablePtr receive_http_response_header(int sockfd, HTTPResponsePtr http_response);
+
+ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, ChunkPtr chunk);
+
 #endif //WEBSWITCH_CONNECTION_H

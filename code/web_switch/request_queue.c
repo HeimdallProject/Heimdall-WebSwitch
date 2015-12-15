@@ -27,6 +27,7 @@ int get_size_request_queue(RequestQueuePtr self) {
  * ---------------------------------------------------------------------------
  */
 RequestNodePtr get_front_request_queue(RequestQueuePtr self) {
+    get_log()->d(TAG_REQUEST_QUEUE, "front: %p", self->front);
     return self->front;
 }
 

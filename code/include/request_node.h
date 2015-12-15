@@ -16,6 +16,7 @@
 #include "../include/http_response.h"
 #include "../include/log.h"
 #include "../include/macro.h"
+#include "../include/chunk.h"
 
 #define TAG_REQUEST_NODE "REQUEST_NODE"
 
@@ -33,7 +34,7 @@
  *  previous        : The previous node.
  *  next            : The next node.
  *  string          : The summary of the node.
- *  mutex           : The mutex to use in order to regulate the HTTP exchange.
+ *  chunk           : The chunk of data to exchange.
  *
  * Functions:
  *  to_string  : Pointer to to_string function.
@@ -47,10 +48,8 @@ typedef struct request_node {
     struct request_node *previous;
     struct request_node *next;
     char *string;
-
-    pthread_mutex_t mutex;
-    int wrote;
-    int dimen;
+    ChunkPtr chunk;
+    int *worker_status;
 
     char *(*to_string)(struct request_node *self);
     void (*destroy)(struct request_node *self);

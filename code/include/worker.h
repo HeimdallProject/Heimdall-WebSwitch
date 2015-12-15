@@ -39,6 +39,8 @@ typedef struct worker {
 
     int writer_thread_status;                      // thread writer operation status
     int reader_thread_status;                      // thread reader operation status
+    int request_thread_status;                     // thread request operation status
+
 
     pthread_cond_t await_cond;                     // condition to await thread execution
     pthread_mutex_t await_mtx;                     // mtx for the above condition

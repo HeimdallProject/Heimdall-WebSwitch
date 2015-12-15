@@ -25,6 +25,7 @@ set(SOURCE_FILES_MAIN
         code/web_switch/worker_pool.c
         code/web_switch/message_controller.c
         code/utils/unix_socket.c
+        code/web_switch/chunk.c
         code/web_switch/request_node.c
         code/web_switch/request_queue.c)
 

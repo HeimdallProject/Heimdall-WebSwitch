@@ -5,5 +5,6 @@
 #define FALSE 0
 #define STATUS_OK     0
 #define STATUS_ERROR -1
+#define UNUSED(x) (void)(x)
 
 #endif //WEBSWITCH_MACRO_H

@@ -96,8 +96,6 @@ ThrowablePtr receive_fd(int *file_descriptor){
 
 ThrowablePtr send_fd(int fd){
 
-    LogPtr log = get_log();
-
     struct msghdr msgh;
     struct iovec iov;
     int data;
@@ -149,7 +147,7 @@ ThrowablePtr send_fd(int fd){
     if (ns == -1)
         return get_throwable()->create(STATUS_ERROR, "sendmsg", "send_fd");
 
-    log->d(TAG_MESSAGE_CONTROLLER, "File descriptor %d sent", fd);
+    ////get_log()->d(TAG_MESSAGE_CONTROLLER, "File descriptor %d sent", fd);
 
     return get_throwable()->create(STATUS_OK, NULL, "send_fd");
 }

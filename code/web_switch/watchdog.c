@@ -14,7 +14,7 @@ ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
     watchdog->killer_time = (time_t) k_time;
     // setting up the execution time
     watchdog->timeout_worker = (time_t) out_time;
-    fprintf(stdout, "\nWATCHDOG:\n-> timeout %ld\n-> killer time %ld\n\n", watchdog->timeout_worker, watchdog->killer_time);
+    //get_log()->d(TAG_WATCHDOG, "\nWATCHDOG:\n-> timeout %d\n-> killer time %d\n\n", watchdog->timeout_worker, watchdog->killer_time);
     return get_throwable()->create(STATUS_OK, NULL, "detach_watchdog");;
 }
 
@@ -39,7 +39,7 @@ void *enable_watchdog(void *arg) {
         // setting req_time specifics
         req_time->tv_sec  = watchdog->killer_time / 1000000000;
         req_time->tv_nsec = (long) watchdog->killer_time;
-        fprintf(stdout, "WATCHING %ld\n", time(NULL));
+        //get_log()->d(TAG_WATCHDOG, "\nWATCHING %ld\n", time(NULL));
         while (TRUE) {
             sleep_status = nanosleep(req_time, rem_time);
             // upon not successfull complete nanosleep
@@ -49,7 +49,7 @@ void *enable_watchdog(void *arg) {
                     pthread_cond_signal(watchdog->worker_await_cond);
                     return NULL;
                 } else {
-                    fprintf(stdout, "resetting at: %ld\n", rem_time->tv_nsec);
+                    //get_log()->d(TAG_WATCHDOG, "\nresetting at: %ld\n", rem_time->tv_nsec);
                     req_time->tv_nsec = rem_time->tv_nsec;
                 }
             }
@@ -71,12 +71,11 @@ void *enable_watchdog(void *arg) {
 int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_timestamp) {
     // checking for timestamp distance and aborting thread if necessary
     time_t running_exec_time = current_timestamp - running_timestamp;
-    fprintf(stdout, "WATCHING from: %ld \n-> elapsed: %ld\n", running_timestamp, running_exec_time);
-    fflush(stdout);
+    //get_log()->d(TAG_WATCHDOG, "\nWATCHING from: %ld \n-> elapsed: %ld\n", running_timestamp, running_exec_time);
     // we wait at least timeout_seconds + 1 before exiting the thread
     if (running_exec_time > watchdog->timeout_worker) {
         *watchdog->worker_await_flag = WATCH_OVER;
-        fprintf(stdout, "WATCH OVER\n");
+        //get_log()->d(TAG_WATCHDOG, "\nWATCH OVER\n");
         return WATCH_OVER;
     }
     else
@@ -86,7 +85,7 @@ int watch_over(WatchdogPtr watchdog, time_t running_timestamp, time_t current_ti
 WatchdogPtr new_watchdog() {
     WatchdogPtr watchdog = malloc(sizeof(Watchdog));
     if (watchdog == NULL) {
-        get_log()->e(TAG_REQUEST_NODE, "Memory allocation error in new_watchdog!");
+        get_log()->e(TAG_WATCHDOG, "Memory allocation error in new_watchdog!");
         exit(EXIT_FAILURE);
     }
 

@@ -77,6 +77,18 @@ RequestNodePtr init_request_node() {
         exit(EXIT_FAILURE);
     }
 
+    // Initializes condition
+    if (pthread_cond_init(&request_node->condition, NULL) != 0) {
+        get_log()->e(TAG_REQUEST_NODE, get_error_by_errno(errno));
+        exit(EXIT_FAILURE);    
+    }
+
+    // Initializes mutex
+    if (pthread_mutex_init(&request_node->mutex, NULL) != 0) {
+        get_log()->e(TAG_REQUEST_NODE, get_error_by_errno(errno));
+        exit(EXIT_FAILURE);
+    }
+
     request_node->thread_id = 1;        //TODO choose better default value and add other methods
     request_node->request = new_http_request();
     request_node->response = new_http_response();

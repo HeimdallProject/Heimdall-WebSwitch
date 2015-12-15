@@ -1,5 +1,4 @@
 #include "../include/worker.h"
-// TODO fare in un altro modo in modo tale da non avere usleep, usare priorità o barriere e magari chiamare server in catena read->request->write
 /*
  *  See .h for more information.
  */
@@ -39,10 +38,16 @@ WorkerPtr new_worker() {
 
 void *request_work(void *arg) {
 
-    get_log()->d(TAG_WORKER, "request_work");
+    //get_log()->d(TAG_WORKER, "request_work");
 
     // Casts the parameter
     RequestNodePtr node = arg;
+
+    // Gets mutex
+    if (pthread_mutex_lock(&node->mutex) != 0) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read_work");
+    }
+    //get_log()->d(TAG_WORKER, "prendo mutex request");
 
     // Asks which host use
     char *host = "192.168.50.3";
@@ -63,7 +68,7 @@ void *request_work(void *arg) {
         return NULL;
     }
 
-    get_log()->d(TAG_WORKER, "creato client");
+    //get_log()->d(TAG_WORKER, "creato client");
 
     // TODO modifies the real request with all attributes @alessio
     // Modifies the simple request with the real new host 
@@ -73,7 +78,7 @@ void *request_work(void *arg) {
         return NULL; 
     } 
 
-    get_log()->d(TAG_WORKER, "cambiato ip");
+    //get_log()->d(TAG_WORKER, "cambiato ip");
 
     // Sends request
     throwable = send_http_request(sockfd, node->request);
@@ -83,7 +88,7 @@ void *request_work(void *arg) {
         return NULL;
     }
 
-    get_log()->d(TAG_WORKER, "inviata richiesta");
+    //get_log()->d(TAG_WORKER, "inviata richiesta");
 
     // Prepares the http_response
     HTTPResponsePtr http_response = new_http_response();
@@ -96,8 +101,20 @@ void *request_work(void *arg) {
         *node->worker_status = STATUS_ERROR;
         return NULL;
     }
+    //get_log()->d(TAG_WORKER, "ricevuto header, \n%s", http_response->response->header);
 
-    get_log()->d(TAG_WORKER, "ricevuto header, %s", http_response->response->header);
+    // Sends signal to condition
+    if (pthread_cond_signal(&node->condition) != 0) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
+    }
+    //get_log()->d(TAG_WORKER, "inviato segnale request");
+
+    // Releases mutex
+    if (pthread_mutex_unlock(&node->mutex) != 0) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+    }
+
+    //get_log()->d(TAG_WORKER, "rilascio lock request");
 
     // Receives the response in chunks
     throwable = receive_http_chunks(sockfd, http_response, node->chunk);
@@ -106,7 +123,7 @@ void *request_work(void *arg) {
         pthread_exit(NULL); // TODO send an error message
     }
 
-    get_log()->d(TAG_WORKER, "ricevuti chunks");
+    //get_log()->d(TAG_WORKER, "ricevuti chunks");
 
     // Closes the connection
     throwable = close_connection(sockfd);
@@ -115,11 +132,11 @@ void *request_work(void *arg) {
         pthread_exit(NULL); // TODO send an error message
     }
 
-    get_log()->d(TAG_WORKER, "chiusa connessione");
+    //get_log()->d(TAG_WORKER, "chiusa connessione");
 
     // Kills the thread TODO is it actually useful?
-    pthread_exit(NULL);
-
+    // pthread_exit(NULL);
+    //get_log()->d(TAG_WORKER, "exiting request");
     return NULL;
 }
 
@@ -151,11 +168,6 @@ void *read_work(void *arg) {
         node->request = http_request;
         node->worker_status = &worker->request_thread_status;
 
-        // Enques the new node
-        queue->enqueue(queue, node);
-
-        get_log()->i(TAG_WORKER, "New request enqueued!");
-
         // Creates the request thread
         int request_creation = pthread_create(&(node->thread_id), NULL, request_work, (void *) node);
         if (request_creation != 0) {
@@ -164,7 +176,10 @@ void *read_work(void *arg) {
             return NULL;
         }
 
-        get_log()->d(TAG_WORKER, "Creato thread request");
+        // Enques the new node
+        queue->enqueue(queue, node);
+
+        get_log()->i(TAG_WORKER, "New request enqueued!");
     }
 }
 
@@ -177,45 +192,64 @@ void *write_work(void *arg) {
     RequestQueuePtr queue = worker->requests_queue;
 
     while(TRUE) {
-        if (queue->is_empty(queue) == FALSE) {
-            // Gets node
-            RequestNodePtr node = queue->get_front(queue);
-            usleep(10000);
-            get_log()->d(TAG_WORKER, "get_front %p strlen(node->response->response->header) %d", node, strlen(node->response->response->header));
+        // Gets node
+        RequestNodePtr node = queue->get_front(queue);
 
-            if (strlen(node->response->response->header) > 0) {
-                get_log()->d(TAG_WORKER, "sto dentro");
+        if (node != NULL) {
+            //get_log()->d(TAG_WORKER, "prendo mutex write");
+            // Gets mutex
+            if (pthread_mutex_lock(&node->mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work");
+            }  
 
-                // Sends the response header
-                ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
-                if (throwable->is_an_error(throwable)) {
-                    get_log()->t(throwable);
-                    worker->writer_thread_status = STATUS_ERROR;
-                    return NULL;
+            //get_log()->d(TAG_WORKER, "node->response->response->header %s", node->response->response->header);
+
+            while (node->response->response->header == NULL) {
+                //get_log()->d(TAG_WORKER, "aspetto segnale prima write");
+                if (pthread_cond_wait(&node->condition, &node->mutex) != 0) {
+                    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work");
                 }
-                
-                get_log()->d(TAG_WORKER, "sendato header");
+                //get_log()->d(TAG_WORKER, "aspetto segnale dopo write");
+            }
+            //get_log()->d(TAG_WORKER, "get_front %p strlen(node->response->response->header) %d", node, strlen(node->response->response->header));
 
-                // Gets the chunk
-                ChunkPtr chunk = node->chunk;
-                
-                get_log()->d(TAG_WORKER, "chunk %p", chunk);
+            //get_log()->d(TAG_WORKER, "sto dentro");
 
-                // Sends the response chunks
-                throwable = send_http_chunks(worker->sockfd, chunk, node->response->response->req_content_len);
-                if (throwable->is_an_error(throwable)) {
-                    get_log()->t(throwable);
-                    worker->writer_thread_status = STATUS_ERROR;
-                    return NULL;
-                }
+            // Sends the response header
+            ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
+            if (throwable->is_an_error(throwable)) {
+                get_log()->t(throwable);
+                worker->writer_thread_status = STATUS_ERROR;
+                return NULL;
+            }
+            
+            //get_log()->d(TAG_WORKER, "sendato header");
 
-                get_log()->d(TAG_WORKER, "sendati chunks");
+            // Gets the chunk
+            ChunkPtr chunk = node->chunk;
+            
+            //get_log()->d(TAG_WORKER, "chunk %p", chunk);
 
-                // Dequeues the request
-                queue->dequeue(queue);
+            // Sends the response chunks
+            throwable = send_http_chunks(worker->sockfd, chunk, node->response->response->req_content_len);
+            if (throwable->is_an_error(throwable)) {
+                get_log()->t(throwable);
+                worker->writer_thread_status = STATUS_ERROR;
+                return NULL;
+            }
 
-                get_log()->i(TAG_WORKER, "Request dequeued!");
-            } 
+            //get_log()->d(TAG_WORKER, "sendati chunks");
+
+            // Releases mutex
+            if (pthread_mutex_unlock(&node->mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+            }
+            //get_log()->d(TAG_WORKER, "rilascio lock write");
+
+            // Dequeues the request
+            queue->dequeue(queue);
+
+            get_log()->i(TAG_WORKER, "Request dequeued!");
         }
     }
     
@@ -282,26 +316,26 @@ void start_worker(int fd) {
             get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
             exit(EXIT_FAILURE);
         } else {
-            get_log()->d(TAG_WORKER, "awaiting");
+            //get_log()->d(TAG_WORKER, "awaiting");
             break;
         }
     }
-    get_log()->d(TAG_WORKER, "dopo");
+    //get_log()->d(TAG_WORKER, "dopo");
 
     mtx_lock_unlock = pthread_mutex_unlock(&worker->await_mtx);
     if (mtx_lock_unlock != 0) {
         get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
         exit(EXIT_FAILURE);
     }
-    get_log()->d(TAG_WORKER, "lascio mutex");
+    //get_log()->d(TAG_WORKER, "lascio mutex");
 
     // Checks for status of the threads and then exiting
     if (worker->watchdog->status == STATUS_ERROR || worker->writer_thread_status  == STATUS_ERROR || worker->reader_thread_status  == STATUS_ERROR || worker->request_thread_status  == STATUS_ERROR) {
-        get_log()->d(TAG_WORKER, "status error");
+        //get_log()->d(TAG_WORKER, "status error");
         get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
         exit(EXIT_FAILURE);
     } else {
-        get_log()->d(TAG_WORKER, "status ok");
-        exit(EXIT_SUCCESS);
+        //get_log()->d(TAG_WORKER, "status ok");
+        return ;
     }
 }

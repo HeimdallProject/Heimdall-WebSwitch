@@ -73,12 +73,15 @@ ThrowablePtr get_header(HTTPRequestPtr self, char *req_line) {
         if (req_content_len_string == NULL || strcpy(req_content_len_string, header_data) != req_content_len_string) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header");
         }
+
         
         // Converts into integer
         ThrowablePtr throwable = str_to_int(req_content_len_string, &self->req_content_len);
         if (throwable->is_an_error(throwable)) {
             return throwable->thrown(throwable, "get_header");
         }
+
+        //get_log()->d(TAG_HTTP_REQUEST, "content_len %s len %d", req_content_len_string, self->req_content_len);
 
         // Frees memory
         free(req_content_len_string);
@@ -245,12 +248,13 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
     int i;
     int length = (signed) strlen(buffer);
 
+    //get_log()->d(TAG_HTTP_REQUEST, "length %d", length);
+
+
     for (i = 0; i < length; i++) {
 
         if (buffer[i] == endline) {
-            if (buffer[i + 1] == carriage && buffer[i + 2] == endline)
-                break;
-
+            
             buffer[i - 1] = '\0';
 
             ThrowablePtr throwable;
@@ -278,6 +282,9 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
                     return throwable->thrown(throwable, "read_headers");
                 start = i + 1;
             }
+
+            if (buffer[i + 1] == carriage && buffer[i + 2] == endline)
+                break;
         }
     }
 

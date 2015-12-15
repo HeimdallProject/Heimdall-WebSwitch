@@ -28,6 +28,7 @@
  */
 typedef struct Chunk {
     pthread_mutex_t mutex;
+    pthread_cond_t condition;
     int wrote;
     int dimen;
     char *data;

@@ -19,20 +19,19 @@ static int fd_to_pass = 0;
 ThreadPoolPtr singleton_thdpool = NULL;
 
 static void worker_sig_handler(int sig){
-
+	UNUSED(sig);
 	int *file_descriptor = malloc(sizeof(int));
 
-	LogPtr log = get_log();
-	log->i(TAG_THREAD_POOL, "%ld riceived signal %d from thread pool", (long)getpid(), sig);
+	////get_log()->d(TAG_THREAD_POOL, "%ld riceived signal %d from thread pool", (long)getpid(), sig);
 
     ThrowablePtr throwable = receive_fd(file_descriptor);
 	if (throwable->is_an_error(throwable)) {
-        log->e(TAG_THREAD_POOL, "Error in receive_fd");
-        log->t(throwable);
+        get_log()->e(TAG_THREAD_POOL, "Error in receive_fd");
+        get_log()->t(throwable);
         exit(EXIT_SUCCESS);
     }
 
-	log->i(TAG_THREAD_POOL, "%ld riceived fd %d", (long)getpid(), *file_descriptor);
+	////get_log()->d(TAG_THREAD_POOL, "%ld riceived fd %d", (long)getpid(), *file_descriptor);
 
     start_worker(*file_descriptor);
 }
@@ -50,36 +49,35 @@ static void worker_sig_handler(int sig){
  static void do_prefork(){
 
  	ConfigPtr config = get_config();
- 	LogPtr log = get_log();
 
     int n_prefork;
     str_to_int(config->pre_fork, &n_prefork);
-	log->d(TAG_THREAD_POOL, "Prefork %d worker", n_prefork);
+	////get_log()->d(TAG_THREAD_POOL, "Prefork %d worker", n_prefork);
 
 	int worker_free = worker_pool_ptr->count_free_worker(worker_pool_ptr);
-	log->d(TAG_THREAD_POOL, "There are n°%d free worker inside the pool", worker_free);
+	////get_log()->d(TAG_THREAD_POOL, "There are n°%d free worker inside the pool", worker_free);
 
 	int children = 0;
 	int worker_to_create = n_prefork - worker_free;
 
-	log->d(TAG_THREAD_POOL, "Need create %d worker", worker_to_create);
+	////get_log()->d(TAG_THREAD_POOL, "Need create %d worker", worker_to_create);
 
 	for (children = 0; children < worker_to_create; ++children){
 
-		log->d(TAG_THREAD_POOL, "Create child n°%d", children);
+		////get_log()->d(TAG_THREAD_POOL, "Create child n°%d", children);
 
 		pid_t child_pid;
 
 		child_pid = fork();
 		if (child_pid == -1)
-		    log->e(TAG_THREAD_POOL, "Error in do_prefork()");
+		    get_log()->e(TAG_THREAD_POOL, "Error in do_prefork()");
 
 		/* Child */
 		if (child_pid == 0){
 						
 			ThrowablePtr throwable = set_signal(SIGUSR1, worker_sig_handler);
 		    if (throwable->is_an_error(throwable)) {
-		        log->e(TAG_THREAD_POOL, "do_prefork.set_signal %p", throwable);
+		        get_log()->e(TAG_THREAD_POOL, "do_prefork.set_signal %p", throwable);
 		        //return throwable->thrown(throwable, "do_prefork.set_signal");
 		    }
 
@@ -111,8 +109,6 @@ static void worker_sig_handler(int sig){
  */
 static void thread_pool_loop(){
 
-	LogPtr log = get_log();
-
 	for (;;) {
 		
 		int s = 0;
@@ -131,7 +127,7 @@ static void thread_pool_loop(){
 		// get worker from pool
 		pid_t wrk_id = worker_pool_ptr->get_free_worker(worker_pool_ptr);
 
-		log->i(TAG_THREAD_POOL, "Send signal to worker %ld", (long) wrk_id);
+		////get_log()->d(TAG_THREAD_POOL, "Send signal to worker %ld", (long) wrk_id);
 		kill(wrk_id, SIGUSR1);
 
 		int attempt = 0;
@@ -141,12 +137,12 @@ static void thread_pool_loop(){
 			ThrowablePtr throwable = send_fd(fd_to_pass);
 			if (throwable->is_an_error(throwable)) {
 
-				log->i(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long)wrk_id);
+				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long)wrk_id);
 				
 				attempt++;
 				
 				if (attempt == 5){
-					log->i(TAG_THREAD_POOL, "Failed to send file descriptor to %ld, connection will closed", (long)wrk_id);
+					get_log()->e(TAG_THREAD_POOL, "Failed to send file descriptor to %ld, connection will closed", (long)wrk_id);
 					kill(wrk_id, SIGTERM);
 					// TODO schedule a new worker
 					break;
@@ -243,21 +239,20 @@ ThrowablePtr get_worker(int fd) {
  */
 ThreadPoolPtr init_thread_pool() {
 
-	LogPtr log = get_log();
-	log->d(TAG_THREAD_POOL, "Thread pool start.");
+	////get_log()->d(TAG_THREAD_POOL, "Thread pool start.");
 
 	pthread_t t1;
 	int born;
 	
 	born = pthread_create(&t1, NULL, init_pool, NULL); 
 	if (born != 0) {
-		log->e(TAG_THREAD_POOL, "Error in pthread_create");
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_create");
 		return NULL;
 	}
 
 	ThreadPoolPtr th_pool = malloc(sizeof(ThreadPool));
     if (th_pool == NULL) {
-    	log->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool!");
+    	get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool!");
         return NULL;
     }
 

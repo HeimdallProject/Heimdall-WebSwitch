@@ -50,6 +50,8 @@ typedef struct request_node {
     char *string;
     ChunkPtr chunk;
     int *worker_status;
+    pthread_mutex_t mutex;
+    pthread_cond_t condition;
 
     char *(*to_string)(struct request_node *self);
     void (*destroy)(struct request_node *self);

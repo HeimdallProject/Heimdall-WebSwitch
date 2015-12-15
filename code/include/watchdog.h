@@ -16,6 +16,7 @@
 
 #include "../include/helper.h"
 #include "../include/request_queue.h"
+#include "../include/log.h"
 
 #define TAG_WATCHDOG "WATCHDOG"
 #define WATCH_OVER   42                             // so long and thanks for all the fish!

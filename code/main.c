@@ -24,28 +24,28 @@
  */
 int main() {
 
-    // Init Config
+    // Initializes Config
     ConfigPtr config = get_config();
-    if(config == NULL)
+    if (config == NULL)
         exit(EXIT_FAILURE);
 
-    // Init Log
+    // Initializes Log
     LogPtr log = get_log();
-    if(log == NULL)
+    if (log == NULL)
         exit(EXIT_FAILURE);
 
-    // Init Thread Pool
+    // Initializes Thread Pool
     ThreadPoolPtr th_pool = get_thread_pool();
-    if(th_pool == NULL)
+    if (th_pool == NULL)
         exit(EXIT_FAILURE);
 
-    // Init scheduler
-    // TODO init scheduler
+    // Initializes scheduler
+    // TODO Initializes scheduler
 
-    log->d(TAG_MAIN, "Start main program");
-    log->d(TAG_MAIN, "Config started at address %p", config);
-    log->d(TAG_MAIN, "Log started at address %p", log);
-    log->d(TAG_MAIN, "Thread Pool started at address %p", th_pool);
+    log->i(TAG_MAIN, "Start main program");
+    log->i(TAG_MAIN, "Config started");
+    log->i(TAG_MAIN, "Log started");
+    log->i(TAG_MAIN, "Thread Pool");
     //log->d(TAG_MAIN, "Scheduler started at address %p", scheduler);
 
     // Creates a new server
@@ -58,21 +58,21 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    log->d(TAG_MAIN, "Created new server that is listening on port %d", port);
+    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
-    // Now start listening for the clients
+    // Starts listening for the clients
     throwable = listen_to(sockfd, 5);
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
     }
 
-    log->d(TAG_MAIN, "Ready to accept incoming connections...");
+    log->i(TAG_MAIN, "Ready to accept incoming connections...");
 
-    // Start to listen incoming connections
+    // Starts to listen incoming connections
     while(TRUE) {
 
-        // Accept new connection
+        // Accepts new connection
         int new_sockfd;
         throwable = accept_connection(sockfd, &new_sockfd);
         if (throwable->is_an_error(throwable)) {
@@ -80,13 +80,13 @@ int main() {
             exit(EXIT_FAILURE);
         }
         // TODO gestire gli stessi client!!
-        // Pass socket to worker
+        // Passes socket to worker
         throwable = th_pool->get_worker(new_sockfd);
         if (throwable->is_an_error(throwable)) {
             log->e(TAG_MAIN, "Error get_worker");
             exit(EXIT_SUCCESS);
         }
 
-        log->d(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
+        log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
     }
 }

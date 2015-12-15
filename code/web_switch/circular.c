@@ -119,7 +119,7 @@ ThrowablePtr release_circular(CircularPtr circular) {
         return -1;
     }
 
-    get_log()->d(TAG_CIRCULAR, "allocating test array...");
+    //get_log()->d(TAG_CIRCULAR, "allocating test array...");
     // initalizing a test array
     Server *servers = malloc(sizeof(Server)*3);
     char *names[3] = {"moretti0.org", "moretti1.org", "moretti2.org"};
@@ -130,7 +130,7 @@ ThrowablePtr release_circular(CircularPtr circular) {
         servers[i].status  = SERVER_STATUS_READY;
     }
 
-    get_log()->d(TAG_CIRCULAR, "creating circular buffer...");
+    //get_log()->d(TAG_CIRCULAR, "creating circular buffer...");
     CircularPtr circular = new_circular();
     circular->allocate_buffer(circular, &servers, 3);
 
@@ -140,17 +140,17 @@ ThrowablePtr release_circular(CircularPtr circular) {
     for(k = 0; k < 6; k++) {
         // ACQUIRING -> start critical region
         acquire_circular(circular);
-        get_log()->d(TAG_CIRCULAR, "ACQUIRED\n");
+        //get_log()->d(TAG_CIRCULAR, "ACQUIRED\n");
         int buffer_progress = circular->progress(circular);
         if (buffer_progress != BUFFER_PROGRESS_STOP) {
             // simulating the retrieving of the tail in the critical region
             address = circular->tail->address;
-            get_log()->d(TAG_CIRCULAR, "BUFFERING: %s\n", address);
+            //get_log()->d(TAG_CIRCULAR, "BUFFERING: %s\n", address);
         } else {
             // simulating the service routine for server broken
             Server *serv = circular->head;
             if (serv->status == SERVER_STATUS_BROKEN) {
-                get_log()->d(TAG_CIRCULAR, "Starting broken routine");
+                //get_log()->d(TAG_CIRCULAR, "Starting broken routine");
             }
         }
 

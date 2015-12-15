@@ -71,7 +71,7 @@ char *str_to_lower(char *string) {
 char *get_error_by_errno(const int error) { // TODO is it a right char pointer management?
     char error1[250];
     snprintf(error1, 250, "%d", error);
-    //get_log()->d(TAG_HELPER, error1);
+    ////get_log()->d(TAG_HELPER, error1);
 
     char *message;
     size_t size;

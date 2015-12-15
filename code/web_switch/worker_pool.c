@@ -52,7 +52,7 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  	}else{
  		WorkerPoolNodePtr nd = self->first;
 		while (nd != NULL) { 
-			printf("Worker in lista: %ld\n", (long)nd->worker_id);
+			UNUSED(nd->worker_id);
 			nd = nd->next;
 		}
  	}

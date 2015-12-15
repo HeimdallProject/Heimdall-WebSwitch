@@ -111,14 +111,14 @@ ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
             // Sets result
             if (strcpy(ip, addrstr) != ip)
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "hostname_to_ip");
-            get_log()->d(TAG_CONNECTION, "Host: %s - Ip: %s", hostname, ip);
+            //get_log()->d(TAG_CONNECTION, "Host: %s - Ip: %s", hostname, ip);
 
             // Free resources used
             freeaddrinfo(result);
             return get_throwable()->create(STATUS_OK, NULL, "hostname_to_ip");
         }
 
-        get_log()->d(TAG_CONNECTION, "IPv%d address: %s (%s)\n", result->ai_family == PF_INET6 ? 6 : 4, addrstr, result->ai_canonname);
+        //get_log()->d(TAG_CONNECTION, "IPv%d address: %s (%s)\n", result->ai_family == PF_INET6 ? 6 : 4, addrstr, result->ai_canonname);
         result = result->ai_next;
     }
 
@@ -198,37 +198,51 @@ ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total) {
     ssize_t total_sent = 0; // Total size sent
 
     while (TRUE) {
-        usleep(2000);
-        if (chunk->wrote == FALSE) {    
-            
-            // Gets mutex
-            if (pthread_mutex_lock(&chunk->mutex) != 0) {
+        // Gets mutex
+        if (pthread_mutex_lock(&chunk->mutex) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
+        }
+
+        //get_log()->d(TAG_CONNECTION, "preso lock send");
+        // Waits until wrote is FALSE with condition
+        while (chunk->wrote == TRUE) { 
+            //get_log()->d(TAG_CONNECTION, "aspetto segnale prima send");
+            if (pthread_cond_wait(&chunk->condition, &chunk->mutex) != 0) {
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
             }
+            //get_log()->d(TAG_CONNECTION, "aspetto segnale dopo send");
+        }
 
-            // Sends chunk TODO better higher or lower level?
-            ThrowablePtr throwable = send_http(sockfd, chunk->data, chunk->dimen);
-            if (throwable->is_an_error(throwable)) {
-                get_log()->t(throwable);
-                pthread_exit(NULL); // TODO send an error message
-            }
+        // Sends chunk TODO better higher or lower level?
+        ThrowablePtr throwable = send_http(sockfd, chunk->data, chunk->dimen);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+            pthread_exit(NULL); // TODO send an error message
+        }
 
-            // Increases number of total bytes sent
-            total_sent += chunk->dimen;
-            
-            // Refreshes chunk status
-            chunk->dimen = 0;
-            chunk->wrote = TRUE;
+        // Increases number of total bytes sent
+        total_sent += chunk->dimen;
+        
+        // Refreshes chunk status
+        chunk->dimen = 0;
+        chunk->wrote = TRUE;
 
-            // Releases mutex
-            if (pthread_mutex_unlock(&chunk->mutex) != 0) {
-                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
-            }
+        // Sends signal to condition
+        if (pthread_cond_signal(&chunk->condition) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
+        }
+        //get_log()->d(TAG_CONNECTION, "inviato segnale send");
 
-            // Breaks if all is sent
-            if (total == total_sent && total_sent > 0) {
-                break;
-            }
+        // Releases mutex
+        if (pthread_mutex_unlock(&chunk->mutex) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
+        }
+
+        //get_log()->d(TAG_CONNECTION, "rilascio lock send");
+
+        // Breaks if all is sent
+        if (total == total_sent && total_sent > 0) {
+            break;
         }
     }
 
@@ -342,11 +356,15 @@ ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
         return throwable->thrown(throwable, "receive_http_request");
     }
 
+    //get_log()->d(TAG_CONNECTION, "dopo receive receive_http_header");
+
     // Parses it into the structure
     throwable = http_request->read_headers(http_request, http_request->header, RQST);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "receive_http_request");    
     }
+
+    //get_log()->d(TAG_CONNECTION, "dopo read_headers");
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_request");
 }
@@ -362,35 +380,57 @@ ThrowablePtr receive_http_response_header(int sockfd, HTTPResponsePtr http_respo
 }
 
 ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, ChunkPtr chunk) {
-    ssize_t last_read;          // Last size read
+    ssize_t last_received;      // Last size received
     ssize_t total_received = 0; // Total size read
 
     while (TRUE) {
-        usleep(1000);
-        if (chunk->wrote == TRUE) {    
-            
-            // Gets mutex
-            if (pthread_mutex_lock(&chunk->mutex) != 0) {
+        // Gets mutex
+        if (pthread_mutex_lock(&chunk->mutex) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+        }
+
+        //get_log()->d(TAG_CONNECTION, "preso lock receive");
+
+        // Waits until wrote is TRUE with condition
+        while (chunk->wrote == FALSE) { 
+            //get_log()->d(TAG_CONNECTION, "aspetto segnale prima receive");
+            if (pthread_cond_wait(&chunk->condition, &chunk->mutex) != 0) {
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
+            //get_log()->d(TAG_CONNECTION, "aspetto segnale dopo receive");
+        }
 
-            // Calculates the size to read
-            int size = (http_response->response->req_content_len - total_received >= MAX_CHUNK_SIZE) ? MAX_CHUNK_SIZE : http_response->response->req_content_len - total_received;
+        // Calculates the size to read
+        int size = (http_response->response->req_content_len - total_received >= MAX_CHUNK_SIZE) ? MAX_CHUNK_SIZE : http_response->response->req_content_len - total_received;
 
-            // Reads from the socket and it puts the response into the chunk
-            last_read = read(sockfd, chunk->data, size); 
+        //get_log()->d(TAG_CONNECTION, "size %d", size);
+
+        // Reads from the socket and it puts the response into the chunk
+        last_received = read(sockfd, chunk->data, size); 
+        if (last_received == -1) {          // There is an error
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+        } else if (last_received == 0) {    // EOF reached
+            break;
+        } else {
 
             // Increases number of total bytes read
-            total_received += last_read;
+            total_received += last_received;
             
             // Refreshes chunk status
-            chunk->dimen = last_read;
+            chunk->dimen = last_received;
             chunk->wrote = FALSE;
+
+            // Sends signal to condition
+            if (pthread_cond_signal(&chunk->condition) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+            }
+            //get_log()->d(TAG_CONNECTION, "inviato segnale receive");
 
             // Releases mutex
             if (pthread_mutex_unlock(&chunk->mutex) != 0) {
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
+            //get_log()->d(TAG_CONNECTION, "rilascio lock receive");
 
             // Breaks if all is read
             if (total_received == http_response->response->req_content_len) {

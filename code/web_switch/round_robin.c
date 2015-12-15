@@ -171,13 +171,13 @@ int main() {
     fprintf(stdout, "------------------ PATTERN RR -------------------\n");
     int i;
     for(i = 0; i < rrobin->circular->buffer_len; i++)
-        get_log()->d(TAG_ROUND_ROBIN, (rrobin->circular->buffer + i)->address);
+        //get_log()->d(TAG_ROUND_ROBIN, (rrobin->circular->buffer + i)->address);
 
     fprintf(stdout, "-------------------------------------------------\n\n");
     fprintf(stdout, "EXECUTE!\n");
 
     for(i = 0; i < rrobin->circular->buffer_len; i++)
-        get_log()->d(TAG_ROUND_ROBIN, rrobin->get_server(rrobin->circular)->address);
+        //get_log()->d(TAG_ROUND_ROBIN, rrobin->get_server(rrobin->circular)->address);
 
     return 0;
 } */

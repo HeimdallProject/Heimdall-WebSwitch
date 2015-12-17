@@ -5,11 +5,18 @@
  * Description  : Global variable for handle main events.
  * ---------------------------------------------------------------------------
  */
-static pthread_mutex_t mtx_wait_request 	= PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t cond_wait_request 	= PTHREAD_COND_INITIALIZER;
-static WorkerPoolPtr worker_pool_ptr 		= NULL;
 
-static int fd_to_pass = 0;
+ // Mutex for access to fd_to_serve variable
+static pthread_mutex_t mtx_wait_request = PTHREAD_MUTEX_INITIALIZER;
+
+// For wake up the thread_pool when a new fd is availble inside fd_pool
+static pthread_cond_t cond_wait_request = PTHREAD_COND_INITIALIZER;
+
+static WorkerPoolPtr worker_pool_ptr 	= NULL; // Linked list of worker
+static FdPoolPtr fd_pool_ptr 			= NULL; // Linked list of fd
+
+// Number of fd to serve, all fd are inside the fd_pool_ptr
+static int fd_to_serve = 0; 
 
 /*
  * ---------------------------------------------------------------------------
@@ -19,20 +26,26 @@ static int fd_to_pass = 0;
 ThreadPoolPtr singleton_thdpool = NULL;
 
 static void worker_sig_handler(int sig){
+	
 	UNUSED(sig);
+	
 	int *file_descriptor = malloc(sizeof(int));
+    if (file_descriptor == NULL) {
+        get_log()->e(TAG_THREAD_POOL, "Memory allocation error in worker_sig_handler!");
+        exit(EXIT_FAILURE);
+    }
 
-	////get_log()->d(TAG_THREAD_POOL, "%ld riceived signal %d from thread pool", (long)getpid(), sig);
-
+    // open unix socket for receice fd from thread pool
     ThrowablePtr throwable = receive_fd(file_descriptor);
 	if (throwable->is_an_error(throwable)) {
-        get_log()->e(TAG_THREAD_POOL, "Error in receive_fd");
+        get_log()->e(TAG_THREAD_POOL, "Error in receive_fd()");
         get_log()->t(throwable);
         exit(EXIT_SUCCESS);
     }
 
-	////get_log()->d(TAG_THREAD_POOL, "%ld riceived fd %d", (long)getpid(), *file_descriptor);
+	get_log()->i(TAG_THREAD_POOL, "%ld riceived fd %d", (long)getpid(), *file_descriptor);
 
+	// see worker.c
     start_worker(*file_descriptor);
 }
 
@@ -52,19 +65,17 @@ static void worker_sig_handler(int sig){
 
     int n_prefork;
     str_to_int(config->pre_fork, &n_prefork);
-	////get_log()->d(TAG_THREAD_POOL, "Prefork %d worker", n_prefork);
 
 	int worker_free = worker_pool_ptr->count_free_worker(worker_pool_ptr);
-	////get_log()->d(TAG_THREAD_POOL, "There are n°%d free worker inside the pool", worker_free);
 
 	int children = 0;
 	int worker_to_create = n_prefork - worker_free;
 
-	////get_log()->d(TAG_THREAD_POOL, "Need create %d worker", worker_to_create);
+	get_log()->i(TAG_THREAD_POOL, "Prefork %d worker", worker_to_create);
 
 	for (children = 0; children < worker_to_create; ++children){
 
-		////get_log()->d(TAG_THREAD_POOL, "Create child n°%d", children);
+		//get_log()->d(TAG_THREAD_POOL, "Create child n°%d", children);
 
 		pid_t child_pid;
 
@@ -72,13 +83,20 @@ static void worker_sig_handler(int sig){
 		if (child_pid == -1)
 		    get_log()->e(TAG_THREAD_POOL, "Error in do_prefork()");
 
-		/* Child */
+		// Child 
 		if (child_pid == 0){
+
+			// clear child fd
+			int max_fd = sysconf(_SC_OPEN_MAX);
+			int fd;
+			for(fd = 3; fd<max_fd; fd++)
+			    close(fd);
 						
 			ThrowablePtr throwable = set_signal(SIGUSR1, worker_sig_handler);
 		    if (throwable->is_an_error(throwable)) {
 		        get_log()->e(TAG_THREAD_POOL, "do_prefork.set_signal %p", throwable);
-		        //return throwable->thrown(throwable, "do_prefork.set_signal");
+		        // set signal failure, bye bye
+		        exit(EXIT_FAILURE);
 		    }
 
 			pause();
@@ -89,9 +107,9 @@ static void worker_sig_handler(int sig){
 			worker_pool_ptr->add_worker(worker_pool_ptr, child_pid);			
 			
 			// last loop, print pool
-			if(children == worker_to_create - 1){
+			/*if(children == worker_to_create - 1){
 				worker_pool_ptr->print_worker_pool(worker_pool_ptr);
-			}
+			}*/
 
 		}
 	}
@@ -115,26 +133,36 @@ static void thread_pool_loop(){
 
 		s = pthread_mutex_lock(&mtx_wait_request);
 		if (s != 0)
-			fprintf(stderr, "thread_pool_loop - Error in pthread_mutex_lock \n");
+			get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_lock");
 		
-		while (fd_to_pass == 0) { 
+		while (fd_to_serve == 0) { 
 			/* Wait for something */ 
 			s = pthread_cond_wait(&cond_wait_request, &mtx_wait_request);
 			if (s != 0)
-				fprintf(stderr, "thread_pool_loop - Error in pthread_cond_wait \n");
+				get_log()->e(TAG_THREAD_POOL, "Error in pthread_cond_wait");
 		}
 
 		// get worker from pool
 		pid_t wrk_id = worker_pool_ptr->get_free_worker(worker_pool_ptr);
-
-		////get_log()->d(TAG_THREAD_POOL, "Send signal to worker %ld", (long) wrk_id);
+		
+		// get fd for worker from fd_pool
+		int filed_to_send = fd_pool_ptr->get_front_fd(fd_pool_ptr);
+		
+		get_log()->i(TAG_THREAD_POOL, "Serve now fd: %d", filed_to_send);
+		
+		// wake up worker
 		kill(wrk_id, SIGUSR1);
+
+		get_log()->i(TAG_THREAD_POOL, "Signal sent to worker %ld", (long) wrk_id);
 
 		int attempt = 0;
 
 		while (TRUE){
 
-			ThrowablePtr throwable = send_fd(fd_to_pass);
+			// try in 250000 u-second.
+			usleep(250000);
+
+			ThrowablePtr throwable = send_fd(filed_to_send);
 			if (throwable->is_an_error(throwable)) {
 
 				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long)wrk_id);
@@ -142,32 +170,36 @@ static void thread_pool_loop(){
 				attempt++;
 				
 				if (attempt == 5){
+					
 					get_log()->e(TAG_THREAD_POOL, "Failed to send file descriptor to %ld, connection will closed", (long)wrk_id);
+					
+					// kill worker
 					kill(wrk_id, SIGTERM);
-					// TODO schedule a new worker
+
 					break;
 				}
 
-				// try again in 1/2 second.
-				usleep(500000);
 				continue;
-		    
 		    }
 
 		    // file descriptor is delivered, end loop.
+		    close_connection(filed_to_send);
 		    break;
 		}
 
 		worker_pool_ptr->delete_worker(worker_pool_ptr, wrk_id);
+		fd_pool_ptr->delete_fd(fd_pool_ptr, filed_to_send);
 
     	// prefork again
 		do_prefork();
 
-		fd_to_pass = 0;
+		fd_to_serve--;
+
+		get_log()->i(TAG_THREAD_POOL, "Remain to serve %d fd", fd_to_serve);
 		
 		s = pthread_mutex_unlock(&mtx_wait_request); 
 		if (s != 0)
-			fprintf(stderr, "thread_pool_loop - Error in pthread_mutex_unlock \n");
+			get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_unlock");
 		
 		/* Perhaps do other work here that doesn't require mutex lock */ 
 	}
@@ -205,26 +237,30 @@ static void *init_pool(void *arg){
 /*
  *  See .h for more information.
  */
-ThrowablePtr get_worker(int fd) {
+ThrowablePtr get_worker(int file_descriptor) {
+
+	fd_pool_ptr->add_fd(fd_pool_ptr, file_descriptor);
+
+	get_log()->i(TAG_THREAD_POOL, "Added fd %d to fd_pool", file_descriptor);
 
 	int s = 0;
-
 	s = pthread_mutex_lock(&mtx_wait_request);
 	if (s != 0)
-		fprintf(stderr, "get_worker - Error in pthread_mutex_lock \n");
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_unlock 2");
 
-	/* Set condition request for perfom something on the pool */
-	fd_to_pass = fd;
+	// Set condition request for perfom something on the pool
+	fd_to_serve++;
 
-	s = pthread_mutex_unlock(&mtx_wait_request); 
+	get_log()->i(TAG_THREAD_POOL, "Need to serve %d fd", fd_to_serve);
 
-	if (s != 0)
-		fprintf(stderr, "get_worker - Error in pthread_mutex_unlock \n");
-		
-	/* Wake sleeping thread_pool */ 
+	// Wake sleeping thread_pool 
 	s = pthread_cond_signal(&cond_wait_request);
 	if (s != 0)
-		fprintf(stderr, "get_worker - Error in pthread_cond_signal \n");
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_cond_signal");
+
+	s = pthread_mutex_unlock(&mtx_wait_request); 
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_unlock 2");
 
 	return get_throwable()->create(STATUS_OK, NULL, "get_worker()");;
 }
@@ -239,7 +275,7 @@ ThrowablePtr get_worker(int fd) {
  */
 ThreadPoolPtr init_thread_pool() {
 
-	////get_log()->d(TAG_THREAD_POOL, "Thread pool start.");
+	get_log()->i(TAG_THREAD_POOL, "Thread pool start.");
 
 	pthread_t t1;
 	int born;
@@ -258,6 +294,10 @@ ThreadPoolPtr init_thread_pool() {
 
     th_pool->thread_identifier = t1;
     th_pool->get_worker = get_worker;
+
+    // init fd pool
+    fd_pool_ptr = init_fd_pool();
+    get_log()->e(TAG_THREAD_POOL, "Init FD pool done!");
 
     return th_pool;
 }

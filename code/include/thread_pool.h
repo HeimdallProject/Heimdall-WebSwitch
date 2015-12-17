@@ -15,6 +15,7 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include "../include/fd_pool.h"
 #include "../include/worker_pool.h"
 #include "../include/worker.h"
 #include "../include/log.h"
@@ -22,6 +23,7 @@
 #include "../include/message_controller.h"
 #include "../include/throwable.h"
 #include "../include/helper.h"
+#include "../include/connection.h"
 
 #define TAG_THREAD_POOL "THREAD_POOL"
 

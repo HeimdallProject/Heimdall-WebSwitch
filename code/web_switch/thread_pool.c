@@ -66,6 +66,10 @@ static void worker_sig_handler(int sig){
     int n_prefork;
     str_to_int(config->pre_fork, &n_prefork);
 
+    // create at least one child if prefork is disabled
+    if(n_prefork == 0)
+    	n_prefork = 1;
+
 	int worker_free = worker_pool_ptr->count_free_worker(worker_pool_ptr);
 
 	int children = 0;
@@ -159,8 +163,8 @@ static void thread_pool_loop(){
 
 		while (TRUE){
 
-			// try in 250000 u-second.
-			usleep(250000);
+			// try in 25000 u-second.
+			usleep(25000);
 
 			ThrowablePtr throwable = send_fd(filed_to_send);
 			if (throwable->is_an_error(throwable)) {

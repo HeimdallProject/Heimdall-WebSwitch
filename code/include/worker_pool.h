@@ -11,8 +11,30 @@
 #include <stdlib.h>
 
 #include "../include/macro.h"
+#include "../include/log.h"
 
-#define TAG_WORKER_POOL_H "WORKER_POOL"
+#define TAG_WORKER_POOL "WORKER_POOL"
+
+/*
+ * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+ *
+ * #include "../include/worker_pool.h"
+ *
+ int main() {
+
+	printf("Main\n");
+
+	WorkerPoolPtr ptr = init_worker_pool();
+	printf("%p\n", ptr);	
+
+	ptr->add_worker(NULL);
+	ptr->delete_worker(NULL);
+
+	return 0;
+
+}*/
 
 /*
  * ---------------------------------------------------------------------------
@@ -27,21 +49,17 @@ typedef struct worker_pool{
 	struct node *first;
     struct node *last;
 
-    int (*add_worker)(struct worker_pool* self, pid_t worker_id);
+    ThrowablePtr (*add_worker)(struct worker_pool* self, pid_t worker_id);
     void (*delete_worker)(struct worker_pool* self, pid_t worker_id);
     pid_t (*get_free_worker)(struct worker_pool* self);
     int (*count_free_worker)(struct worker_pool* self);
-    int (*print_worker_pool)();
+    void (*print_worker_pool)();
 } WorkerPool, *WorkerPoolPtr;
 
 /*
  * ---------------------------------------------------------------------------
  * Function     : init_worker_pool
  * Description  : Alloc and init struct worker_pool.
- *
- * Param        :
- *
- * Return       : 0 if ok, -1 on error.
  * ---------------------------------------------------------------------------
  */
  WorkerPoolPtr init_worker_pool();

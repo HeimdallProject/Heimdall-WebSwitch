@@ -15,66 +15,26 @@ typedef struct node {
 
 /*
  * ---------------------------------------------------------------------------
- * Function     : make_worker_pool_node
- * Description  : Make new node.
- *
- * Param        :
- *   worker     : Worker pointer.
- *
- * Return       : new node.
- * ---------------------------------------------------------------------------
- */
-static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
-
-	WorkerPoolNodePtr np 	= (WorkerPoolNodePtr) malloc(sizeof(WorkerPoolNode));
-	np->worker_id 			= worker_id;
-	np->next 				= NULL;
-	np->free_for_job 		= TRUE;
-
-	return np;
-}
-
-/*
- * ---------------------------------------------------------------------------
  * Function     : add_worker
- * Description  : Add worker to list.
+ * Description  : Add worker node to list.
  *
  * Param        :
- *   worker     : Worker pointer.
+ *   pid_t     	: Worker process id
  *
- * Return       : 0 if ok, -1 on error.
+ * Return       : A Throwable.
  * ---------------------------------------------------------------------------
  */
- static int print_worker_pool(WorkerPoolPtr self){
+ static ThrowablePtr add_worker(WorkerPoolPtr self, pid_t worker_id){
 
-	if (self->first == NULL){
- 		printf("List is empty \n");
- 	}else{
- 		WorkerPoolNodePtr nd = self->first;
-		while (nd != NULL) { 
-			UNUSED(nd->worker_id);
-			nd = nd->next;
-		}
- 	}
+ 	WorkerPoolNodePtr nd 	= (WorkerPoolNodePtr) malloc(sizeof(WorkerPoolNode));
+ 	if (nd == NULL) {
+        return get_throwable()->create(STATUS_ERROR, "Memory allocation error", "add_worker");
+    }
 
- 	return 0;
- }
-
-/*
- * ---------------------------------------------------------------------------
- * Function     : add_worker
- * Description  : Add worker to list.
- *
- * Param        :
- *   worker     : Worker pointer.
- *
- * Return       : 0 if ok, -1 on error.
- * ---------------------------------------------------------------------------
- */
- static int add_worker(WorkerPoolPtr self, pid_t worker_id){
+	nd->worker_id 			= worker_id;
+	nd->next 				= NULL;
+	nd->free_for_job 		= TRUE;
  	
- 	WorkerPoolNodePtr nd = make_worker_pool_node(worker_id);
-
  	if (self->first == NULL){
  		self->first = nd;
  		self->last = nd;
@@ -83,7 +43,7 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  		self->last = nd;
  	}
  	
- 	return 0;
+    return get_throwable()->create(STATUS_OK, NULL, "add_worker");
  }
 
 /*
@@ -92,9 +52,8 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  * Description  : Return how many worker are waiting for a new job.
  *
  * Param        :
- *   worker     : Worker pool pointer.
  *
- * Return       : Number of free worker.
+ * Return       : int - number of free worker.
  * ---------------------------------------------------------------------------
  */
  static int count_free_worker(WorkerPoolPtr self){
@@ -126,9 +85,8 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  */
  static pid_t get_free_worker(WorkerPoolPtr self){
 
- 	int count = 0;
-
  	WorkerPoolNodePtr nd = self->first;
+
 	while(nd != NULL){
 
 		if (nd->free_for_job == TRUE){
@@ -137,7 +95,6 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
 		}
 
 		nd = nd->next;
-		++count;
 	}
 
 	return nd->worker_id;
@@ -149,9 +106,9 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  * Description  : Delete worker inside the worker list.
  *
  * Param        :
- *   worker     : Worker pointer.
+ *   pid_t     	: process identifier id to delete
  *
- * Return       : 0 if ok, -1 on error.
+ * Return       : void
  * ---------------------------------------------------------------------------
  */
  static void delete_worker(WorkerPoolPtr self, pid_t worker_id){
@@ -181,6 +138,29 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
  }
 
 /*
+ * ---------------------------------------------------------------------------
+ * Function     : print_worker_pool
+ * Description  : Print worker pool
+ *
+ * Param        :
+ *
+ * Return       : void
+ * ---------------------------------------------------------------------------
+ */
+ static void print_worker_pool(WorkerPoolPtr self){
+
+	if (self->first == NULL){
+ 		get_log()->e(TAG_WORKER_POOL, "List is empty");
+ 	}else{
+ 		WorkerPoolNodePtr nd = self->first;
+		while (nd != NULL) { 
+			get_log()->e(TAG_WORKER_POOL, "Worker: %lu", (long)nd->worker_id);
+			nd = nd->next;
+		}
+ 	}
+ }
+
+/*
  *  See .h for more information.
  */
  WorkerPoolPtr init_worker_pool(){
@@ -201,26 +181,6 @@ static WorkerPoolNodePtr make_worker_pool_node(pid_t worker_id){
 
  	return wrkPoolPtr;
  }
-
-/*
- * ---------------------------------------------------------------------------
- *  Main function, for test and example usage.
- * ---------------------------------------------------------------------------
- */
-/*int main() {
-
-	printf("Main\n");
-
-	WorkerPoolPtr ptr = init_worker_pool();
-	printf("%p\n", ptr);	
-
-	ptr->add_worker(NULL);
-	ptr->search_worker(NULL);
-	ptr->delete_worker(NULL);
-
-	return 0;
-
-}*/
 
 
 

@@ -336,6 +336,6 @@ void start_worker(int fd) {
         exit(EXIT_FAILURE);
     } else {
         //get_log()->d(TAG_WORKER, "status ok");
-        return ;
+        exit(EXIT_SUCCESS);
     }
 }

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h> 
+#include <netdb.h>
 
 #include "../include/throwable.h"
 #include "../include/http_request.h"

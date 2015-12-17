@@ -1,4 +1,3 @@
-#include <netdb.h>
 #include "../include/connection.h"
 
 ThrowablePtr create_socket(const int type, int *sockfd) {

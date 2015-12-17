@@ -192,6 +192,15 @@ static void thread_pool_loop(){
 		}
 
 		worker_pool_ptr->delete_worker(worker_pool_ptr, wrk_id);
+		
+		/* if the attempts to send the fd are failed, we remove the worker inside the pool 
+			(previous line) and we restart the for for schedule a new worker */
+		if(attempt == 5){
+			do_prefork();
+			get_log()->e(TAG_THREAD_POOL, "Try to schedule a new worker");
+			continue;
+		}
+
 		fd_pool_ptr->delete_fd(fd_pool_ptr, filed_to_send);
 
     	// prefork again

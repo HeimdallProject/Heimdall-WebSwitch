@@ -27,7 +27,8 @@ set(SOURCE_FILES_MAIN
         code/utils/unix_socket.c
         code/web_switch/chunk.c
         code/web_switch/request_node.c
-        code/web_switch/request_queue.c)
+        code/web_switch/request_queue.c
+        code/web_switch/fd_pool.c)
 
 set(SOURCE_FILES_SCHEDULER
         code/config/heimdall_config.c

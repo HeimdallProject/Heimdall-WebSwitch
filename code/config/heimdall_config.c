@@ -23,8 +23,6 @@ int config_handler(char *key, char *value, void *p_config) {
         config->handling_mode = value;
     else if (strcmp(key, "max_worker") == 0)
         config->max_worker = value;
-    else if (strcmp(key, "max_thread_for_worker") == 0)
-        config->max_thread_for_worker = value;
     else if (strcmp(key, "algorithm_selection") == 0)
         config->algorithm_selection = value;
     else if (strcmp(key, "pre_fork") == 0)

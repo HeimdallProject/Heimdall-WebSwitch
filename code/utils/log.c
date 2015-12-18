@@ -31,7 +31,10 @@ static int i(const char* tag, const char *format, ...) {
     int level;
     str_to_int(config->log_level, &level);
 
-    if (INFO_LEVEL >= level) {
+    int print_enable;
+    str_to_int(config->print_enable, &print_enable);
+
+    if (INFO_LEVEL >= level && print_enable == 1) {
 
         char *formatted_str;
 
@@ -79,7 +82,10 @@ static int d(const char* tag, const char *format, ...) {
     int level;
     str_to_int(config->log_level, &level);
 
-    if (DEBUG_LEVEL >= level) {
+    int print_enable;
+    str_to_int(config->print_enable, &print_enable);
+
+    if (DEBUG_LEVEL >= level && print_enable == 1) {
 
         char *formatted_str;
 
@@ -124,7 +130,10 @@ static int e(const char* tag, const char *format, ...) {
     int level;
     str_to_int(config->log_level, &level);
 
-    if (ERROR_LEVEL >= level) {
+    int print_enable;
+    str_to_int(config->print_enable, &print_enable);
+
+    if (ERROR_LEVEL >= level && print_enable == 1) {
         
         char *formatted_str;
 

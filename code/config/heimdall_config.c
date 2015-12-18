@@ -45,6 +45,8 @@ int config_handler(char *key, char *value, void *p_config) {
         config->server_config = value;
     else if (strcmp(key, "timeout_request") == 0)
         config->timeout_request = value;
+    else if (strcmp(key, "update_time") == 0)
+        config->update_time = value;
     else
         return -1;  /* unknown key, error */
 
@@ -112,6 +114,7 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
             ++i;
 
         char *value = _get(string, i, '\0');
+        value[strlen(value) - 1] = '\0';
         char *key = _get(string, 0, ESCAPE_CHARACTER);
 
         if(config_handler(key, value, ptr_config) == -1){

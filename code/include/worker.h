@@ -18,6 +18,8 @@
 #include "../include/helper.h"
 #include "../include/heimdall_config.h"
 #include "../include/watchdog.h"
+#include "../include/scheduler.h"
+
 
 #define TAG_WORKER "WORKER"
 #define WORK_OVER  42                             // so long and thanks for all the fish!

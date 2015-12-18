@@ -47,6 +47,7 @@ static void worker_sig_handler(int sig){
 
 	// see worker.c
     start_worker(*file_descriptor);
+	return;
 }
 
 /*

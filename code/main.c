@@ -39,14 +39,15 @@ int main() {
     if (th_pool == NULL)
         exit(EXIT_FAILURE);
 
-    // Initializes scheduler
-    // TODO Initializes scheduler
+    // Initializes scheduler - first call to singleton
+    SchedulerPtr scheduler = get_scheduler();
+
 
     log->i(TAG_MAIN, "Start main program");
     log->i(TAG_MAIN, "Config started");
     log->i(TAG_MAIN, "Log started");
     log->i(TAG_MAIN, "Thread Pool");
-    //log->d(TAG_MAIN, "Scheduler started at address %p", scheduler);
+    log->d(TAG_MAIN, "Scheduler started at address %p", scheduler);
 
     // Creates a new server
     int port = 8080;  // TODO maybe another value to set into config
@@ -79,6 +80,7 @@ int main() {
             log->t(throwable);
             exit(EXIT_FAILURE);
         }
+
         // TODO gestire gli stessi client!!
         // Passes socket to worker
         throwable = th_pool->get_worker(new_sockfd);

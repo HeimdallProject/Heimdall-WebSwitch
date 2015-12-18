@@ -8,6 +8,8 @@
 #ifndef WEBSWITCH_SCHEDULER_H
 #define WEBSWITCH_SCHEDULER_H
 
+#define TAG_SCHEDULER "SCHEDULER"
+
 #include <time.h>
 
 #include "apache_status.h"
@@ -84,5 +86,16 @@ void *update_server_routine(void *arg);
  */
 SchedulerPtr init_scheduler(int awareness_level);
 
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : get_scheduler
+ * Description: this function let to retrieve the scheduler singleton and
+ *              assures it is properly initialized
+ *
+ * Param      :
+ * Return     : SchedulerPtr
+ * ---------------------------------------------------------------------------
+ */
+SchedulerPtr get_scheduler();
 
 #endif //WEBSWITCH_SCHEDULER_H

@@ -246,8 +246,9 @@ void *write_work(void *arg) {
             }
             //get_log()->d(TAG_WORKER, "rilascio lock write");
 
-            // Dequeues the request
-            queue->dequeue(queue);
+            // Dequeues the request and it destroys that
+            RequestNodePtr node = queue->dequeue(queue);
+            node->destroy(node);
 
             get_log()->i(TAG_WORKER, "Request dequeued!");
         }

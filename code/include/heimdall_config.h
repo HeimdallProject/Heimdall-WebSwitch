@@ -52,6 +52,7 @@ typedef struct config{
     char *log_file;
     char *timeout_worker;
     char *killer_time;
+    char *update_time;
     char *server_config;
     char *timeout_request;
 } Config, *ConfigPtr;

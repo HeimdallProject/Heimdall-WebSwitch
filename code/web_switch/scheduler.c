@@ -1,5 +1,8 @@
 #include "../include/scheduler.h"
 
+// singleton to the scheduler
+static SchedulerPtr scheduler_singleton = NULL;
+
 
 ServerPtr get_ready_server(RRobinPtr rrobin) {
     // preparing the struct tor return
@@ -15,12 +18,13 @@ ServerPtr get_ready_server(RRobinPtr rrobin) {
 }
 
 ThrowablePtr apache_score(ServerNodePtr server) {
+    get_log()->d(TAG_SCHEDULER, "scoring routine...");
     // throwable aux variable
     ThrowablePtr throwable;
 
     // initializing apache_status struct
     ApacheServerStatusPtr apache_status = new_apache_server_status();
-    throwable = apache_status->set_url(apache_status, server->host_address);
+    throwable = apache_status->set_url(apache_status, server->host_ip);
     if (throwable->is_an_error(throwable)) {
         throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in apache_score / set url");
         return throwable;
@@ -29,6 +33,7 @@ ThrowablePtr apache_score(ServerNodePtr server) {
     // retrieving status from remote Apache machine
     throwable = apache_status->retrieve(apache_status);
     if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
         throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in apache_score / retrieve");
         return throwable;
     }
@@ -54,25 +59,38 @@ ThrowablePtr apache_score(ServerNodePtr server) {
             (WEIGHT_MAXIMUM - WEIGHT_DEFAULT)   /
             (TOTAL_WORKERS  - WEIGHT_DEFAULT)   +   WEIGHT_DEFAULT;
     server->weight = score;
+    get_log()->d(TAG_SCHEDULER, "[SCORE: %d (%s)]", score, server->host_ip);
 
     return get_throwable()->create(STATUS_OK, NULL, "apache_score");
 }
 
 void *update_server_routine(void *arg) {
+
+    get_log()->d(TAG_SCHEDULER, "Scheduler update routine init...");
+
+    // initiliazing throwable
+    ThrowablePtr throwable;
+
     // retrieving argument
     SchedulerPtr scheduler = (SchedulerPtr) arg;
 
+    // retrieving update time from config
+    time_t up_time;
+    ConfigPtr config = get_config();
+    throwable = str_to_long(config->update_time, &up_time);
+    if (throwable->is_an_error(throwable)) {
+        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in configuration parsing");
+        return NULL;
+    }
+
     // retrieving first timestamp
     time_t up_since  = time(NULL);
-    // retrieving awaiting time TODO: necessary config value!
-    time_t up_time   = 1000;
-
     // entering for loop
     int i, proceed;
-    ThrowablePtr throwable;
     ServerNodePtr node;
     for(;;)
         if (time(NULL) - up_since > up_time) {
+            get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATING]");
             // initializing flag
             proceed = 0;
             // scanning across the serverpool
@@ -98,7 +116,7 @@ void *update_server_routine(void *arg) {
                     return NULL;
                 }
             }
-
+            get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATE COMPLETE]");
             // updating timestamp
             up_since = time(NULL);
         }
@@ -109,10 +127,14 @@ void *update_server_routine(void *arg) {
 
 
 SchedulerPtr init_scheduler(int awareness_level) {
+
     // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
-    char *servers_addresses[3] = {"alessiomoretti.it", "alessiomoretti.it", "alessiomoretti.it"};
-    char *servers_ip[3] = {"12.34.56.78", "12.34.56.78", "12.34.56.78"};
-    int n = 3;
+    /*char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
+    char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
+    int n = 3;*/
+    char *servers_addresses[1] = {"bifrost.asgard"};
+    char *servers_ip[1] = {"192.168.50.3"};
+    int n = 1;
 
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));
@@ -132,6 +154,7 @@ SchedulerPtr init_scheduler(int awareness_level) {
         get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in server pool allocation - init_scheduler");
         return NULL;
     }
+
 
     // in server pool adding server nodes
     int i;
@@ -165,10 +188,72 @@ SchedulerPtr init_scheduler(int awareness_level) {
     scheduler->get_server = get_ready_server;
 
     // if it is a state-aware discipline, detaching a new thread
+    int state_aware_init;
+    pthread_t updater;
     if (awareness_level == AWARENESS_LEVEL_HIGH) {
-        // TODO: detach a new thread to update round robin
+        // updater thread creation
+        state_aware_init = pthread_create(&updater, NULL, update_server_routine, (void *) scheduler);
+        if (state_aware_init != 0) {
+            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in pthread creation - init_scheduler");
+            return NULL;
+        }
+
+        // updater thread detachment
+        state_aware_init = pthread_detach(updater);
+        if (state_aware_init != 0) {
+            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in pthread detachment - init_scheduler");
+            return NULL;
+        }
     }
 
 
     return scheduler;
 }
+
+
+SchedulerPtr get_scheduler() {
+
+    // checking wheter scheduler singleton is initialized or not
+    if (scheduler_singleton != NULL) {
+        return scheduler_singleton;
+    } else {
+        // getting awareness level from configuration file
+        int awareness;
+        ConfigPtr config = get_config();
+        ThrowablePtr throwable = str_to_int(config->algorithm_selection, &awareness);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->e(TAG_SCHEDULER, config->algorithm_selection);
+            get_log()->t(throwable);
+            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - conf parsing");
+            exit(EXIT_FAILURE);
+        }
+        // initializing scheduler
+        switch (awareness) {
+            case AWARENESS_LEVEL_LOW:
+                scheduler_singleton = init_scheduler(AWARENESS_LEVEL_LOW);
+                if (scheduler_singleton == NULL) {
+                    get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - init_scheduler");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+
+            case AWARENESS_LEVEL_HIGH:
+                scheduler_singleton = init_scheduler(AWARENESS_LEVEL_HIGH);
+                if (scheduler_singleton == NULL) {
+                    get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - init_scheduler");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+
+            default:
+                if (scheduler_singleton == NULL) {
+                    get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - conf parsing");
+                    exit(EXIT_FAILURE);
+                }
+        }
+
+        // returning pointer to scheduler
+        return scheduler_singleton;
+    }
+}
+

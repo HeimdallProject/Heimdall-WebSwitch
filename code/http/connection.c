@@ -128,11 +128,9 @@ ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
 }
 
 ThrowablePtr accept_connection(const int sockfd, int *connection) {
-
     if ((*connection = accept(sockfd, (struct sockaddr *)NULL, NULL)) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "accept_connection");
     }
-
     return get_throwable()->create(STATUS_OK, NULL, "accept_connection");
 }
 

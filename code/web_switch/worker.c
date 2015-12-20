@@ -1,4 +1,5 @@
 #include "../include/worker.h"
+
 /*
  *  See .h for more information.
  */
@@ -50,7 +51,9 @@ void *request_work(void *arg) {
     //get_log()->d(TAG_WORKER, "prendo mutex request");
 
     // Asks which host use
-    char *host = "192.168.50.3";
+    char *host;
+    host = get_scheduler()->get_server(get_scheduler()->rrobin)->ip;
+    get_log()->d(TAG_WORKER, "SERVER : %s", host);
 
     // TODO create the function @alessio
     // ThrowablePtr throwable = get_host(host);
@@ -58,6 +61,8 @@ void *request_work(void *arg) {
     //     get_log()->t(throwable);
     //     pthread_exit(NULL); // TODO send an error message
     // }
+
+
 
     // Creates a new client
     int sockfd;

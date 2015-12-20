@@ -22,8 +22,7 @@ ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_nu
     ThrowablePtr throwable;
     Server *w_servers = malloc(sizeof(Server) * weight_sum);
     if (w_servers == NULL) {
-        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "malloc in weighted_servers");
-        return throwable;
+        return get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "weight_servers");
     }
 
     // weighted pattern creation
@@ -46,12 +45,11 @@ ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_nu
 
     // creating the circular buffer
     throwable = circular->allocate_buffer(circular, &w_servers, weight_sum);
-    if (throwable->is_an_error(throwable))
-        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "allocate_buffer in weight_servers");
-    else
-        throwable = get_throwable()->create(STATUS_OK, NULL, "weight_servers");
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "weight_servers");
+    }
 
-    return throwable;
+    return get_throwable()->create(STATUS_OK, NULL, "weight_servers");
 }
 
 
@@ -66,8 +64,7 @@ ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num)
     // creating auxiliary buffer
     Server *servers = malloc(sizeof(Server) * pool->num_servers);
     if (servers == NULL) {
-        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "allocate_buffer in reset_servers");
-        return throwable;
+        return get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "reset_servers");
     }
     // initializing auxiliary buffer
     ServerNodePtr node = pool->head;
@@ -86,10 +83,10 @@ ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num)
     free(servers);
     // checking for weighting procedure
     if (throwable->is_an_error(throwable)) {
-        get_log()->e(TAG_ROUND_ROBIN, "Resetting RRobin");
-        return throwable;
-    } else
-        return get_throwable()->create(STATUS_OK, NULL, "Resetting RRobin");
+        return throwable->thrown(throwable, "reset_servers");
+    } 
+
+    return get_throwable()->create(STATUS_OK, NULL, "reset_servers");
 }
 
 
@@ -101,7 +98,7 @@ Server *get_server(CircularPtr circular) {
     // entering critical region
     throwable = circular->acquire(circular);
     if (throwable->is_an_error(throwable)) {
-        get_log()->e(TAG_ROUND_ROBIN, "Error acquiring circular buffer");
+        get_log()->t(throwable, "get_server");
         return NULL;
     }
 
@@ -115,7 +112,7 @@ Server *get_server(CircularPtr circular) {
     // exiting critical region
     throwable = circular->release(circular);
     if (throwable->is_an_error(throwable)) {
-        get_log()->e(TAG_ROUND_ROBIN, "Error releasing circular buffer");
+        get_log()->t(throwable, "get_server");
         return NULL;
     }
 

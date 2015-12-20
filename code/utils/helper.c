@@ -175,8 +175,4 @@ ThrowablePtr set_signal(int signo, SigFunc *func) {
     } 
     
     return get_throwable()->create(STATUS_OK, NULL, "str_to_long");
-} 
-
-
-
-
+}

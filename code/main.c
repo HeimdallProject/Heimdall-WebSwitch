@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "include/heimdall_config.h"
 #include "include/thread_pool.h"
@@ -45,8 +47,17 @@ int main() {
     log->i(TAG_MAIN, "Start main program");
     log->i(TAG_MAIN, "Config started");
     log->i(TAG_MAIN, "Log started");
-    log->i(TAG_MAIN, "Thread Pool");
-    //log->d(TAG_MAIN, "Scheduler started at address %p", scheduler);
+    log->i(TAG_MAIN, "Thread Pool started");
+    //log->d(TAG_MAIN, "Scheduler started");
+
+    struct rlimit open_file_limit;
+
+    /* Query current soft/hard value */
+    getrlimit(RLIMIT_NOFILE, &open_file_limit);
+
+    /* Set soft limit to hard limit */
+    open_file_limit.rlim_cur = open_file_limit.rlim_max;
+    setrlimit(RLIMIT_NOFILE, &open_file_limit);
 
     // Creates a new server
     int port = 8080;  // TODO maybe another value to set into config
@@ -56,7 +67,7 @@ int main() {
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
-    }
+    } 
 
     log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
@@ -65,7 +76,7 @@ int main() {
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
-    }
+    } 
 
     log->i(TAG_MAIN, "Ready to accept incoming connections...");
 
@@ -79,13 +90,12 @@ int main() {
             log->t(throwable);
             exit(EXIT_FAILURE);
         }
-        // TODO gestire gli stessi client!!
         // Passes socket to worker
         throwable = th_pool->get_worker(new_sockfd);
         if (throwable->is_an_error(throwable)) {
             log->e(TAG_MAIN, "Error get_worker");
             exit(EXIT_SUCCESS);
-        }
+        } 
 
         log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
     }

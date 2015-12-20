@@ -37,51 +37,44 @@ ThrowablePtr get_header(HTTPRequestPtr self, char *req_line) {
     // following a comparison between headers which can be useful for perform
     // a request (forwarding packets is the final goal)
     if (strcmp(header, ACCEPT) == 0) {
-        self->req_accept = malloc(sizeof(char) * (strlen(header_data) + 1));
-        if (self->req_accept == NULL              ||
-            strcpy(self->req_accept, header_data) != self->req_accept)
+        if (asprintf(&self->req_accept, "%s", header_data) == -1) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header");
+        }
         return get_throwable()->create(STATUS_OK, NULL, "get_header");
     }
 
     if (strcmp(header, FROM) == 0) {
-        self->req_from = malloc(sizeof(char) * (strlen(header_data) + 1));
-        if (self->req_from == NULL              ||
-            strcpy(self->req_from, header_data) != self->req_from)
+        if (asprintf(&self->req_from, "%s", header_data) == -1) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header");
+        }
         return get_throwable()->create(STATUS_OK, NULL, "get_header");
     }
 
     if (strcmp(header, HOST) == 0) {
-        self->req_host = malloc(sizeof(char) * (strlen(header_data) + 1));
-        if (self->req_host == NULL              ||
-            strcpy(self->req_host, header_data) != self->req_host)
+        if (asprintf(&self->req_host, "%s", header_data) == -1) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header");
+        }
         return get_throwable()->create(STATUS_OK, NULL, "get_header");
     }
 
     if (strcmp(header, CONTENT_TYPE) == 0) {
-        self->req_content_type = malloc(sizeof(char) * (strlen(header_data) + 1));
-        if (self->req_content_type == NULL              ||
-            strcpy(self->req_content_type, header_data) != self->req_content_type)
+        if (asprintf(&self->req_content_type, "%s", header_data) == -1) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header");
+        }
         return get_throwable()->create(STATUS_OK, NULL, "get_header");
     }
 
     if (strcmp(header, CONTENT_LEN) == 0) {
-        char *req_content_len_string = malloc(sizeof(char) * (strlen(header_data) + 1));
-        if (req_content_len_string == NULL || strcpy(req_content_len_string, header_data) != req_content_len_string) {
+        char *req_content_len_string = NULL;
+        if (asprintf(&req_content_len_string, "%s", header_data) == -1) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_header");
         }
 
-        
         // Converts into integer
         ThrowablePtr throwable = str_to_int(req_content_len_string, &self->req_content_len);
         if (throwable->is_an_error(throwable)) {
             return throwable->thrown(throwable, "get_header");
         }
-
-        //get_log()->d(TAG_HTTP_REQUEST, "content_len %s len %d", req_content_len_string, self->req_content_len);
 
         // Frees memory
         free(req_content_len_string);
@@ -108,19 +101,6 @@ ThrowablePtr get_request(HTTPRequestPtr self, char *req_line, int len) {
 
     char delimiter = ' ';
 
-    // allocating the request units
-    self->req_type = malloc(sizeof(char) * (REQ_UNIT + 1));
-    if (self->req_type == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
-
-    self->req_protocol = malloc(sizeof(char) * (strlen(PROTOCOL) + 1));
-    if (self->req_protocol == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
-
-    self->req_resource = malloc(sizeof(char) * (len - REQ_UNIT - strlen(PROTOCOL) - 2 + 1));
-    if (self->req_resource == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
-
     // retrieving request params, not headers
     int counter = 1;
     int start = 0;
@@ -129,19 +109,20 @@ ThrowablePtr get_request(HTTPRequestPtr self, char *req_line, int len) {
         if (req_line[i] == delimiter) {
             switch (counter) {
                 case 1:
-                    req_line[i] = '\0';
-                    if (strcpy(self->req_type, &req_line[start]) != self->req_type)
+                    if (asprintf(&self->req_type, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
+                    }
                     start = i + 1;
                     counter++;
                     break;
                 case 2:
-                    req_line[i] = '\0';
-                    if (strcpy(self->req_resource, &req_line[start]) != self->req_resource)
+                    if (asprintf(&self->req_resource, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
+                    }
                     start = i + 1;
-                    if (strcpy(self->req_protocol, &req_line[start])  != self->req_protocol)
+                    if (asprintf(&self->req_protocol, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
+                    }
                     return get_throwable()->create(STATUS_OK, NULL, "get_header_self_request");
                 default:
                     break;
@@ -167,18 +148,6 @@ ThrowablePtr get_response(HTTPRequestPtr self, char *req_line, int len) {
 
     char delimiter = ' ';
 
-    self->resp_code = malloc(sizeof(char) * (REQ_UNIT + 1));
-    if (self->resp_code == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
-
-    self->req_protocol = malloc(sizeof(char) * (strlen(PROTOCOL) + 1));
-    if (self->req_protocol == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
-
-    self->resp_msg = malloc(sizeof(char) * (len - REQ_UNIT - strlen(PROTOCOL) - 2 + 1));
-    if (self->resp_msg == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
-
     int counter = 1;
     int start = 0;
     int i;
@@ -187,18 +156,23 @@ ThrowablePtr get_response(HTTPRequestPtr self, char *req_line, int len) {
             switch (counter) {
                 case 1:
                     req_line[i] = '\0';
-                    if (strcpy(self->req_protocol, &req_line[start]) != self->req_protocol)
+                    if (asprintf(&self->req_protocol, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
+                    }
+
                     start = i + 1;
                     counter++;
                     break;
                 case 2:
                     req_line[i] = '\0';
-                    if (strcpy(self->resp_code, &req_line[start]) != self->resp_code)
+                    if (asprintf(&self->resp_code, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
+                    }
                     start = i + 1;
-                    if (strcpy(self->resp_msg, &req_line[start])  != self->resp_msg)
+                    if (asprintf(&self->resp_msg, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
+                    }
+
                     return get_throwable()->create(STATUS_OK, NULL, "get_response");
                 default:
                     break;
@@ -232,13 +206,10 @@ ThrowablePtr get_response(HTTPRequestPtr self, char *req_line, int len) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
+    // Creates buffer
+    char *buffer = NULL;
 
-    char *buffer = malloc(strlen(string));
-    if (buffer == NULL) {
-        return get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "read_headers");
-    }
-
-    if (strcpy(buffer, string) != buffer) {
+    if (asprintf(&buffer, "%s", string) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read_headers");
     }
 
@@ -247,9 +218,6 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
     int start = 0;
     int i;
     int length = (signed) strlen(buffer);
-
-    //get_log()->d(TAG_HTTP_REQUEST, "length %d", length);
-
 
     for (i = 0; i < length; i++) {
 
@@ -265,12 +233,14 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
                         if (throwable->is_an_error(throwable)) {
                             return throwable->thrown(throwable, "read_headers");
                         }
+
                         break;
                     case RESP:
                         throwable = get_response(self, buffer, i);
                         if (throwable->is_an_error(throwable)) {
                             return throwable->thrown(throwable, "read_headers");
-                        }
+                        } 
+
                         break;
                     default:
                         break;
@@ -278,8 +248,10 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
                 start = i + 1;
             } else {
                 throwable = get_header(self, buffer + start);
-                if (throwable->is_an_error(throwable))
+                if (throwable->is_an_error(throwable)) {
                     return throwable->thrown(throwable, "read_headers");
+                }
+                
                 start = i + 1;
             }
 
@@ -287,6 +259,9 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
                 break;
         }
     }
+
+    // Frees memory for buffer
+    free(buffer);
 
     return get_throwable()->create(STATUS_OK, NULL, "read_headers");
 }
@@ -312,28 +287,19 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr set_simple_request(HTTPRequestPtr self, char *request_type, char *request_resource, char *request_protocol, char *host) {
-
-    // allocating params for a simple http request
-    self->req_type     = malloc(sizeof(char) * (strlen(request_type)     + 1));
-    self->req_protocol = malloc(sizeof(char) * (strlen(request_protocol) + 1));
-    self->req_resource = malloc(sizeof(char) * (strlen(request_resource) + 1));
-    self->req_host     = malloc(sizeof(char) * (strlen(host)             + 1));
-
-    // checking for memory allocation errors
-    if (self->req_type     == NULL ||
-        self->req_protocol == NULL ||
-        self->req_resource == NULL ||
-        self->req_host     == NULL  )
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_simple_http_request");
-
-    // setting the params for a simple http request
-    if (strcpy(self->req_type,     request_type)     != self->req_type     ||
-        strcpy(self->req_protocol, request_protocol) != self->req_protocol ||
-        strcpy(self->req_resource, request_resource) != self->req_resource ||
-        strcpy(self->req_host,     host)             != self->req_host      )
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_simple_http_request");
-    else
-        return get_throwable()->create(STATUS_OK, NULL, "set_simple_http_request");
+    if (asprintf(&self->req_type, "%s", request_type) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_simple_request");
+    }
+    if (asprintf(&self->req_protocol, "%s", request_protocol) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_simple_request");
+    }
+    if (asprintf(&self->req_resource, "%s", request_resource) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_simple_request");
+    }
+    if (asprintf(&self->req_host, "%s", host) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_simple_request");
+    }
+    return get_throwable()->create(STATUS_OK, NULL, "set_simple_http_request");
 }
 
 /*
@@ -353,31 +319,15 @@ ThrowablePtr set_simple_request(HTTPRequestPtr self, char *request_type, char *r
 ThrowablePtr make_simple_request(HTTPRequestPtr self, char **result) {
 
     // checking if params are set
-    if (self->req_type     == NULL ||
-        self->req_protocol == NULL ||
-        self->req_resource == NULL ||
-        self->req_host     == NULL) {
+    if (self->req_type == NULL || self->req_protocol == NULL || self->req_resource == NULL || self->req_host == NULL) {
         return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no params set", "make_simple_request");
     }
 
-    // allocating the memory necessary for the result char buffer
-    int result_size = (int) strlen(self->req_type)     + 1 +
-                      (int) strlen(self->req_protocol) + 1 +
-                      (int) strlen(self->req_resource) + 1 +
-                      (int) strlen(self->req_host)     + 6 + 3;
-    *result = malloc(sizeof(char) * result_size);
-    if (*result == NULL)
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request");
+    if (asprintf(result, "%s %s %s\nHost: %s\n\n", self->req_type, self->req_resource, self->req_protocol, self->req_host) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");
+    }
 
-    // creating the simple request
-    int s = sprintf(*result, "%s %s %s\nHost: %s\n\n",
-                    self->req_type,
-                    self->req_resource,
-                    self->req_protocol,
-                    self->req_host);
-
-    return s < 0 ? get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "make_simple_request") :
-                   get_throwable()->create(STATUS_OK, NULL, "make_simple_request");
+    return get_throwable()->create(STATUS_OK, NULL, "make_simple_request");
 }
 
 /*
@@ -390,17 +340,18 @@ ThrowablePtr make_simple_request(HTTPRequestPtr self, char **result) {
  * ---------------------------------------------------------------------------
  */
 void destroy_http_request(HTTPRequestPtr self) {
-
-    // freeing the memory allocated for all the http request handling
     free(self->status);
     free(self->req_type);
     free(self->req_protocol);
+    free(self->resp_code);
+    free(self->resp_msg);
     free(self->req_resource);
     free(self->req_accept);
     free(self->req_from);
     free(self->req_host);
     free(self->req_content_type);
     free(self->req_upgrade);
+    free(self->header);
     free(self);
 }
 
@@ -408,13 +359,15 @@ HTTPRequestPtr new_http_request(void) {
 
     HTTPRequestPtr http = malloc(sizeof(HTTPRequest));
     if (http == NULL) {
+        get_log()->e(TAG_HTTP_REQUEST, "Memory allocation error in new_http_request!");
         return NULL; // TODO mh?
     }
 
-    // NULL referencing the attributes
     http->status           = NULL;
     http->req_type         = NULL;
     http->req_protocol     = NULL;
+    http->resp_code        = NULL;
+    http->resp_msg         = NULL;
     http->req_resource     = NULL;
     http->req_accept       = NULL;
     http->req_from         = NULL;

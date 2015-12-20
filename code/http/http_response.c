@@ -23,25 +23,28 @@ ThrowablePtr get_http_response(HTTPResponsePtr self, char *buffer) {
     }
 
     // letting the other delegate functions parse headers and body
-    ThrowablePtr t_head = self->get_response_head(self, head);
-    ThrowablePtr t_body = self->get_response_body(self, body);
-    // checking for any error
-    if (t_head->is_an_error(t_head) || t_body->is_an_error(t_body)) {
-        return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response", "get_response");
-    } else {
-        return get_throwable()->create(STATUS_OK, NULL, "get_response");
-    }
+    ThrowablePtr throwable = self->get_response_head(self, head);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "get_http_response");
+    } 
+
+    throwable = self->get_response_body(self, body);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "get_http_response");
+    } 
+
+    return get_throwable()->create(STATUS_OK, NULL, "get_response");
 }
 
 ThrowablePtr get_response_head(HTTPResponsePtr self, char *head) {
 
     // using struct http_request to retrieve headers
-    ThrowablePtr t_resp_head = self->response->read_headers(self->response, head, self->http_response_type);
-    if (t_resp_head->is_an_error(t_resp_head)) {
+    ThrowablePtr throwable = self->response->read_headers(self->response, head, self->http_response_type);
+    if (throwable->is_an_error(throwable)) {
         return get_throwable()->create(STATUS_ERROR, "Trying to parse remote server response", "get_response_head");
-    } else {
-        return get_throwable()->create(STATUS_OK, NULL, "get_response_head");
-    }
+    } 
+
+    return get_throwable()->create(STATUS_OK, NULL, "get_response_head");
 }
 
 
@@ -65,12 +68,9 @@ ThrowablePtr get_response_body(HTTPResponsePtr self, char *body) {
 }
 
 void destroy_http_response(HTTPResponsePtr self) {
-
-    // destroyng http_request support struct
     self->response->destroy(self->response);
-    // freeing memory allocated for the body during message receiving
-    if (self->http_response_body != NULL)
-        free(self->http_response_body);
+    free(self->http_response_body);
+    free(self);
 }
 
 HTTPResponsePtr new_http_response(void) {

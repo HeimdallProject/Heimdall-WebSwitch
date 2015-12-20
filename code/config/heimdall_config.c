@@ -41,8 +41,9 @@ int config_handler(char *key, char *value, void *p_config) {
         config->killer_time = value;
     else if (strcmp(key, "server_config") == 0)
         config->server_config = value;
-    else if (strcmp(key, "timeout_request") == 0)
+    else if (strcmp(key, "timeout_request") == 0) {
         config->timeout_request = value;
+    }
     else
         return -1;  /* unknown key, error */
 
@@ -71,10 +72,11 @@ char *_get(char array[], int from, char escape){
         ++count;
     }
 
-    char *subset = malloc(sizeof(char*));
+    char *subset = malloc(sizeof(char) * (count + 1));
+    subset[count] = '\0';
 
-    int j = 0;
-    for(j = 0; j < count; ++j, ++from){
+    int j;
+    for(j = 0; j < count; ++j, ++from) {
         subset[j] = array[from];
     }
 
@@ -108,16 +110,20 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
         int i = 0;
         while (string[i] != ESCAPE_CHARACTER)
             ++i;
-
+        
         char *value = _get(string, i, '\0');
         char *key = _get(string, 0, ESCAPE_CHARACTER);
 
-        if(config_handler(key, value, ptr_config) == -1){
+        if(config_handler(key, value, ptr_config) == -1) {
             fprintf(stderr, "Error config parser, no key '%s' found in Config. \n", key);
             return -1;
         }
 
+        free(value);
+        free(key);
     }
+    //TODO parsa male. lascia spazio prima del valore e \n dopo valore. guardare apache status o read_headers http_request
+    //TODO chiudere config file
 
     return 0;
 }

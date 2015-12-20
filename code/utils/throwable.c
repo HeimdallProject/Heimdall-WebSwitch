@@ -15,7 +15,8 @@ ThrowablePtr singleton_throwable = NULL;
 /*
  * ---------------------------------------------------------------------------
  * Function     : is_an_error_throwable
- * Description  : Check if the ThrowablePtr is an error or not.
+ * Description  : Check if the ThrowablePtr is an error or not. If not it destroys
+ *                itself.
  *
  * Param        :
  *  self        : The pointer to the Throwable.
@@ -25,6 +26,7 @@ ThrowablePtr singleton_throwable = NULL;
  */
 int is_an_error_throwable(ThrowablePtr self) {
     if (self->status == STATUS_OK) {
+        self->destroy(self);
         return FALSE;
     } else {
         return TRUE;
@@ -46,19 +48,18 @@ int is_an_error_throwable(ThrowablePtr self) {
  */
 // TODO creare funzione strlen per fare malloc intelligente
 ThrowablePtr thrown_throwable(ThrowablePtr self, char *stack_trace) {
-    char *old_stack_trace = self->stack_trace;
 
-    char *new_stack_trace = malloc(1024);
-    if (new_stack_trace == NULL) {
-        return self;
-    }
-    snprintf(new_stack_trace, 1024, "%s->%s", old_stack_trace, stack_trace);
+    asprintf(&self->stack_trace, "%s->%s", self->stack_trace, stack_trace);
 
-    // Free the old string
-    //free(old_stack_trace);  // TODO non funziona... voglio pulire spazio vecchia stringa ma non me lo fa fare
-
-    self->stack_trace = new_stack_trace;
     return self;
+}
+
+
+void destroy_throwable(ThrowablePtr self) {
+    free(self->message);
+    //free(self->stack_trace); //TODO doesn't work with it
+
+    free(self);
 }
 
 /*
@@ -78,13 +79,14 @@ ThrowablePtr create_throwable(int status, char *msg, char *stack_trace) {
 
     ThrowablePtr throwable = new_throwable();
 
-    throwable->message = msg;
-    throwable->status = status;
+    throwable->message     = msg;
+    throwable->status      = status;
     throwable->stack_trace = stack_trace;
 
     // Set "methods"
-    throwable->thrown = thrown_throwable;
+    throwable->thrown      = thrown_throwable;
     throwable->is_an_error = is_an_error_throwable;
+    throwable->destroy     = destroy_throwable;
 
     return throwable;
 }
@@ -106,6 +108,10 @@ ThrowablePtr new_throwable() {
         fprintf(stderr, "Memory allocation error in new_throwable!");
         exit(EXIT_FAILURE);
     }
+
+    throwable->message     = NULL;
+    throwable->status      = STATUS_OK;
+    throwable->stack_trace = NULL;
 
     // Set "methods"
     throwable->create = create_throwable;

@@ -1,8 +1,8 @@
 //
 //============================================================================
-// Name       : connection.h
-// Description: Header file for our client/server project with simple socket's
-//              functions.
+// Name        : connection.h
+// Description : Header file for our client/server project with simple socket's
+//               functions.
 // ============================================================================
 //
 
@@ -92,135 +92,208 @@
 #define UDP 1
 
 /*
- * Function   : create_server_socket
- * Description: This function creates a TCP or a UDP server
- *              bound at specified port.
+ * Function    : create_server_socket
+ * Description : This function creates a TCP or a UDP server
+ *               bound at specified port.
  *
- * Param      :
- *   type:    The type of the socket, 0 for TCP, 1 per UDP.
- *   port:    The number of the port where bind the server.
- *   sockfd:  The pointer of the int where save the file
+ * Param       :
+ *   type   : The type of the socket, 0 for TCP, 1 per UDP.
+ *   port   : The number of the port where bind the server.
+ *   sockfd : The pointer of the int where save the file
  *            description.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  */
 ThrowablePtr create_server_socket(const int type, const int port, int *sockfd);
 
 /*
- * Function   : create_client_socket
- * Description: This function creates a TCP or a UDP client
+ * Function    : create_client_socket
+ * Description : This function creates a TCP or a UDP client
  *              that connects itself at specific IP thorough
  *              a specific port.
  *
- * Param      :
- *   type:    The type of the socket, 0 for TCP, 1 per UDP.
- *   port:    The number of the port where bind the server.
- *   sockfd:  The pointer of the int where save the file
+ * Param       :
+ *   type   : The type of the socket, 0 for TCP, 1 per UDP.
+ *   port   : The number of the port where bind the server.
+ *   sockfd : The pointer of the int where save the file
  *            description.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  */
 ThrowablePtr create_client_socket(const int type, const char *ip, const int port, int *sockfd);
 
 /*
- * Function   : listen_to
- * Description: This function allows a server to listen to a
- *              specified socket.
+ * Function    : listen_to
+ * Description : This function allows a server to listen to a
+ *               specified socket.
  *
- * Param      :
- *   sockfd:  The socket for which listen for.
- *   backlog: Max lenght of connection queue.
+ * Param       :
+ *   sockfd  : The socket for which listen for.
+ *   backlog : Max lenght of connection queue.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  */
 ThrowablePtr listen_to(const int sockfd, const int backlog);
 
 /*
- * Function   : hostname_to_ip
- * Description: This function allows to resolve ip from a hostname.
- *              In this form it returns the first time a IPV4 is found.
+ * Function    : hostname_to_ip
+ * Description : This function allows to resolve ip from a hostname.
+ *               In this form it returns the first time a IPV4 is found.
  *
- * Param      :
- *   hostname:     The hostname to resolve
- *   ip: The pointer of the string where save the ip.
+ * Param       :
+ *   hostname : The hostname to resolve
+ *   ip       : The pointer of the string where save the ip.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  */
 ThrowablePtr hostname_to_ip(char *hostname, char *ip);
 
 /*
- * Function   : accept_connection
- * Description: This function allows a server to accept a connection
- *              from a specified socket.
+ * Function    : accept_connection
+ * Description : This function allows a server to accept a connection
+ *               from a specified socket.
  *
- * Param      :
- *   sockfd:     The socket for which accept for.
- *   connection: The pointer of the int where save the new
- *               file description.
+ * Param       :
+ *   sockfd     : The socket for which accept for.
+ *   connection : The pointer of the int where save the new
+ *                file description.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  */
 ThrowablePtr accept_connection(const int sockfd, int *connection);
 
 /*
- * Function   : close_connection
- * Description: This function closes the connection.
+ * Function    : close_connection
+ * Description : This function closes the connection.
  *
- * Return     : A Throwable.
+ * Param       :
+ *   connection : The connection to close.
+ *   
+ * Return      : A Throwable.
  */
 ThrowablePtr close_connection(const int connection);
 
 /*
- * Function   : receive_response
- * Description: This function receives an HTTP response through a socket.
+ * Function    : receive_response
+ * Description : This function receives an HTTP response through a socket.
  *
- * Param      :
- *   sockfd:     The socket from where read.
- *   header:     The pointer where put the header.
+ * Param       :
+ *   sockfd : The socket where read.
+ *   header : The pointer where put the header.
  *
- * Return     : A Throwable.
- */
-
-/*
- * Function   : receive_http_header
- * Description: This function read only the HTTP header from the socket.
- *
- * Param      :
- *   sockfd:     The socket from where read.
- *   header:     The pointer where put the header.
- *
- * Return     : A Throwable.
- */
-
-/*
- * Function   : receive_response
- * Description: This function read only the HTTP response from the socket
- *
- * Param      :
- *   sockfd:     The socket from where read.
- *   request:    The pointer where put the response.
- *   length:     The lenght of the response
- *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  */
 ThrowablePtr receive_http_body(int sockfd, char *body, ssize_t length, pthread_mutex_t *mutex, int *wrote, int *dimen);
 
+/*
+ * Function    : send_http
+ * Description : This function sends HTTP message through a socket.
+ *
+ * Param       :
+ *   sockfd  : The socket where writes message.
+ *   message : The pointer to message to send.
+ *   total   : The total lenght of message to send.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr send_http(int sockfd, char *message, size_t total);
 
+/*
+ * Function    : send_http_request
+ * Description : This function sends an HTTP request through a socket.
+ *
+ * Param       :
+ *   sockfd       : The socket where writes message.
+ *   http_request : The http request to send.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr send_http_request(int sockfd, HTTPRequestPtr http_request);
 
+/*
+ * Function    : send_http_response_header
+ * Description : This function sends an HTTP response header through a socket.
+ *
+ * Param       :
+ *   sockfd        : The socket where writes message.
+ *   http_response : The http response to send.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr send_http_response_header(int sockfd, HTTPResponsePtr http_response);
 
+/*
+ * Function    : send_http_chunks
+ * Description : This function sends chunks of HTTP through a socket using thread syncronization.
+ *
+ * Param       :
+ *   sockfd : The socket where writes message.
+ *   chunk  : The pointer to chunk.
+ *   total  : The total lenght of message to send.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total);
 
+/*
+ * Function    : receive_http
+ * Description : This function receives an HTTP message through a socket.
+ *
+ * Param       :
+ *   sockfd  : The socket where read.
+ *   message : The pointer where puts the message read.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr receive_http(int sockfd, char **message);
 
+/*
+ * Function    : receive_http_header
+ * Description : This function receives an HTTP header through a socket.
+ *
+ * Param       :
+ *   sockfd : The socket where read.
+ *   header : The pointer where puts the header read.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr receive_http_header(int sockfd, char **header);
 
+/*
+ * Function    : receive_http_request
+ * Description : This function receives an HTTP request through a socket.
+ *
+ * Param       :
+ *   sockfd       : The socket where read.
+ *   http_request : The pointer to http request.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request);
 
+/*
+ * Function    : receive_http_response_header
+ * Description : This function receives an HTTP response header through a socket.
+ *
+ * Param       :
+ *   sockfd        : The socket where read.
+ *   http_response : The pointer of http response where put the header.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr receive_http_response_header(int sockfd, HTTPResponsePtr http_response);
 
+/*
+ * Function    : receive_http_response_header
+ * Description : This function receives HTTP chunks through a socket using thread syncronization.
+ *
+ * Param       :
+ *   sockfd        : The socket where read.
+ *   http_response : The pointer of http response.
+ *   chunk         : The pointer of chunk.
+ *
+ * Return      : A Throwable.
+ */
 ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, ChunkPtr chunk);
 
 #endif //WEBSWITCH_CONNECTION_H

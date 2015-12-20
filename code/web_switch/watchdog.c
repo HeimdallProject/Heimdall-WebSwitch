@@ -5,11 +5,22 @@ ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
     // setting up watchdog
     // retrieving the config params for the watchdog and converting them
     Config *config = get_config();
+    
+    UNUSED(config);     // TODO usare invece dei set manuali
+    
     long k_time;
     long out_time;
-    if (str_to_long(config->killer_time, &k_time)->is_an_error(get_throwable())    ||
-        str_to_long(config->timeout_worker, &out_time)->is_an_error(get_throwable()))
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "detach_watchdog");
+
+    ThrowablePtr throwable = str_to_long("500000000", &k_time); // TODO settato manualmente
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "detach_watchdog");
+    }
+
+    throwable = str_to_long("30", &out_time);         // TODO settato manualmente
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "detach_watchdog");
+    }
+
     // watchdog wake-up time
     watchdog->killer_time = (time_t) k_time;
     // setting up the execution time
@@ -47,6 +58,8 @@ void *enable_watchdog(void *arg) {
                 if (errno == EFAULT) {
                     watchdog->status = STATUS_ERROR;
                     pthread_cond_signal(watchdog->worker_await_cond);
+                    free(req_time);
+                    free(rem_time);
                     return NULL;
                 } else {
                     //get_log()->d(TAG_WATCHDOG, "\nresetting at: %ld\n", rem_time->tv_nsec);
@@ -63,6 +76,8 @@ void *enable_watchdog(void *arg) {
         if (watch_status == WATCH_OVER) {
             watchdog->status = STATUS_OK;
             pthread_cond_signal(watchdog->worker_await_cond);
+            free(req_time);
+            free(rem_time);
             return NULL;
         }
     }

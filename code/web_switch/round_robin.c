@@ -98,7 +98,7 @@ Server *get_server(CircularPtr circular) {
     // entering critical region
     throwable = circular->acquire(circular);
     if (throwable->is_an_error(throwable)) {
-        get_log()->t(throwable, "get_server");
+        get_log()->t(throwable);
         return NULL;
     }
 
@@ -112,7 +112,7 @@ Server *get_server(CircularPtr circular) {
     // exiting critical region
     throwable = circular->release(circular);
     if (throwable->is_an_error(throwable)) {
-        get_log()->t(throwable, "get_server");
+        get_log()->t(throwable);
         return NULL;
     }
 

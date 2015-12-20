@@ -73,13 +73,13 @@ void *update_server_routine(void *arg) {
     SchedulerPtr scheduler = (SchedulerPtr) arg;
 
     // retrieving update time from config
-    time_t up_time;
-    ConfigPtr config = get_config();
+    time_t up_time = 30;    // TODO set manually
+/*    ConfigPtr config = get_config();
     throwable = str_to_long(config->update_time, &up_time);
     if (throwable->is_an_error(throwable)) {
         get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in configuration parsing");
         return NULL;
-    }
+    }*/
 
     // retrieving first timestamp
     time_t up_since  = time(NULL);
@@ -97,7 +97,7 @@ void *update_server_routine(void *arg) {
                 // updating weights
                 throwable = apache_score(node);
                 if (throwable->is_an_error(throwable)) {
-                    get_log->t(throwable);
+                    get_log()->t(throwable);
                     proceed -= 1;
                 }
                 // stepping across pool
@@ -204,15 +204,15 @@ SchedulerPtr get_scheduler() {
         return scheduler_singleton;
     } else {
         // getting awareness level from configuration file
-        int awareness;
-        ConfigPtr config = get_config();
+        int awareness = 1;  // TODO set manually
+/*        ConfigPtr config = get_config();
         ThrowablePtr throwable = str_to_int(config->algorithm_selection, &awareness);
         if (throwable->is_an_error(throwable)) {
             get_log()->e(TAG_SCHEDULER, config->algorithm_selection);
             get_log()->t(throwable);
             get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - conf parsing");
             exit(EXIT_FAILURE);
-        }
+        }*/
         // initializing scheduler
         switch (awareness) {
             case AWARENESS_LEVEL_LOW:

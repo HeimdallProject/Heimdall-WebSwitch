@@ -42,7 +42,7 @@ int main() {
         exit(EXIT_FAILURE);
 
     // Initializes scheduler - first call to singleton
-    SchedulerPtr scheduler = get_scheduler();
+    get_scheduler();
 
 
     log->i(TAG_MAIN, "Start main program");

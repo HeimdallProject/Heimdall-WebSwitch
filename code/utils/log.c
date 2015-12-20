@@ -25,14 +25,15 @@ static Log *singleton_log = NULL;
 static int i(const char* tag, const char *format, ...) {
 
     ConfigPtr config = get_config();
+    UNUSED(config);
 
     int byte_read = 0;
 
-    int level;
-    str_to_int(config->log_level, &level);
+    int level = 2;
+    //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable;
-    str_to_int(config->print_enable, &print_enable);
+    int print_enable = 0;
+    //str_to_int(config->print_enable, &print_enable);
 
     if (INFO_LEVEL >= level && print_enable == 1) {
 
@@ -50,6 +51,7 @@ static int i(const char* tag, const char *format, ...) {
 
         printf("%s \n", output);
         fflush(stdout);
+        free(output);
     }
 
     return byte_read;
@@ -76,14 +78,15 @@ static int d(const char* tag, const char *format, ...) {
 
     //TODO scrivere sul file se variabile è settata nel config
     ConfigPtr config = get_config();
+    UNUSED(config);
 
     int byte_read = 0;
 
-    int level;
-    str_to_int(config->log_level, &level);
+    int level = 2;
+    //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable;
-    str_to_int(config->print_enable, &print_enable);
+    int print_enable = 0;
+    //str_to_int(config->print_enable, &print_enable);
 
     if (DEBUG_LEVEL >= level && print_enable == 1) {
 
@@ -101,6 +104,7 @@ static int d(const char* tag, const char *format, ...) {
 
         printf("%s \n", output);
         fflush(stdout);
+        free(output);
     }
 
     return byte_read;
@@ -123,15 +127,17 @@ static int d(const char* tag, const char *format, ...) {
  */
 static int e(const char* tag, const char *format, ...) {
 
+    //TODO ma farla globale?
     ConfigPtr config = get_config();
+    UNUSED(config);
 
     int byte_read = 0;
 
-    int level;
-    str_to_int(config->log_level, &level);
+    int level = 2;
+    //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable;
-    str_to_int(config->print_enable, &print_enable);
+    int print_enable = 1;
+    //str_to_int(config->print_enable, &print_enable);
 
     if (ERROR_LEVEL >= level && print_enable == 1) {
         
@@ -149,6 +155,7 @@ static int e(const char* tag, const char *format, ...) {
 
         fprintf(stderr, "%s \n", output);
         fflush(stderr);
+        free(output);
     }
 
     return byte_read;
@@ -160,7 +167,7 @@ static int e(const char* tag, const char *format, ...) {
 
 /*
  * ---------------------------------------------------------------------------
- * Function     : print_throwable
+ * Function     : t
  * Description  : Used for print human-readable object Throwable.
  *
  * Param        :
@@ -169,15 +176,9 @@ static int e(const char* tag, const char *format, ...) {
  * Return       : void.
  * ---------------------------------------------------------------------------
  */
-static void print_throwable(ThrowablePtr thr) {
-    //TODO ma printa solo o lo mettiamo anche su log?
-    if (thr->status == STATUS_OK) {
-        fprintf(stdout, "Status: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
-        fflush(stdout);
-    } else {
-        fprintf(stderr, "Status: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
-        fflush(stderr);
-    }
+static void t(ThrowablePtr thr) {
+    e("Throwable", "\nStatus: %d \nMessage: %s \nStack Trace: \n %s\n", thr->status, thr->message, thr->stack_trace);
+    thr->destroy(thr);
 }
 
 
@@ -204,7 +205,7 @@ Log *new_log() {
     log->d = d;
     log->i = i;
     log->e = e;
-    log->t = print_throwable;
+    log->t = t;
 
     return log;
 }

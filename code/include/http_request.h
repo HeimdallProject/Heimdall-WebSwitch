@@ -17,6 +17,7 @@
 //
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
+#define _GNU_SOURCE
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -27,6 +28,7 @@
 #include "../include/helper.h"
 #include "../include/log.h"
 #include "../include/throwable.h"
+#include "../include/macro.h"
 
 #define TAG_HTTP_REQUEST "HTTP_REQUEST"
 

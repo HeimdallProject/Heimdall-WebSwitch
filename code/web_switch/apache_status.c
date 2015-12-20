@@ -2,15 +2,15 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : get_data
- * Description: This function parses a line of ApacheStatus page and put data
- *              into ApacheServerStatus struct.
+ * Function    : get_data
+ * Description : This function parses a line of ApacheStatus page and put data
+ *               into ApacheServerStatus struct.
  *
- * Param      :
- *   self       : The pointer to the ApacheServerStatus.
- *   line       : The line to parse
+ * Param       :
+ *   self : The pointer to the ApacheServerStatus.
+ *   line : The line to parse
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr get_data(ApacheServerStatusPtr self, char *line) {
@@ -108,11 +108,14 @@ ThrowablePtr get_data(ApacheServerStatusPtr self, char *line) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr parse_apache_status(ApacheServerStatusPtr self) {
+    // Creates buffer
     char *buffer = malloc(sizeof(char) * (strlen(self->status_page) + 1));
     if (buffer == NULL) {
         get_throwable()->create(STATUS_ERROR, "Memory allocation error", "parse_apache_status");
     }
-    strcpy(buffer, self->status_page);
+    if (strcpy(buffer, self->status_page) != buffer) {
+        return get_throwable()->create(STATUS_ERROR, "Error in strcpy", "parse_apache_status");
+    }
 
     char endline = '\n';
     int start = 0;
@@ -124,14 +127,19 @@ ThrowablePtr parse_apache_status(ApacheServerStatusPtr self) {
 
             ThrowablePtr throwable;
             throwable = get_data(self, buffer + start);
-            if (throwable->is_an_error(throwable))
-                return throwable->thrown(throwable, "read_headers");
+            if (throwable->is_an_error(throwable)) {
+                return throwable->thrown(throwable, "parse_apache_status");
+            }
             start = i + 1;
 
-            if ((buffer[i + 1] == endline) || (buffer[i + 1] == '\0'))
+            if ((buffer[i + 1] == endline) || (buffer[i + 1] == '\0')) {
                 break;
+            }
         }
     }
+
+    // Frees memory for buffer
+    free(buffer);
 
     return get_throwable()->create(STATUS_OK, NULL, "parse_apache_status");
 }
@@ -150,20 +158,19 @@ ThrowablePtr parse_apache_status(ApacheServerStatusPtr self) {
 void destroy_apache_status(ApacheServerStatusPtr self) {
     free(self->url);           // Free space for URL
     free(self->status_page);   // Free space for status page
-    free(self->string);        // Free space for to_string
     free(self);                // Free all the struct
 }
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : retrieve_apache_status
- * Description: This function retrieve the HTML page from URL of the
- *              ApacheServerStatus and put the content in status_page.
+ * Function    : retrieve_apache_status
+ * Description : This function retrieve the HTML page from URL of the
+ *               ApacheServerStatus and put the content in status_page.
  *
- * Param      :
- *   self   : The pointer to the ApacheServerStatus.
+ * Param       :
+ *   self : The pointer to the ApacheServerStatus.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
@@ -201,22 +208,17 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
         return throwable->thrown(throwable, "retrieve_apache_status");
     }
 
-    // Prepares in order to receive the response
-    char *response = (char *) malloc(sizeof(char) * 1024);
-    if (response == NULL) {
-        return get_throwable()->create(STATUS_ERROR, "Allocation error", "retrieve_apache_status");
-    }
-
     // Receives the response
+    char *response = NULL;
     throwable = receive_http(sockfd, &response);
-    if(throwable->is_an_error(throwable)) {
+    if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "retrieve_apache_status");
     }
 
     // Closes the connection
     close_connection(sockfd);
 
-    // Parse the response
+    // Parses the response
     HTTPResponsePtr http_response = new_http_response();
     http_response->get_http_response(http_response, response);
 
@@ -226,100 +228,54 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : set_url_apache_status
- * Description: This function set the URL of the ApacheServerStatus.
+ * Function    : set_url_apache_status
+ * Description : This function set the URL of the ApacheServerStatus.
  *
- * Param      :
- *   self   : The pointer to the ApacheServerStatus.
- *   url    : The URL of the ApacheServerStatus.
+ * Param       :
+ *   self : The pointer to the ApacheServerStatus.
+ *   url  : The URL of the ApacheServerStatus.
  *
- * Return     : A Throwable.
+ * Return      : A Throwable.
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr set_url_apache_status(ApacheServerStatusPtr self, char *url) {
-    errno = 0;
     char *new_url = strdup(url);
-    if (errno != 0 || new_url == NULL) return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_url_apache_status");
+    if (errno != 0 || new_url == NULL) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_url_apache_status");
+    }
     // Set url
     self->url = new_url;
 
     return get_throwable()->create(STATUS_OK, NULL, "set_url_apache_status");
 }
 
-/*
- * ---------------------------------------------------------------------------
- * Function   : to_string_apache_status
- * Description: This function return a char pointer with a human form of the
- *              ApacheServerStatus.
- *
- * Param      :
- *   self   : The pointer to the ApacheServerStatus.
- *
- * Return     : The pointer of the string.
- * ---------------------------------------------------------------------------
- */
-char *to_string_apache_status(ApacheServerStatusPtr self) {
-    char *string;
-
-    if (self->string != NULL) {
-        free(self->string);
-    }
-
-    string = malloc(sizeof(char) * 64000);  // TODO i do not know how many space
-    snprintf(string, 64000,
-             "Status of Apache server at URL: %s\n\n"
-                     "Total Accesses: %d\n"
-                     "Total kBytes: %d\n"
-                     "CPULoad: %f\n"
-                     "Uptime: %d\n"
-                     "ReqPerSec: %f\n"
-                     "BytesPerSec: %f\n"
-                     "BytesPerReq: %f\n"
-                     "BusyWorkers: %d\n"
-                     "IdleWorkers: %d",
-             self->url,
-             self->total_accesses,
-             self->total_kBytes,
-             self->cpu_load,
-             self->uptime,
-             self->req_per_sec,
-             self->bytes_per_sec,
-             self->bytes_per_req,
-             self->busy_workers,
-             self->idle_workers);
-
-    self->string = string;  //  Save pointer in the struct in order to free after
-    return string;
-}
-
 ApacheServerStatusPtr new_apache_server_status() {
 
+    // Allocs memory for apache_server_status
     ApacheServerStatusPtr apache_server_status = malloc(sizeof(ApacheServerStatus));
     if (apache_server_status == NULL) {
         get_log()->e(TAG_APACHE_STATUS, "Memory allocation error in new_apache_server_status!");
         exit(EXIT_FAILURE);
     }
 
-    // Set "attributes" to default values
-    apache_server_status->url          = NULL;
-    apache_server_status->status_page  = NULL;
-    apache_server_status->string       = NULL;
-    apache_server_status->total_accesses  = -1;
-    apache_server_status->total_kBytes    = -1;
-    apache_server_status->cpu_load        = -1;
-    apache_server_status->uptime          = -1;
-    apache_server_status->req_per_sec     = -1;
-    apache_server_status->bytes_per_sec   = -1;
-    apache_server_status->bytes_per_req   = -1;
-    apache_server_status->busy_workers    = -1;
-    apache_server_status->idle_workers    = -1;
+    // Sets "attributes" to default values
+    apache_server_status->url            = NULL;
+    apache_server_status->status_page    = NULL;
+    apache_server_status->total_accesses = -1;
+    apache_server_status->total_kBytes   = -1;
+    apache_server_status->cpu_load       = -1;
+    apache_server_status->uptime         = -1;
+    apache_server_status->req_per_sec    = -1;
+    apache_server_status->bytes_per_sec  = -1;
+    apache_server_status->bytes_per_req  = -1;
+    apache_server_status->busy_workers   = -1;
+    apache_server_status->idle_workers   = -1;
 
-    // Set "methods"
+    // Sets "methods"
     apache_server_status->retrieve = retrieve_apache_status;
-    apache_server_status->parse = parse_apache_status;
-    apache_server_status->destroy = destroy_apache_status;
-    apache_server_status->set_url = set_url_apache_status;
-    apache_server_status->to_string = to_string_apache_status;
+    apache_server_status->parse    = parse_apache_status;
+    apache_server_status->destroy  = destroy_apache_status;
+    apache_server_status->set_url  = set_url_apache_status;
 
     return apache_server_status;
 }

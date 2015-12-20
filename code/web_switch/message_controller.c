@@ -91,6 +91,8 @@ ThrowablePtr receive_fd(int *file_descriptor){
         printf("%d\n", w);
     }*/
 
+    free(value_lfd);
+
     return get_throwable()->create(STATUS_OK, NULL, "receive_fd");
 }
 
@@ -114,6 +116,7 @@ ThrowablePtr send_fd(int fd){
     } control_un;
     struct cmsghdr *cmhp;
 
+    memset(&msgh, 0, sizeof(msgh));
     /* On Linux, we must transmit at least 1 byte of real data in
        order to send ancillary data */
     msgh.msg_iov = &iov;

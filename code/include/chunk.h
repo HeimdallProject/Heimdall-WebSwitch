@@ -19,19 +19,21 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Structure  : Chunk
+ * Structure  : chunk
  * Description: This struct allows to create a linked request node.
  *
  * Data:
  *  mutex           : The mutex to use in order to regulate the HTTP exchange.
  *  // TODO
  */
-typedef struct Chunk {
+typedef struct chunk {
     pthread_mutex_t mutex;
     pthread_cond_t condition;
     int wrote;
     int dimen;
     char *data;
+
+    void (*destroy)(struct chunk *self);
 } Chunk, *ChunkPtr;
 
 /*

@@ -6,7 +6,8 @@ FIND_LIBRARY(M_LIB m)
 
 
 #[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")]]
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
+#[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")]]
 #[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -Wno-unused-parameter -pthread")]]
 
 set(SOURCE_FILES_MAIN

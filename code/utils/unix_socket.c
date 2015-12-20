@@ -57,9 +57,9 @@ static ThrowablePtr unix_passive_socket(const char *path, int type, int doListen
     ThrowablePtr throwable;
 
     throwable = unix_build_address(path, &addr);
-    if(throwable->is_an_error(throwable)){
+    if (throwable->is_an_error(throwable)){
         return throwable->thrown(throwable, "unix_build_address");
-    }
+    } 
 
     sd = socket(AF_UNIX, type, 0);
     if (sd == -1)
@@ -91,11 +91,10 @@ static ThrowablePtr unix_passive_socket(const char *path, int type, int doListen
  */
 ThrowablePtr unix_listen(const char *path, int backlog, int *value) {
 
-    ThrowablePtr throwable;
-    throwable = unix_passive_socket(path, SOCK_STREAM, TRUE, backlog, value);
+    ThrowablePtr throwable = unix_passive_socket(path, SOCK_STREAM, TRUE, backlog, value);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "unix_passive_socket");
-    }
+    } 
 
     return get_throwable()->create(STATUS_OK, NULL, "unix_listen");
 }
@@ -107,12 +106,11 @@ ThrowablePtr unix_connect(const char *path, int type, int *value) {
 
     int sd, savedErrno;
     struct sockaddr_un addr;
-    ThrowablePtr throwable;
-
-    throwable = unix_build_address(path, &addr);
+    
+    ThrowablePtr throwable = unix_build_address(path, &addr);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "unix_build_address");
-    }
+    } 
 
     sd = socket(AF_UNIX, type, 0);
     if (sd == -1)

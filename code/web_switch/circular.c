@@ -12,8 +12,7 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
     // entering critical region to modify servers dataset
     throwable = circular->acquire(circular);
     if (throwable->is_an_error(throwable)) {
-        get_log()->e(TAG_CIRCULAR, "Error acquiring circular buffer");
-        return throwable;
+        return throwable->thrown(throwable, "allocate_buffer");
     }
 
     // allocating the buffer and setting params
@@ -26,8 +25,7 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
     // exiting critical region
     throwable = circular->release(circular);
     if (throwable->is_an_error(throwable)) {
-        get_log()->e(TAG_CIRCULAR, "Error releasing circular buffer");
-        return throwable;
+        return throwable->thrown(throwable, "allocate_buffer");
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "allocate_buffer");

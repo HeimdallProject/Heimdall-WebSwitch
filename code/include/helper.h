@@ -155,13 +155,3 @@ typedef void SigFunc(int);
 ThrowablePtr set_signal(int signo, SigFunc *func);
 
 #endif //HELPER_H
-
-
-
-
-
-
-
-
-
-

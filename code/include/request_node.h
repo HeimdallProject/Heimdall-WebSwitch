@@ -33,7 +33,6 @@
  *  request_timeout : The timeout of the request.
  *  previous        : The previous node.
  *  next            : The next node.
- *  string          : The summary of the node.
  *  chunk           : The chunk of data to exchange.
  *
  * Functions:
@@ -47,13 +46,11 @@ typedef struct request_node {
     time_t request_timeout;
     struct request_node *previous;
     struct request_node *next;
-    char *string;
     ChunkPtr chunk;
     int *worker_status;
     pthread_mutex_t mutex;
     pthread_cond_t condition;
 
-    char *(*to_string)(struct request_node *self);
     void (*destroy)(struct request_node *self);
 } RequestNode, *RequestNodePtr;
 

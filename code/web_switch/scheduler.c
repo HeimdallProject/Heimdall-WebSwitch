@@ -8,7 +8,7 @@ ServerPtr get_ready_server(RRobinPtr rrobin) {
     // preparing the struct tor return
     ServerPtr server = malloc(sizeof(Server));
     if (server == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation - get_ready_server");
+        get_log()->e(TAG_SCHEDULER, "Memory allocation error!", "get_ready_server");
         return NULL;
     }
 
@@ -26,27 +26,25 @@ ThrowablePtr apache_score(ServerNodePtr server) {
     ApacheServerStatusPtr apache_status = new_apache_server_status();
     throwable = apache_status->set_url(apache_status, server->host_ip);
     if (throwable->is_an_error(throwable)) {
-        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in apache_score / set url");
-        return throwable;
+        return throwable->thrown(throwable, "apache_score");
     }
 
     // retrieving status from remote Apache machine
     throwable = apache_status->retrieve(apache_status);
     if (throwable->is_an_error(throwable)) {
-        get_log()->t(throwable);
-        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in apache_score / retrieve");
-        return throwable;
+        return throwable->thrown(throwable, "apache_score");
     }
+    
     // ... and parsing result
     throwable = apache_status->parse(apache_status);
     if (throwable->is_an_error(throwable)) {
-        throwable = get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in apache_score / retrieve");
-        return throwable;
+        return throwable->thrown(throwable, "apache_score");
     }
 
     // checking for correct parsing
-    if (apache_status->idle_workers < 0)
-        return get_throwable()->create(STATUS_OK, NULL, "apache_score - no updated");
+    if (apache_status->idle_workers < 0) {
+        return get_throwable()->create(STATUS_OK, "No update", "apache_score");
+    }
 
     /* APACHE STATUS SCORE ANALYZER */
     // presetting score utils var
@@ -98,21 +96,21 @@ void *update_server_routine(void *arg) {
             for (i = 0; i < scheduler->server_pool->num_servers; i++) {
                 // updating weights
                 throwable = apache_score(node);
-                if (throwable->is_an_error(throwable))
+                if (throwable->is_an_error(throwable)) {
+                    get_log->t(throwable);
                     proceed -= 1;
+                }
                 // stepping across pool
                 node = node->next;
-                if (node == NULL) break;
-            }
+                if (node == NULL) 
+                    break;
+            } 
 
             // if routine is not failed...
             if (proceed == 0) {
-                throwable = scheduler->rrobin->reset(scheduler->rrobin,
-                                                     scheduler->server_pool,
-                                                     scheduler->server_pool->num_servers);
-
+                throwable = scheduler->rrobin->reset(scheduler->rrobin, scheduler->server_pool, scheduler->server_pool->num_servers);
                 if (throwable->is_an_error(throwable)) {
-                    get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in RoundRobin resetting");
+                    get_log()->t(throwable);
                     return NULL;
                 }
             }
@@ -139,21 +137,14 @@ SchedulerPtr init_scheduler(int awareness_level) {
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));
     if (scheduler == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation - init_scheduler");
+        get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
         return NULL;
     }
     // allocating memory - rrobin
     scheduler->rrobin = new_rrobin();
-    if (scheduler->rrobin == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in rrobin allocation - init_scheduler");
-        return NULL;
-    }
+
     // allocating memory - server pool
     scheduler->server_pool = init_server_pool();
-    if (scheduler->server_pool == NULL) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in server pool allocation - init_scheduler");
-        return NULL;
-    }
 
 
     // in server pool adding server nodes
@@ -162,7 +153,7 @@ SchedulerPtr init_scheduler(int awareness_level) {
     for (i = 0; i < n; i++) {
         node = malloc(sizeof(ServerNode));
         if (node == NULL) {
-            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in memory allocation - init_scheduler");
+            get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
             return NULL;
         }
 
@@ -174,13 +165,9 @@ SchedulerPtr init_scheduler(int awareness_level) {
     }
 
     // setting round robin
-    ThrowablePtr throwable;
-    throwable = scheduler->rrobin->reset(scheduler->rrobin,
-                                         scheduler->server_pool,
-                                         scheduler->server_pool->num_servers);
-
+    ThrowablePtr throwable = scheduler->rrobin->reset(scheduler->rrobin, scheduler->server_pool, scheduler->server_pool->num_servers);
     if (throwable->is_an_error(throwable)) {
-        get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in rrobin resetting - init_scheduler");
+        get_log()->t(throwable);
         return NULL;
     }
 
@@ -205,7 +192,6 @@ SchedulerPtr init_scheduler(int awareness_level) {
             return NULL;
         }
     }
-
 
     return scheduler;
 }

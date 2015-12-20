@@ -63,9 +63,10 @@ static void worker_sig_handler(int sig){
  static void do_prefork(){
 
  	ConfigPtr config = get_config();
+    UNUSED(config);
 
-    int n_prefork;
-    str_to_int(config->pre_fork, &n_prefork);
+    int n_prefork = 5;
+    //str_to_int(config->pre_fork, &n_prefork); TOTO settato manualmente
 
     // create at least one child if prefork is disabled
     if(n_prefork == 0)
@@ -86,7 +87,7 @@ static void worker_sig_handler(int sig){
 
 		child_pid = fork();
 		if (child_pid == -1)
-		    get_log()->e(TAG_THREAD_POOL, "Error in do_prefork()");
+		    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "do_prefork"));
 
 		// Child 
 		if (child_pid == 0){
@@ -99,7 +100,7 @@ static void worker_sig_handler(int sig){
 						
 			ThrowablePtr throwable = set_signal(SIGUSR1, worker_sig_handler);
 		    if (throwable->is_an_error(throwable)) {
-		        get_log()->e(TAG_THREAD_POOL, "do_prefork.set_signal %p", throwable);
+		        get_log()->t(throwable);
 		        // set signal failure, bye bye
 		        exit(EXIT_FAILURE);
 		    }
@@ -311,7 +312,7 @@ ThreadPoolPtr init_thread_pool() {
 
     // init fd pool
     fd_pool_ptr = init_fd_pool();
-    get_log()->e(TAG_THREAD_POOL, "Init FD pool done!");
+    get_log()->i(TAG_THREAD_POOL, "Init FD pool done!");
 
     return th_pool;
 }

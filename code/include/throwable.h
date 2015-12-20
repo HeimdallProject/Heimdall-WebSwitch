@@ -8,10 +8,12 @@
 #ifndef THROWABLE_H
 #define THROWABLE_H
 
+#include "../include/macro.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#include "../include/macro.h"
 
 #define TAG_THROWABLE "THROWABLE"
 
@@ -49,6 +51,8 @@ typedef struct throwable {
     struct throwable* (*create)(int status, char *msg, char *stack_trace);
     struct throwable* (*thrown)(struct throwable* self, char *stack_trace);
     int (*is_an_error)(struct throwable* self);
+    
+    void (*destroy)(struct throwable *self);
 } Throwable, *ThrowablePtr;
 
 /*

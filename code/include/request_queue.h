@@ -15,6 +15,50 @@
 
 /*
  * ---------------------------------------------------------------------------
+ * Example usage.
+ * ---------------------------------------------------------------------------
+ */
+/*int main() {
+
+    LogPtr log = get_log();
+
+    // Initializes queue
+    RequestQueuePtr queue = init_request_queue();
+
+    // Initializes nodes
+    log->i(TAG_REQUEST_QUEUE, "Creo 3 nodi");
+    RequestNodePtr node = init_request_node();
+    log->i(TAG_REQUEST_QUEUE, "Node: %s", node->to_string(node));
+    RequestNodePtr node1 = init_request_node();
+    log->i(TAG_REQUEST_QUEUE, "Node1: %s", node->to_string(node));
+    RequestNodePtr node2 = init_request_node();
+    log->i(TAG_REQUEST_QUEUE, "Node2: %s", node->to_string(node));
+
+    // Adds nodes to queue
+    log->i(TAG_REQUEST_QUEUE, "La coda è attualmente vuota %d (1 per TRUE, 0 per FALSE), ha dimensione %d e %s", queue->is_empty(queue), queue->get_size(queue), queue->to_string(queue->self));
+    queue->enqueue(queue->self, node);
+    log->i(TAG_REQUEST_QUEUE, "Ho aggiunto node %s", queue->to_string(queue->self));
+    queue->enqueue(queue->self, node1);
+    log->i(TAG_REQUEST_QUEUE, "Ho aggiunto node1 %s", queue->to_string(queue->self));
+    queue->enqueue(queue->self, node2);
+    log->i(TAG_REQUEST_QUEUE, "Ho aggiunto node2 %s", queue->to_string(queue->self));
+
+    log->i(TAG_REQUEST_QUEUE, "Quindi la coda ha dimensione %d", queue->get_size(queue));
+
+    log->i(TAG_REQUEST_QUEUE, "Sta in testa %s",(queue->get_front(queue))->to_string(queue->get_front(queue)));
+
+    // Makes a dequeue
+    queue->dequeue(queue);
+
+    log->i(TAG_REQUEST_QUEUE, "Dopo una dequeu sta in testa %s",(queue->get_front(queue))->to_string(queue->get_front(queue)));
+    log->i(TAG_REQUEST_QUEUE, "Quindi la coda non è vuota %d (1 per TRUE, 0 per FALSE), ha dimensione %d e è %s", queue->is_empty(queue), queue->get_size(queue), queue->to_string(queue->self));
+
+    queue->destroy(queue);
+
+    return EXIT_SUCCESS;
+}*/
+/*
+ * ---------------------------------------------------------------------------
  * Structure   : request_queue
  * Description : This struct allows to create a linked request node.
  *
@@ -37,7 +81,6 @@ typedef struct request_queue {
     RequestNodePtr front;
     RequestNodePtr back;
     int size;
-    char *string;
 
     void (*enqueue)(struct request_queue *self, RequestNodePtr node);
     struct request_node*(*dequeue)(struct request_queue *self);
@@ -45,7 +88,6 @@ typedef struct request_queue {
     struct request_node*(*get_front)(struct request_queue *self);
     int (*get_size)(struct request_queue *self);
 
-    char *(*to_string)(struct request_queue *self);
     void (*destroy)(struct request_queue *self);
 } RequestQueue, *RequestQueuePtr;
 

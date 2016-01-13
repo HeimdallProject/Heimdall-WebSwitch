@@ -1,0 +1,40 @@
+\BOOKMARK [1][-]{section.1}{Example section}{}% 1
+\BOOKMARK [1][-]{section.2}{Introduzione}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Perch\350 Heimdall?}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Web-Switch di livello 7}{section.2}% 4
+\BOOKMARK [1][-]{section.3}{Architettura}{}% 5
+\BOOKMARK [2][-]{subsection.3.1}{Server in ascolto}{section.3}% 6
+\BOOKMARK [3][-]{subsubsection.3.1.1}{File di configurazione}{subsection.3.1}% 7
+\BOOKMARK [3][-]{subsubsection.3.1.2}{Logging}{subsection.3.1}% 8
+\BOOKMARK [3][-]{subsubsection.3.1.3}{Gestione degli errori}{subsection.3.1}% 9
+\BOOKMARK [2][-]{subsection.3.2}{Pool manager}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.3}{Scheduler}{section.3}% 11
+\BOOKMARK [2][-]{subsection.3.4}{Worker}{section.3}% 12
+\BOOKMARK [3][-]{subsubsection.3.4.1}{Gestione delle richieste}{subsection.3.4}% 13
+\BOOKMARK [3][-]{subsubsection.3.4.2}{Gestione delle connessioni}{subsection.3.4}% 14
+\BOOKMARK [3][-]{subsubsection.3.4.3}{Thread di lettura}{subsection.3.4}% 15
+\BOOKMARK [3][-]{subsubsection.3.4.4}{Thread di scrittura}{subsection.3.4}% 16
+\BOOKMARK [3][-]{subsubsection.3.4.5}{Thread di richiesta}{subsection.3.4}% 17
+\BOOKMARK [3][-]{subsubsection.3.4.6}{Thread di watchdog}{subsection.3.4}% 18
+\BOOKMARK [1][-]{section.4}{Ulteriori proposte}{}% 19
+\BOOKMARK [1][-]{section.5}{Politiche di scheduling}{}% 20
+\BOOKMARK [2][-]{subsection.5.1}{State-less: implementazione con Round Robin}{section.5}% 21
+\BOOKMARK [2][-]{subsection.5.2}{State-aware: implementazione con monitor di carico}{section.5}% 22
+\BOOKMARK [3][-]{subsubsection.5.2.1}{Modulo ApacheStatus}{subsection.5.2}% 23
+\BOOKMARK [1][-]{section.6}{Performance}{}% 24
+\BOOKMARK [2][-]{subsection.6.1}{Test di carico}{section.6}% 25
+\BOOKMARK [2][-]{subsection.6.2}{Comparazione con Apache}{section.6}% 26
+\BOOKMARK [1][-]{section.7}{Future implementazioni}{}% 27
+\BOOKMARK [2][-]{subsection.7.1}{Webserver performante}{section.7}% 28
+\BOOKMARK [1][-]{section*.7}{Annotazioni}{}% 29
+\BOOKMARK [1][-]{appendix.Alph1}{Manuale per l'uso}{}% 30
+\BOOKMARK [1][-]{appendix.Alph2}{Vagrant}{}% 31
+\BOOKMARK [1][-]{appendix.Alph3}{Cluster virtuale}{}% 32
+\BOOKMARK [1][-]{appendix.Alph4}{Tool per i debug}{}% 33
+\BOOKMARK [2][-]{subsection.Alph4.1}{GDB}{appendix.Alph4}% 34
+\BOOKMARK [2][-]{subsection.Alph4.2}{Valgrind}{appendix.Alph4}% 35
+\BOOKMARK [1][-]{appendix.Alph5}{Tool per i test}{}% 36
+\BOOKMARK [2][-]{subsection.Alph5.1}{PostMan}{appendix.Alph5}% 37
+\BOOKMARK [2][-]{subsection.Alph5.2}{Telnet}{appendix.Alph5}% 38
+\BOOKMARK [2][-]{subsection.Alph5.3}{HttPerf}{appendix.Alph5}% 39
+\BOOKMARK [2][-]{subsection.Alph5.4}{Browser}{appendix.Alph5}% 40

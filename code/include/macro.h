@@ -9,4 +9,7 @@
 #define STATUS_ERROR -1
 #define UNUSED(x) (void)(x)
 
+#define SHMOBJ_PATH "/shmwebswitch"
+#define SHMOBJ_SEM  "/heimdallsem"
+
 #endif //WEBSWITCH_MACRO_H

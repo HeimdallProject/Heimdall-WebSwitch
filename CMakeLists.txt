@@ -4,11 +4,7 @@ project(WebSwitch C)
 FIND_PACKAGE (Threads)
 FIND_LIBRARY(M_LIB m)
 
-
-#[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra")]]
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
-#[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")]]
-#[[set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -Wno-unused-parameter -pthread")]]
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
 
 set(SOURCE_FILES_MAIN
         code/main.c
@@ -36,4 +32,4 @@ set(SOURCE_FILES_MAIN
         code/web_switch/fd_pool.c)
 
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
-target_link_libraries(WebSwitch ${M_LIB})
+target_link_libraries(WebSwitch ${M_LIB} rt)

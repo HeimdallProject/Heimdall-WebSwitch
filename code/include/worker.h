@@ -6,6 +6,7 @@
 //
 #ifndef WEBSWITCH_WORKER_H
 #define WEBSWITCH_WORKER_H
+#define _GNU_SOURCE
 
 #include <stdlib.h>
 #include <string.h>

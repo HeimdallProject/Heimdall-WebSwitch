@@ -73,7 +73,7 @@ int main() {
     log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
     // Starts listening for the clients
-    throwable = listen_to(sockfd, 5);
+    throwable = listen_to(sockfd, 10);
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);

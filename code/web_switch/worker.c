@@ -1,5 +1,10 @@
 #include "../include/worker.h"
 
+static pthread_mutex_t mtx_thr_request = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond_thr_request = PTHREAD_COND_INITIALIZER;
+
+static int thread_req = 0;
+
 /*
  *  See .h for more information.
  */
@@ -61,8 +66,6 @@ void *request_work(void *arg) {
     //     pthread_exit(NULL); // TODO send an error message
     // }
 
-
-
     // Creates a new client
     int sockfd;
     ThrowablePtr throwable = create_client_socket(TCP, host, 80, &sockfd);
@@ -74,7 +77,7 @@ void *request_work(void *arg) {
 
     // TODO modifies the real request with all attributes @alessio
     // Modifies the simple request with the real new host 
-    if (snprintf(node->request->req_host, sizeof(sizeof(char) * 15 + 1 + 5 + 1), "%s:80", host) < 0) {
+    if (asprintf(&(node->request->req_host), "%s:80", host) == -1) {
         get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
         *node->worker_status = STATUS_ERROR;
         return NULL; 
@@ -141,11 +144,17 @@ void *read_work(void *arg) {
     RequestQueuePtr queue = worker->requests_queue;
 
     while (TRUE) {
+
         // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the queue
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node
         RequestNodePtr node = init_request_node();
+        if (node == NULL) {
+            get_log()->e(TAG_WORKER, "Malloc not fatt");
+            worker->reader_thread_status = STATUS_ERROR;
+            return NULL;
+        }
         node->worker_status = &worker->request_thread_status;
 
         // Receives request
@@ -156,6 +165,11 @@ void *read_work(void *arg) {
             return NULL;
         }
 
+        // Enques the new node
+        queue->enqueue(queue, node);
+
+        get_log()->i(TAG_WORKER, "New request enqueued!");
+
         // Creates the request thread
         int request_creation = pthread_create(&(node->thread_id), NULL, request_work, (void *) node);
         if (request_creation != 0) {
@@ -164,10 +178,29 @@ void *read_work(void *arg) {
             return NULL;
         }
 
-        // Enques the new node
-        queue->enqueue(queue, node);
+        // Gets mutex
+        if (pthread_mutex_lock(&mtx_thr_request) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+        }
 
-        get_log()->i(TAG_WORKER, "New request enqueued!");
+        // Waits until wrote is < 2 with condition
+        while (thread_req >= 2) { 
+            if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+            }
+        }
+
+        thread_req++;
+
+        // Sends signal to condition
+        if (pthread_cond_signal(&cond_thr_request) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+        }
+
+        // Releases mutex
+        if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+        }
     }
 }
 
@@ -225,11 +258,39 @@ void *write_work(void *arg) {
                 return NULL;
             }
 
-            // Dequeues the request and it destroys that
-            RequestNodePtr node = queue->dequeue(queue);
-            node->destroy(node);
-
             get_log()->i(TAG_WORKER, "Request dequeued!");
+
+            // Dequeues the request and it destroys that
+            node = queue->dequeue(queue);
+            node->destroy(node);
+            
+            // Gets mutex
+            if (pthread_mutex_lock(&mtx_thr_request) != 0) {
+                get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+                worker->writer_thread_status = STATUS_ERROR;
+                return NULL;
+            }  
+
+            while (thread_req < 2) {
+                if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
+                    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+                    worker->writer_thread_status = STATUS_ERROR;
+                    return NULL;
+                }
+            }
+
+            // Set condition request for perfom something on the pool
+            thread_req--;
+
+            // Sends signal to condition
+            if (pthread_cond_signal(&cond_thr_request) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+            }
+
+            // Releases mutex
+            if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+            }
         }
     }
     
@@ -311,8 +372,7 @@ void start_worker(int fd) {
 
     // Checks for status of the threads and then exiting
     if (worker->watchdog->status == STATUS_ERROR || worker->writer_thread_status  == STATUS_ERROR || worker->reader_thread_status  == STATUS_ERROR || worker->request_thread_status  == STATUS_ERROR) {
-        //get_log()->d(TAG_WORKER, "status error");
-        get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "start_worker"));
+        get_log()->e(TAG_WORKER, "status error");
         exit(EXIT_FAILURE);
     } else {
         //get_log()->d(TAG_WORKER, "status ok");

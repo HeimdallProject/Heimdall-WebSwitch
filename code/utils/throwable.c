@@ -46,18 +46,16 @@ int is_an_error_throwable(ThrowablePtr self) {
  * Return       : Pointer to object Throwable.
  * ---------------------------------------------------------------------------
  */
-// TODO creare funzione strlen per fare malloc intelligente
 ThrowablePtr thrown_throwable(ThrowablePtr self, char *stack_trace) {
-
-    asprintf(&self->stack_trace, "%s->%s", self->stack_trace, stack_trace);
+    int value = asprintf(&self->stack_trace, "%s->%s", self->stack_trace, stack_trace);
+    UNUSED(value); // TODO controllare il valore di ritorno
 
     return self;
 }
 
 
 void destroy_throwable(ThrowablePtr self) {
-    free(self->message);
-    //free(self->stack_trace); //TODO doesn't work with it
+    //free(self->message);
 
     free(self);
 }

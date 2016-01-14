@@ -320,7 +320,7 @@ ThrowablePtr make_simple_request(HTTPRequestPtr self, char **result) {
 
     // checking if params are set
     if (self->req_type == NULL || self->req_protocol == NULL || self->req_resource == NULL || self->req_host == NULL) {
-        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no params set", "make_simple_request");
+        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no params set", "make_simple_request"); //TODO 
     }
 
     if (asprintf(result, "%s %s %s\nHost: %s\n\n", self->req_type, self->req_resource, self->req_protocol, self->req_host) == -1) {
@@ -360,7 +360,7 @@ HTTPRequestPtr new_http_request(void) {
     HTTPRequestPtr http = malloc(sizeof(HTTPRequest));
     if (http == NULL) {
         get_log()->e(TAG_HTTP_REQUEST, "Memory allocation error in new_http_request!");
-        return NULL; // TODO mh?
+        return NULL;
     }
 
     http->status           = NULL;

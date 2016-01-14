@@ -4,10 +4,6 @@ project(WebSwitch C)
 FIND_PACKAGE (Threads)
 FIND_LIBRARY(M_LIB m)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 5cd87d45b760c842db5f26a536c88f78d46f0e58
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
 
 set(SOURCE_FILES_MAIN

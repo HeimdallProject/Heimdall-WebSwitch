@@ -1,4 +1,9 @@
 .vagrant
 .idea
+.texpadtmp
 build
+<<<<<<< .merge_file_xgwTpY
 *.sublime-*
+=======
+*.sublime-*
+>>>>>>> .merge_file_YLCxNL

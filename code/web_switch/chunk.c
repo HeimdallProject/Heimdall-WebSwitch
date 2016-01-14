@@ -29,11 +29,14 @@ ChunkPtr new_chunk() {
     // Initializes chunk
     chunk->wrote = TRUE;
     chunk->dimen = 0;
-    chunk->data = malloc(MAX_CHUNK_SIZE);
-    if (chunk == NULL) {
+    chunk->data = NULL;
+    /*chunk->data = malloc(MAX_CHUNK_SIZE + 1);
+    if (chunk->data == NULL) {
         get_log()->e(TAG_CHUNK, "Memory allocation error in new_chunk!");
         exit(EXIT_FAILURE);
     }
+
+    (chunk->data)[MAX_CHUNK_SIZE] = '\0';*/
 
     // Sets "methods"
     chunk->destroy = destroy_chunk;

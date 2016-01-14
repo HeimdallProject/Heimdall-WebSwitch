@@ -15,7 +15,7 @@
 #include "../include/macro.h"
 
 #define TAG_CHUNK "CHUNK"
-#define MAX_CHUNK_SIZE 4096
+// #define MAX_CHUNK_SIZE 40960
 
 /*
  * ---------------------------------------------------------------------------
@@ -30,7 +30,7 @@ typedef struct chunk {
     pthread_mutex_t mutex;
     pthread_cond_t condition;
     int wrote;
-    int dimen;
+    ssize_t dimen;
     char *data;
 
     void (*destroy)(struct chunk *self);

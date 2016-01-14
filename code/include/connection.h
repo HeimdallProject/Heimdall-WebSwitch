@@ -260,6 +260,8 @@ ThrowablePtr receive_http(int sockfd, char **message);
  */
 ThrowablePtr receive_http_header(int sockfd, char **header);
 
+ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request);
+
 /*
  * Function    : receive_http_request
  * Description : This function receives an HTTP request through a socket.

@@ -44,11 +44,20 @@ RequestNodePtr init_request_node() {
 
     request_node->thread_id = 1;
     request_node->request = new_http_request();
+    if (request_node->request == NULL) {
+        return NULL;
+    }
     request_node->response = new_http_response();
+    if (request_node->response == NULL) {
+        return NULL;
+    }
     request_node->request_timeout = 10;
     request_node->previous = NULL;
     request_node->next = NULL;
     request_node->chunk = new_chunk();
+    if (request_node->chunk == NULL) {
+        return NULL;
+    }
     request_node->worker_status = NULL;
 
     // Sets "methods"

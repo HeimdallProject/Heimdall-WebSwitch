@@ -273,7 +273,7 @@ int main() {
         // Passes socket to worker
         throwable = th_pool->get_worker(new_sockfd);
         if (throwable->is_an_error(throwable)) {
-            log->e(TAG_MAIN, "Error get_worker");
+            log->t(throwable);
             exit(EXIT_SUCCESS);
         } 
 

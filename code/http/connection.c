@@ -150,9 +150,15 @@ ThrowablePtr send_http(int sockfd, char *message, size_t total) {
 
     while (TRUE) {
 
+        errno = 0;
+
         // Writes into the socket
         last_sent = write(sockfd, message + (int) sent, total-sent);
-        if (last_sent == -1) {
+        // last_sent = send(sockfd, message + (int) sent, total-sent, MSG_NOSIGNAL);
+
+        //get_log()->d(TAG_CONNECTION, "Last sent: %d + errno: %s", last_sent, get_error_by_errno(errno));
+        
+        if (last_sent == -1 || errno == EPIPE) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http");
         } else if (last_sent == 0) {
             break;
@@ -170,13 +176,13 @@ ThrowablePtr send_http_request(int sockfd, HTTPRequestPtr http_request) {
     char *request_message;
     ThrowablePtr throwable = http_request->make_simple_request(http_request, &request_message);
     if (throwable->is_an_error(throwable)) {
-        return throwable->thrown(throwable, "send_http_request");
+        return throwable->thrown(throwable, "send_http_request_1");
     }
 
     // Sends request
     throwable = send_http(sockfd, request_message, strlen(request_message));
     if (throwable->is_an_error(throwable)) {
-        return throwable->thrown(throwable, "send_http_request");
+        return throwable->thrown(throwable, "send_http_request_2");
     }
 
     free(request_message);
@@ -281,10 +287,10 @@ ThrowablePtr receive_http(int sockfd, char **message) {
 
 ThrowablePtr receive_http_header(int sockfd, char **header) {
 
-    ssize_t last_received;      // Last size received
+    ssize_t last_received  = 0; // Last size received
     ssize_t total_received = 0; // Total size received
     ssize_t size = 4096;        // Size of response buffer
-    char last_read = ' ';       // Last read characther
+    char *last_read = NULL;       // Last read characther
     int number = 0;
 
     // Allocs response buffer
@@ -293,6 +299,12 @@ ThrowablePtr receive_http_header(int sockfd, char **header) {
         return get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "receive_http_header");
     }
     (*header)[size] = '\0';
+
+    last_read = (char*)malloc(sizeof(char) + 1);
+    if (last_read == NULL) {
+        return get_throwable()->create(STATUS_ERROR, "Memory allocation error! (2)", "receive_http_header");
+    }
+    last_read[1] = '\0';
 
     while (TRUE) {
         // If the last bytes read are "\r\n\r\n" the header is complete, so return
@@ -304,23 +316,25 @@ ThrowablePtr receive_http_header(int sockfd, char **header) {
             break;
         }
 
+        errno = 0;
+
         // Receives 1 byte
-        last_received = read(sockfd, &last_read, 1);
+        last_received = read(sockfd, last_read, 1);
 
         if (last_received == -1) {   // There is an error
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
         } else if (last_received == 0) {                // EOF reached
             break;
-        } else {
+        }else {
             // Checks char
-            if (last_read == '\n' || last_read == '\r') {
+            if (*last_read == '\n' || *last_read == '\r') {
                 number++;
             } else {
                 number = 0;
             }
 
             // Copy the response to the header buffer
-            if (strcpy(*header + total_received, &last_read) != *header + total_received) {
+            if (strcpy(*header + total_received, last_read) != *header + total_received) {
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
             }
 
@@ -338,6 +352,12 @@ ThrowablePtr receive_http_header(int sockfd, char **header) {
         }
     }
 
+    free(last_read);
+
+    if(total_received == 0){
+        return get_throwable()->create(STATUS_ERROR, "0 Byte read", "receive_http_header");
+    }
+
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_header");
 }
 
@@ -348,6 +368,8 @@ ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "receive_http_request");
     }
+
+    get_log()->d(TAG_CONNECTION, http_request->header);
 
     // Parses it into the structure
     throwable = http_request->read_headers(http_request, http_request->header, RQST);

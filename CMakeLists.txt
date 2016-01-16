@@ -18,7 +18,7 @@ set(SOURCE_FILES_MAIN
         code/utils/helper.c
         code/utils/throwable.c
         code/web_switch/apache_status.c
-        code/web_switch/thread_pool.c
+        #code/web_switch/thread_pool.c
         code/web_switch/worker_pool.c
         code/web_switch/message_controller.c
         code/utils/unix_socket.c
@@ -29,7 +29,8 @@ set(SOURCE_FILES_MAIN
         code/web_switch/chunk.c
         code/web_switch/request_node.c
         code/web_switch/request_queue.c
-        code/web_switch/fd_pool.c)
+        #code/web_switch/fd_pool.c
+        code/web_switch/heimdall_shm.c)
 
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
 target_link_libraries(WebSwitch ${M_LIB} rt)

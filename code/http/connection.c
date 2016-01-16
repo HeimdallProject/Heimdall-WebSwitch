@@ -137,7 +137,7 @@ ThrowablePtr accept_connection(const int sockfd, int *connection) {
 
 ThrowablePtr close_connection(const int connection) {
 
-    if (close(connection) == -1) {
+    if (shutdown(connection, 1) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection");
     }
 
@@ -145,6 +145,9 @@ ThrowablePtr close_connection(const int connection) {
 }
 
 ThrowablePtr send_http(int sockfd, char *message, size_t total) {
+
+    get_log()->d(TAG_CONNECTION, "%ld send_http su sokfd %d", (long)getpid(), sockfd);
+
     ssize_t last_sent;  // Last size sent
     ssize_t sent = 0;   // Total size sent
 
@@ -154,9 +157,6 @@ ThrowablePtr send_http(int sockfd, char *message, size_t total) {
 
         // Writes into the socket
         last_sent = write(sockfd, message + (int) sent, total-sent);
-        // last_sent = send(sockfd, message + (int) sent, total-sent, MSG_NOSIGNAL);
-
-        //get_log()->d(TAG_CONNECTION, "Last sent: %d + errno: %s", last_sent, get_error_by_errno(errno));
         
         if (last_sent == -1 || errno == EPIPE) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http");
@@ -375,6 +375,8 @@ ThrowablePtr receive_http_header(int sockfd, char **header) {
 
 ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
 
+    get_log()->d(TAG_CONNECTION, "%ld receive_http_header2 su sokfd %d", (long)getpid(), sockfd);
+
     ssize_t last_received;      // Last size received
     ssize_t total_received = 0; // Total size received
     ssize_t size = 4096;        // Size of response buffer
@@ -433,18 +435,19 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
     }
 
     if (total_received == 0) {
-        get_log()->e(TAG_CONNECTION, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", http_request->status,
-        http_request->req_type,
-        http_request->req_protocol,
-        http_request->resp_code,
-        http_request->resp_msg,
-        http_request->req_resource,
-        http_request->req_accept,
-        http_request->req_from,
-        http_request->req_host,
-        http_request->req_content_type,
-        http_request->req_upgrade,
-        http_request->header);
+        // get_log()->e(TAG_CONNECTION, "%ld - %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", (long)getpid(), http_request->status,
+        // http_request->req_type,
+        // http_request->req_protocol,
+        // http_request->resp_code,
+        // http_request->resp_msg,
+        // http_request->req_resource,
+        // http_request->req_accept,
+        // http_request->req_from,
+        // http_request->req_host,
+        // http_request->req_content_type,
+        // http_request->req_upgrade,
+        // http_request->header);
+        // get_log()->d(TAG_CONNECTION, "%ld ERROR Sokfd %d", (long)getpid(), sockfd);
         return get_throwable()->create(STATUS_ERROR, "0 bytes read", "receive_http_header");    
     }
 
@@ -452,6 +455,8 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
 }
 
 ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
+
+    get_log()->d(TAG_CONNECTION, "%ld receive_http_request Sokfd %d", (long)getpid(),sockfd);
 
     // Receives the header
     ThrowablePtr throwable = receive_http_header2(sockfd, http_request);
@@ -481,23 +486,26 @@ ThrowablePtr receive_http_response_header(int sockfd, HTTPResponsePtr http_respo
 }
 
 ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, ChunkPtr chunk) {
+    
     ssize_t last_received;      // Last size received
     ssize_t total_received = 0; // Total size read
 
-    get_log()->d(TAG_CONNECTION, "prima di entraa sto su %d e so %d", sockfd, http_response->response->req_content_len);
+    get_log()->d(TAG_CONNECTION, "%ld prima di entraa sto su %d e so %d", (long)getpid(),sockfd, http_response->response->req_content_len);
+    
     if (http_response->response->req_content_len == -1) {
-        get_log()->d(TAG_CONNECTION, "entraa");
         return get_throwable()->create(STATUS_ERROR, "req_content_len not set!", "receive_http_chunks");
     }
 
-    chunk->data = malloc(http_response->response->req_content_len + 1);
+    chunk->data = malloc(http_response->response->req_content_len);
     if (chunk->data == NULL) {
         return get_throwable()->create(STATUS_ERROR, "Memory allocation error in receive_http_chunks!", "receive_http_chunks");
     }
 
-    (chunk->data)[http_response->response->req_content_len] = '\0';
+    // TODO need it??
+    //(chunk->data)[http_response->response->req_content_len] = '\0';
 
     while (TRUE) {
+
         // Gets mutex
         if (pthread_mutex_lock(&chunk->mutex) != 0) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
@@ -516,11 +524,22 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
 
         // Reads from the socket and it puts the response into the chunk
         last_received = read(sockfd, chunk->data, (size_t) http_response->response->req_content_len);
+        
         if (last_received == -1) {   // There is an error
+            
             get_log()->e(TAG_CONNECTION, "sockfd %d, data %s, req_content_len %d", sockfd, chunk->data, http_response->response->req_content_len);
+            
+            // Releases mutex
+            if (pthread_mutex_unlock(&chunk->mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
+            }
+
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+        
         } else if (last_received == 0) {                // EOF reached
+        
             break;
+
         } else {
 
             // Increases number of total bytes read
@@ -535,17 +554,17 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
 
-            // Releases mutex
-            if (pthread_mutex_unlock(&chunk->mutex) != 0) {
-                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-            }
-
             // Breaks if all is read
-            get_log()->d(TAG_CONNECTION, "total_received %d req_content_len %d", total_received, http_response->response->req_content_len);
+            get_log()->d(TAG_CONNECTION, "%ld total_received %d req_content_len %d", (long)getpid(), total_received, http_response->response->req_content_len);
             if (total_received == http_response->response->req_content_len) {
                 break;
             }
         }
+    }
+
+    // Releases mutex
+    if (pthread_mutex_unlock(&chunk->mutex) != 0) {
+        return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_chunks");

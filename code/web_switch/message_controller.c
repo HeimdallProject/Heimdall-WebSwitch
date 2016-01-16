@@ -1,14 +1,19 @@
 #include "../include/message_controller.h"
 
-ThrowablePtr receive_fd(int *file_descriptor){
+ThrowablePtr receive_fd(int *file_descriptor, pid_t worker_id){
 
     struct msghdr msgh;
     struct iovec iov;
     int data, sfd;
     ssize_t nr;
 
-    int *value_lfd = malloc(sizeof(int));
+    int value_lfd = 0;
     ThrowablePtr throwable;
+
+    char *pathname;
+    if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long)worker_id) < 0) {
+        return get_throwable()->create(STATUS_ERROR, "asprintf", "receive_fd");
+    }
 
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
@@ -21,15 +26,15 @@ ThrowablePtr receive_fd(int *file_descriptor){
     struct cmsghdr *cmhp;
 
     /* Create socket bound to well-known address */
-    if (remove(SOCK_PATH) == -1 && errno != ENOENT)
+    if (remove(pathname) == -1 && errno != ENOENT)
         return get_throwable()->create(STATUS_ERROR, "remove", "receive_fd");
 
-    throwable = unix_listen(SOCK_PATH, 5, value_lfd);
+    throwable = unix_listen(pathname, 5, &value_lfd);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "unix_listen");
     }
 
-    sfd = accept(*value_lfd, NULL, NULL);
+    sfd = accept(value_lfd, NULL, NULL);
     if (sfd == -1)
         return get_throwable()->create(STATUS_ERROR, "accept", "receive_fd");
 
@@ -71,40 +76,25 @@ ThrowablePtr receive_fd(int *file_descriptor){
 
     *file_descriptor = *((int *) CMSG_DATA(cmhp));
 
-    /* Having obtained the file descriptor, read the file's contents and
-       print them on standard output */
-
-    /*for (;;) {
-        char buf[100];
-        ssize_t numRead;
-
-        numRead = read(fd, buf, 100);
-        if (numRead == -1){
-            fprintf(stderr, "read\n");
-            exit(EXIT_FAILURE);
-        }
-
-        if (numRead == 0)
-            break;
-
-        int w = write(STDOUT_FILENO, buf, numRead);
-        printf("%d\n", w);
-    }*/
-
-    free(value_lfd);
+    get_log()->d(TAG_MESSAGE_CONTROLLER, "File descriptor %d received to %ld", *file_descriptor, (long)worker_id);
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_fd");
 }
 
-ThrowablePtr send_fd(int fd){
+ThrowablePtr send_fd(int fd, pid_t worker_id){
 
     struct msghdr msgh;
     struct iovec iov;
     int data;
     ssize_t ns;
 
-    int *sfd = malloc(sizeof(int));
+    int sfd = 0;
     ThrowablePtr throwable;
+
+    char *pathname;
+    if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long)worker_id) < 0) {
+        return get_throwable()->create(STATUS_ERROR, "asprintf", "receive_fd");
+    }
 
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
@@ -141,16 +131,16 @@ ThrowablePtr send_fd(int fd){
     *((int *) CMSG_DATA(cmhp)) = fd;
 
     /* Do the actual send */
-    throwable = unix_connect(SOCK_PATH, SOCK_STREAM, sfd);
+    throwable = unix_connect(pathname, SOCK_STREAM, &sfd);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "unix_connect");
     }
 
-    ns = sendmsg(*sfd, &msgh, 0);
+    ns = sendmsg(sfd, &msgh, 0);
     if (ns == -1)
         return get_throwable()->create(STATUS_ERROR, "sendmsg", "send_fd");
 
-    ////get_log()->d(TAG_MESSAGE_CONTROLLER, "File descriptor %d sent", fd);
+    get_log()->d(TAG_MESSAGE_CONTROLLER, "File descriptor %d sent to %ld", fd, (long)worker_id);
 
     return get_throwable()->create(STATUS_OK, NULL, "send_fd");
 }

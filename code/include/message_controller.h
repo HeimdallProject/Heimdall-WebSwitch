@@ -20,10 +20,9 @@
 #include "../include/unix_socket.h"
 #include "../include/log.h"
 
-#define SOCK_PATH "/home/vagrant/scm_cred"
 #define TAG_MESSAGE_CONTROLLER "MESSAGE_CONTROLLER"
 
-ThrowablePtr receive_fd(int *file_descriptor);
-ThrowablePtr send_fd(int file_descriptor);
+ThrowablePtr receive_fd(int *file_descriptor, pid_t worker_id);
+ThrowablePtr send_fd(int fd, pid_t worker_id);
 
 #endif //MESSAGE_CONTROLLER_H

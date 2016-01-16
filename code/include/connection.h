@@ -82,7 +82,7 @@
     HTTPResponsePtr http_response = new_http_response();
     http_response->get_http_response(http_response, response);
 
-    //log->i(TAG_CONNECTION, http_response->http_response_body); //TODO non funziona...
+    //log->i(TAG_CONNECTION, http_response->http_response_body);
 
     // Destroy the object
     http_request->destroy(http_request);

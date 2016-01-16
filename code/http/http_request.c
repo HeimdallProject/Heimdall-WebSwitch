@@ -360,7 +360,7 @@ HTTPRequestPtr new_http_request(void) {
     HTTPRequestPtr http = malloc(sizeof(HTTPRequest));
     if (http == NULL) {
         get_log()->e(TAG_HTTP_REQUEST, "Memory allocation error in new_http_request!");
-        return NULL; // TODO mh?
+        return NULL;
     }
 
     http->status           = NULL;

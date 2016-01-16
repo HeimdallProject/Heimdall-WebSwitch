@@ -54,15 +54,6 @@ void *request_work(void *arg) {
     host = get_scheduler()->get_server(get_scheduler()->rrobin)->ip;
     get_log()->d(TAG_WORKER, "SERVER : %s", host);
 
-    // TODO create the function @alessio
-    // ThrowablePtr throwable = get_host(host);
-    // if (throwable->is_an_error(throwable)) {
-    //     get_log()->t(throwable);
-    //     pthread_exit(NULL); // TODO send an error message
-    // }
-
-
-
     // Creates a new client
     int sockfd;
     ThrowablePtr throwable = create_client_socket(TCP, host, 80, &sockfd);
@@ -141,7 +132,6 @@ void *read_work(void *arg) {
     RequestQueuePtr queue = worker->requests_queue;
 
     while (TRUE) {
-        // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the queue
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node

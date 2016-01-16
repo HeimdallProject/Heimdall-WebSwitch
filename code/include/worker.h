@@ -26,6 +26,8 @@
 #include "../include/heimdall_config.h"
 #include "../include/watchdog.h"
 #include "../include/scheduler.h"
+#include "../include/heimdall_shm.h"
+#include "../include/message_controller.h"
 
 
 #define TAG_WORKER "WORKER"
@@ -99,7 +101,7 @@ void *write_work(void *arg);
  * Return     :
  * ---------------------------------------------------------------------------
  */
-void start_worker(int fd);
+void start_worker();
 
 /*
  * ---------------------------------------------------------------------------

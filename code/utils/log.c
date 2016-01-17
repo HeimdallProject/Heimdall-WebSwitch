@@ -30,7 +30,7 @@ static int i(const char* tag, const char *format, ...) {
     int byte_read = 0;
 
     int level = 2;
-    //str_to_int(config->log_level, &level); TOTO settato manualmente
+    //str_to_int(config->log_level, &level); TODO settato manualmente
 
     int print_enable = 1;
     //str_to_int(config->print_enable, &print_enable);
@@ -55,7 +55,6 @@ static int i(const char* tag, const char *format, ...) {
     }
 
     return byte_read;
-
     //TODO scrivere sul file se variabile è settata nel config
 }
 
@@ -85,7 +84,7 @@ static int d(const char* tag, const char *format, ...) {
     int level = 2;
     //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable = 1;
+    int print_enable = 0;
     //str_to_int(config->print_enable, &print_enable);
 
     if (DEBUG_LEVEL >= level && print_enable == 1) {
@@ -136,7 +135,7 @@ static int e(const char* tag, const char *format, ...) {
     int level = 2;
     //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable = 1;
+    int print_enable = 0;
     //str_to_int(config->print_enable, &print_enable);
 
     if (ERROR_LEVEL >= level && print_enable == 1) {

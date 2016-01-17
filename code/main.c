@@ -221,7 +221,7 @@ int main() {
             // TODO get 15 from config
             if (cc_conn == 15) {
                 log->i(TAG_MAIN, "No fd space available, wait for space.");
-                usleep(500000);
+                usleep(1000000);
             }else{
                 break;
             }
@@ -257,7 +257,7 @@ int main() {
         //kill(worker_pid, SIGUSR1);
 
         while (TRUE){
-            ThrowablePtr throwable = send_fd(new_sockfd, worker_pid);
+            throwable = send_fd(new_sockfd, worker_pid);
             if (throwable->is_an_error(throwable)) {
                 get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long)worker_pid);
             }else{

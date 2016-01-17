@@ -458,12 +458,6 @@ void start_worker() {
         pthread_cancel(worker->writer_thread);
         pthread_cancel(worker->reader_thread);
 
-        // cleaning up request queue
-        RequestNodePtr node;
-        while (!worker->requests_queue->is_empty(worker->requests_queue)) {
-            node = worker->requests_queue->dequeue(worker->requests_queue);
-            free(node);
-        }
 
         get_log()->d(TAG_WORKER, "Restart connection job - %ld", (long)getpid());
     }

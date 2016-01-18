@@ -136,9 +136,18 @@ ThrowablePtr accept_connection(const int sockfd, int *connection) {
 }
 
 ThrowablePtr close_connection(const int connection) {
+    struct linger so_linger;
+    so_linger.l_onoff = TRUE;
+    so_linger.l_linger = 0;
+    if (setsockopt(connection, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - lingering");
+    }
+    send(connection, '\0', 1, 0);
     if (shutdown(connection, SHUT_RDWR) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - shutdown");
     }
+    if (close(connection) == -1)
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - close");
     return get_throwable()->create(STATUS_OK, NULL, "close_connection");
 }
 

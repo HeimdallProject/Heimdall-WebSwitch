@@ -128,7 +128,7 @@ static ThrowablePtr print_worker_array(){
     // Scan array and set fd to first position available
     int i;
     for (i = 0; i < N_WORKER; ++i){
-        get_log()->i(TAG_HEIMDALL_SHM, "Worker %ld in position %d available %d", (long)worker_array[i], i, worker_busy[i]);
+        //get_log()->i(TAG_HEIMDALL_SHM, "Worker %ld in position %d available %d", (long)worker_array[i], i, worker_busy[i]);
     }
 
     if(sem_post(sem_id) == -1)
@@ -158,7 +158,7 @@ static ThrowablePtr get_worker(pid_t *worker_pid){
         if (worker_busy[i] == 0){
             *worker_pid = worker_array[i];
             worker_busy[i] = 1;
-            get_log()->i(TAG_HEIMDALL_SHM, "Get Worker %ld", (long)*worker_pid);
+            //get_log()->i(TAG_HEIMDALL_SHM, "Get Worker %ld", (long)*worker_pid);
             flag = 1;
             break;
         }
@@ -195,7 +195,7 @@ static ThrowablePtr end_job_worker(pid_t worker_pid){
         if (worker_array[i] == worker_pid){
             worker_busy[i] = 0;
             fd_array[i] = 0;
-            get_log()->i(TAG_HEIMDALL_SHM, "Worker %ld ready for new conneciton", (long)worker_pid);
+            //get_log()->i(TAG_HEIMDALL_SHM, "Worker %ld ready for new conneciton", (long)worker_pid);
             break;
         }
     }
@@ -226,7 +226,7 @@ static ThrowablePtr add_fd_to_array(int *fd){
 
         if (fd_array[i] == 0){
             fd_array[i] = *fd;
-            get_log()->i(TAG_HEIMDALL_SHM, "Set FD Array %d to index %d", *fd, i);
+            //get_log()->i(TAG_HEIMDALL_SHM, "Set FD Array %d to index %d", *fd, i);
             flag = 1;
             break;
         }
@@ -259,7 +259,7 @@ static ThrowablePtr print_fd_array(){
     // Scan array and set fd to first position available
     int i;
     for (i = 0; i < N_WORKER; ++i){
-        get_log()->i(TAG_HEIMDALL_SHM, "FD %d in position %d", fd_array[i], i);
+        //get_log()->i(TAG_HEIMDALL_SHM, "FD %d in position %d", fd_array[i], i);
     }
 
     if(sem_post(sem_id) == -1)
@@ -289,7 +289,7 @@ static ThrowablePtr get_fd(int *fd_ptr){
 
         if (fd_array[i] != 0){
             *fd_ptr = fd_array[i];
-            get_log()->i(TAG_HEIMDALL_SHM, "Get FD %d", *fd_ptr);
+            //get_log()->i(TAG_HEIMDALL_SHM, "Get FD %d", *fd_ptr);
             flag = 1;
             break;
         }
@@ -329,7 +329,7 @@ HSharedMemPtr init_shm(){
         return NULL;
     }
 
-    get_log()->i(TAG_HEIMDALL_SHM, "Created shared memory object %s", SHMOBJ_PATH);
+    //get_log()->i(TAG_HEIMDALL_SHM, "Created shared memory object %s", SHMOBJ_PATH);
 
     // adjusting mapped file size
     if(ftruncate(shmfd, shared_seg_size) == -1){
@@ -379,7 +379,7 @@ HSharedMemPtr init_shm(){
         return NULL;
     }
 
-    get_log()->i(TAG_HEIMDALL_SHM, "Sem closed");
+    //get_log()->i(TAG_HEIMDALL_SHM, "Sem closed");
 
     // set singleton pointer
     singleton_hshm = malloc(sizeof(HSharedMem));

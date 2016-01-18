@@ -124,9 +124,9 @@ static void set_fd_limit(){
             } 
             
             // last loop, print pool
-            if(children == n_prefork - 1){
+            /*if(children == n_prefork - 1){
                 shm_mem->print_worker_array();
-            }
+            }*/
 
         }
     }
@@ -193,21 +193,21 @@ int main() {
         exit(EXIT_FAILURE);
     } 
 
-    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
+    //log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
     // Starts listening for the clients
-    throwable = listen_to(sockfd, 10);
+    throwable = listen_to(sockfd, 128);
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
     } 
 
-    log->i(TAG_MAIN, "Ready to accept incoming connections...");
+    //log->i(TAG_MAIN, "Ready to accept incoming connections...");
 
     // Starts to listen incoming connections
     while(TRUE) {
 
-        log->i(TAG_MAIN, "Entering in loop");
+        //log->i(TAG_MAIN, "Entering in loop");
 
         while(TRUE){
 
@@ -221,7 +221,7 @@ int main() {
             // TODO get 15 from config
             if (cc_conn == 15) {
                 log->i(TAG_MAIN, "No fd space available, wait for space.");
-                usleep(1000000);
+                usleep(500000);
             }else{
                 break;
             }
@@ -241,10 +241,10 @@ int main() {
             exit(EXIT_FAILURE);
         };
 
-        throwable = shm_mem->print_fd_array();
+        /*throwable = shm_mem->print_fd_array();
         if (throwable->is_an_error(throwable)) {
             log->t(throwable);
-        } 
+        } */
 
         pid_t worker_pid = 0;
         throwable = shm_mem->get_worker(&worker_pid);
@@ -265,6 +265,6 @@ int main() {
             }
         }
 
-        log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
+        //log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
     }
 }

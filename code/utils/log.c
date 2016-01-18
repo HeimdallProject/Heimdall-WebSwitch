@@ -44,7 +44,7 @@ static int i(const char* tag, const char *format, ...) {
         byte_read = vasprintf(&formatted_str, format, arg);
         va_end (arg);
 
-        char *output; 
+        char *output;
         byte_read = asprintf(&output, "%s: I/%s: %s", timestamp(), tag, formatted_str);
 
         free(formatted_str);

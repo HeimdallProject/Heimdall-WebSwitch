@@ -209,8 +209,6 @@ ThrowablePtr read_headers(HTTPRequestPtr self, char *string, int type) {
     // Creates buffer
     char *buffer = NULL;
 
-    //get_log()->i(TAG_HTTP_REQUEST, "AOOOO: %s", string);
-
     if (asprintf(&buffer, "%s", string) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read_headers");
     }

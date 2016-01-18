@@ -508,8 +508,6 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
     
     ssize_t last_received;      // Last size received
     ssize_t total_received = 0; // Total size read
-
-    get_log()->d(TAG_CONNECTION, "%ld prima di entraa sto su %d e so %d", (long)getpid(),sockfd, http_response->response->req_content_len);
     
     if (http_response->response->req_content_len == -1) {
         return get_throwable()->create(STATUS_ERROR, "req_content_len not set!", "receive_http_chunks");
@@ -539,7 +537,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         }
 
         // Calculates the size to read
-        //ssize_t size = (http_response->response->req_content_len - total_received >= MAX_CHUNK_SIZE) ? MAX_CHUNK_SIZE : http_response->response->req_content_len - total_received;
+        ssize_t size = (http_response->response->req_content_len - total_received >= http_response->response->req_content_len) ? http_response->response->req_content_len : http_response->response->req_content_len - total_received;
 
         // Reads from the socket and it puts the response into the chunk
         last_received = read(sockfd, chunk->data, (size_t) http_response->response->req_content_len);
@@ -556,7 +554,21 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
         
         } else if (last_received == 0) {                // EOF reached
-        
+
+            // Sends signal to condition
+            if (pthread_cond_signal(&chunk->condition) != 0) {
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+            }
+
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d MANDO SEGNALE", (long) getpid(), sockfd);
+
+            // Releases mutex
+            if (pthread_mutex_unlock(&chunk->mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
+            }
+
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d LASCIO MUTEX1", (long) getpid(), sockfd);
+
             break;
 
         } else {
@@ -573,6 +585,20 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
 
+            get_log()->d(TAG_CONNECTION, "%ld total_received %d req_content_len %d", (long)getpid(), total_received, http_response->response->req_content_len);
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d MANDO SEGNALE", (long) getpid(), sockfd);
+
+            if (total_received == http_response->response->req_content_len) {
+                break;
+            }
+
+            // Releases mutex
+            if (pthread_mutex_unlock(&chunk->mutex) != 0) {
+                return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
+            }
+
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d LASCIO MUTEX2 total_received %d req_content_len %d", (long) getpid(), sockfd, total_received, http_response->response->req_content_len);
+
             // Breaks if all is read
             get_log()->d(TAG_CONNECTION, "%ld total_received %d req_content_len %d", (long)getpid(), total_received, http_response->response->req_content_len);
             if (total_received == http_response->response->req_content_len) {
@@ -585,6 +611,8 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
     if (pthread_mutex_unlock(&chunk->mutex) != 0) {
         return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
     }
+
+    get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d STO FUORI", (long) getpid(), sockfd);
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_chunks");
 }

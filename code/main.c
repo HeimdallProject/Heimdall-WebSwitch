@@ -90,7 +90,7 @@ static void set_fd_limit(){
     int children;
     for (children = 0; children < n_prefork; ++children){
 
-        get_log()->d(TAG_MAIN, "Create child n°%d", children);
+        /*get_log()->d(TAG_MAIN, "Create child n°%d", children);*/
 
         pid_t child_pid;
         errno = 0;
@@ -123,8 +123,8 @@ static void set_fd_limit(){
                 exit(EXIT_SUCCESS);
             } 
             
-            // last loop, print pool
-            /*if(children == n_prefork - 1){
+/*            // last loop, print pool
+            if(children == n_prefork - 1){
                 shm_mem->print_worker_array();
             }*/
 
@@ -193,21 +193,21 @@ int main() {
         exit(EXIT_FAILURE);
     } 
 
-    //log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
+    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
     // Starts listening for the clients
-    throwable = listen_to(sockfd, 128);
+    throwable = listen_to(sockfd, 10);
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
     } 
 
-    //log->i(TAG_MAIN, "Ready to accept incoming connections...");
+    log->i(TAG_MAIN, "Ready to accept incoming connections...");
 
     // Starts to listen incoming connections
     while(TRUE) {
 
-        //log->i(TAG_MAIN, "Entering in loop");
+        log->i(TAG_MAIN, "Entering in loop");
 
         while(TRUE){
 
@@ -222,7 +222,7 @@ int main() {
             if (cc_conn == 15) {
                 log->i(TAG_MAIN, "No fd space available, wait for space.");
                 usleep(500000);
-            }else{
+            } else {
                 break;
             }
         }
@@ -241,10 +241,10 @@ int main() {
             exit(EXIT_FAILURE);
         };
 
-        /*throwable = shm_mem->print_fd_array();
+        throwable = shm_mem->print_fd_array();
         if (throwable->is_an_error(throwable)) {
             log->t(throwable);
-        } */
+        } 
 
         pid_t worker_pid = 0;
         throwable = shm_mem->get_worker(&worker_pid);
@@ -259,12 +259,12 @@ int main() {
         while (TRUE){
             throwable = send_fd(new_sockfd, worker_pid);
             if (throwable->is_an_error(throwable)) {
-                get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long)worker_pid);
-            }else{
+                get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long) worker_pid);
+            } else {
                 break;
             }
         }
 
-        //log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
+        log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
     }
 }

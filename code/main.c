@@ -256,8 +256,8 @@ int main() {
         // wake up worker
         //kill(worker_pid, SIGUSR1);
 
-        while (TRUE) {
-            ThrowablePtr throwable = send_fd(new_sockfd, worker_pid);
+        while (TRUE){
+            throwable = send_fd(new_sockfd, worker_pid);
             if (throwable->is_an_error(throwable)) {
                 get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long) worker_pid);
             } else {

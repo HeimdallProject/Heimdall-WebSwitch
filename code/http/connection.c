@@ -148,10 +148,9 @@ ThrowablePtr accept_connection(const int sockfd, int *connection) {
 ThrowablePtr close_connection(const int connection) {
     get_log()->d(TAG_CONNECTION, "%ld close_connection sockfd %d", (long) getpid(), connection);
 
-    if (shutdown(connection, 1) == -1) {
-        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection");
+    if (shutdown(connection, SHUT_RDWR) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - shutdown");
     }
-
     return get_throwable()->create(STATUS_OK, NULL, "close_connection");
 }
 
@@ -399,6 +398,9 @@ ThrowablePtr receive_http_header(int sockfd, char **header) {
     free(last_read);
 
     if(total_received == 0){
+        // (DEV) on 0 bytes read the other-side-client has terminated communication -> socket can be closed
+        // close(sockfd);
+        // pthread_exit(NULL);
         return get_throwable()->create(STATUS_ERROR, "0 Byte read", "receive_http_header");
     }
 
@@ -415,7 +417,7 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
     char last_read = ' ';       // Last read character
     int number = 0;
 
-    // Allocs response buffer
+    // Allocate response buffer
     http_request->header = malloc(sizeof(char) * (size + 1));
     if (http_request->header == NULL) {
         return get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "receive_http_header");
@@ -427,7 +429,7 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
         if (number == 4) {
             // Puts EOF
             if (strcpy(http_request->header + total_received, "\0") != http_request->header + total_received) {
-                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header2");
             }
             break;
         }
@@ -436,7 +438,7 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
         last_received = read(sockfd, &last_read, 1);
 
         if (last_received == -1) {   // There is an error
-            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header2");
         } else if (last_received == 0) {                // EOF reached
             break;
         } else {
@@ -449,22 +451,26 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
 
             // Copy the response to the header buffer
             if (strcpy(http_request->header + total_received, &last_read) != http_request->header + total_received) {
-                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+                return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header2");
             }
+
 
             // Increases number of bytes received
             total_received += last_received;
+            if (total_received == 0)
+                break;
 
-            // If memory is full realloc
+            // If memory is full then realloc
             if (total_received == size) {
                 if (realloc(http_request->header, (size_t) (size + 4096)) == NULL) {
-                    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header");
+                    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_header2");
                 }
                 // Increase size
                 size += 4096;
             }
         }
     }
+
 
     if (total_received == 0) {
         // get_log()->e(TAG_CONNECTION, "%ld - %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", (long)getpid(), http_request->status,
@@ -480,10 +486,15 @@ ThrowablePtr receive_http_header2(int sockfd, HTTPRequestPtr http_request) {
         // http_request->req_upgrade,
         // http_request->header);
         // get_log()->d(TAG_CONNECTION, "%ld ERROR Sokfd %d", (long)getpid(), sockfd);
-        return get_throwable()->create(STATUS_ERROR, "0 bytes read", "receive_http_header");    
+        //return get_throwable()->create(STATUS_ERROR, "0 bytes read", "receive_http_header2");
+
+        // (DEV) on 0 bytes read the other-side-client has terminated communication -> socket can be closed
+
+        get_log()->d(TAG_CONNECTION, "%ld -> 0 BYTES", (long)getpid());
+        return get_throwable()->create(STATUS_ERROR, "0 bytes -> close socket from client", "receive_http_header2");
     }
 
-    return get_throwable()->create(STATUS_OK, NULL, "receive_http_header");
+    return get_throwable()->create(STATUS_OK, NULL, "receive_http_header2");
 }
 
 ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
@@ -529,7 +540,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         return get_throwable()->create(STATUS_ERROR, "req_content_len not set!", "receive_http_chunks");
     }
 
-    chunk->data = malloc(http_response->response->req_content_len);
+    chunk->data = malloc((size_t) http_response->response->req_content_len);
     if (chunk->data == NULL) {
         return get_throwable()->create(STATUS_ERROR, "Memory allocation error in receive_http_chunks!", "receive_http_chunks");
     }

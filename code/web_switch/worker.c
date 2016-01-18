@@ -66,6 +66,7 @@ void *request_work(void *arg) {
     // Asks which host use
     char *host;
     host = get_scheduler()->get_server(get_scheduler()->rrobin)->ip;
+    get_log()->d(TAG_WORKER, "HOST: %s", host);
 
     // Creates a new client
     int sockfd;
@@ -165,9 +166,6 @@ void *request_work(void *arg) {
         *node->worker_status = STATUS_ERROR;
         return NULL;
     }
-
-    get_log()->e(TAG_WORKER, "%ld - %ld AO SO FINITO", (long)getpid(), (long)pthread_self());
-
     pthread_exit(NULL);
 }
 
@@ -184,24 +182,23 @@ void *read_work(void *arg) {
     while (TRUE) {
 
 
-        // Gets mutex
-        // if (pthread_mutex_lock(&mtx_thr_request) != 0) {
-        //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-        // }
+//        // Gets mutex
+//        if (pthread_mutex_lock(&mtx_thr_request) != 0) {
+//            return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//        }
+//
+//         // Waits
+//         while (thread_req > 0) {
+//             if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
+//                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//             }
+//         }
+//
+//         // Releases mutex
+//         if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
+//             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//         }
 
-        // // Waits
-        // while (thread_req > 0) { 
-        //     if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
-        //         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-        //     }
-        // }
-
-        // // Releases mutex
-        // if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
-        //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-        // }
-
-        // TODO: reading and passing params to HTTPRequest setting the timestamp foreach request in the queue
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node
@@ -217,8 +214,8 @@ void *read_work(void *arg) {
         ThrowablePtr throwable = receive_http_request(worker->sockfd, node->request);
         if (throwable->is_an_error(throwable)) {
             get_log()->t(throwable);
+            // TODO: is it an error? if 0 bytes is read is not error!
             worker->reader_thread_status = STATUS_ERROR;
-            
             pthread_exit(NULL);
         }
 
@@ -239,22 +236,22 @@ void *read_work(void *arg) {
             return NULL;
         }
 
-        // Gets mutex
-        // if (pthread_mutex_lock(&mtx_thr_request) != 0) {
-        //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-        // }
-
-        // thread_req++;
-
-        // // Sends signal to condition
-        // if (pthread_cond_signal(&cond_thr_request) != 0) {
-        //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-        // }
-
-        // // Releases mutex
-        // if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
-        //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-        // }
+//        // Gets mutex
+//        if (pthread_mutex_lock(&mtx_thr_request) != 0) {
+//             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//        }
+//
+//        thread_req++;
+//
+//         // Sends signal to condition
+//         if (pthread_cond_signal(&cond_thr_request) != 0) {
+//             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//         }
+//
+//         // Releases mutex
+//         if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
+//             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//         }
     }
 }
 
@@ -324,25 +321,25 @@ void *write_work(void *arg) {
 
             get_log()->i(TAG_WORKER, "%ld - Request dequeued!", (long) getpid());
             
-            // Gets mutex
-            // if (pthread_mutex_lock(&mtx_thr_request) != 0) {
-            //     get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
-            //     worker->writer_thread_status = STATUS_ERROR;
-            //     return NULL;
-            // }  
-
-            // // Set condition request for perfom something on the pool
-            // thread_req--;
-
-            // // Sends signal to condition
-            // if (pthread_cond_signal(&cond_thr_request) != 0) {
-            //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-            // }
-
-            // // Releases mutex
-            // if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
-            //     return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-            // }
+//            // Gets mutex
+//             if (pthread_mutex_lock(&mtx_thr_request) != 0) {
+//                 get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+//                 worker->writer_thread_status = STATUS_ERROR;
+//                 return NULL;
+//             }
+//
+//             // Set condition request for perfom something on the pool
+//             thread_req--;
+//
+//             // Sends signal to condition
+//             if (pthread_cond_signal(&cond_thr_request) != 0) {
+//                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//             }
+//
+//             // Releases mutex
+//             if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
+//                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+//             }
         }
     }
     
@@ -447,6 +444,8 @@ void start_worker() {
         } else {
             get_log()->d(TAG_WORKER, "End connection job (all ok) - %ld", (long) getpid());
         }
+
+        get_log()->d(TAG_WORKER, "%ld -> CLOSE", (long)getpid());
 
         // close socket connection
         close_connection(file_descriptor);

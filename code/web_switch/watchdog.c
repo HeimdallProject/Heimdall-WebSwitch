@@ -16,7 +16,7 @@ ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
         return throwable->thrown(throwable, "detach_watchdog");
     }
 
-    throwable = str_to_long("30", &out_time);         // TODO settato manualmente
+    throwable = str_to_long("5", &out_time);         // TODO settato manualmente
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "detach_watchdog");
     }

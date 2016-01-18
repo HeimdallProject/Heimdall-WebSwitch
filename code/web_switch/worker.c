@@ -1,4 +1,5 @@
 #include "../include/worker.h"
+#include <syscall.h>
 
 // static pthread_mutex_t mtx_thr_request = PTHREAD_MUTEX_INITIALIZER;
 // static pthread_cond_t cond_thr_request = PTHREAD_COND_INITIALIZER;
@@ -51,7 +52,10 @@ WorkerPtr new_worker() {
 
 void *request_work(void *arg) {
 
-    get_log()->d(TAG_WORKER, "%ld - request_work", (long) getpid());
+    int sid = syscall(SYS_gettid);
+    get_log()->d(TAG_WORKER, "request_work %d", sid);
+
+    //get_log()->d(TAG_WORKER, "%ld - request_work", (long) getpid());
 
     // Casts the parameter
     RequestNodePtr node = arg;
@@ -166,10 +170,14 @@ void *request_work(void *arg) {
         *node->worker_status = STATUS_ERROR;
         return NULL;
     }
+
     pthread_exit(NULL);
 }
 
 void *read_work(void *arg) {
+
+    int sid = syscall(SYS_gettid);
+    get_log()->d(TAG_WORKER, "read_work %d", sid);
 
     // Casts the parameter
     WorkerPtr worker = (WorkerPtr) arg;
@@ -257,6 +265,8 @@ void *read_work(void *arg) {
 
 void *write_work(void *arg) {
 
+    int sid = syscall(SYS_gettid);
+    get_log()->d(TAG_WORKER, "write_work %d", sid);
 
     // Casts the parameter
     WorkerPtr worker = (WorkerPtr) arg;
@@ -266,6 +276,8 @@ void *write_work(void *arg) {
     RequestQueuePtr queue = worker->requests_queue;
 
     while(TRUE) {
+
+        usleep(1000000);
 
         // Gets node
         RequestNodePtr node = queue->get_front(queue);
@@ -359,7 +371,10 @@ void *write_work(void *arg) {
 
 void start_worker() {
 
-    get_log()->d(TAG_WORKER, "%ld - start_worker", (long) getpid());
+    int sid = syscall(SYS_gettid);
+    get_log()->d(TAG_WORKER, "start_worker %d", sid);
+
+    //get_log()->d(TAG_WORKER, "%ld - start_worker", (long) getpid());
 
     while(TRUE) {
 

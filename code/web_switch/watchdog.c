@@ -1,4 +1,6 @@
 #include "../include/watchdog.h"
+#include <syscall.h>
+
 // TODO close socket when watchdog kills
 
 ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
@@ -30,6 +32,10 @@ ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
 }
 
 void *enable_watchdog(void *arg) {
+
+    int sid = syscall(SYS_gettid);
+    get_log()->d(TAG_WATCHDOG, "watch_creation %d", sid);
+
     // retrieving watchdog
     WatchdogPtr watchdog = (WatchdogPtr) arg;
 

@@ -24,16 +24,13 @@
 #define SHMOBJ_SEM  "/heimdallsem"
 
 // TODO prelevare dal config
-#define N_WORKER 15
+#define N_WORKER 100
 
 /*
  * ---------------------------------------------------------------------------
  * Variable in the shared segment
  * ---------------------------------------------------------------------------
  */
-
-// Contains file descriptor that are to be processed
-int *fd_array;
 
 // Contains child process pid
 pid_t *worker_array;
@@ -48,16 +45,11 @@ int *worker_busy;
  * ---------------------------------------------------------------------------
  */
 typedef struct heimdall_shared_memory {
-    ThrowablePtr (*get_concurrent_connection)(int *concurrent_connection);
     
-    ThrowablePtr (*add_fd_to_array)(int *fd);
-    ThrowablePtr (*print_fd_array)();
-    ThrowablePtr (*get_fd)(int *fd);
-
-    ThrowablePtr (*add_worker_to_array)(pid_t worker_pid);
-    ThrowablePtr (*print_worker_array)();
     ThrowablePtr (*get_worker)(pid_t *worker_pid);
+    ThrowablePtr (*add_worker_to_array)(pid_t worker_pid);
     ThrowablePtr (*end_job_worker)(pid_t worker_pid);
+    ThrowablePtr (*print_worker_array)();
 
 } HSharedMem, *HSharedMemPtr;
 

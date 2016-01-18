@@ -84,7 +84,7 @@ static int d(const char* tag, const char *format, ...) {
     int level = 2;
     //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable = 0;
+    int print_enable = 1;
     //str_to_int(config->print_enable, &print_enable);
 
     if (DEBUG_LEVEL >= level && print_enable == 1) {
@@ -135,7 +135,7 @@ static int e(const char* tag, const char *format, ...) {
     int level = 2;
     //str_to_int(config->log_level, &level); TOTO settato manualmente
 
-    int print_enable = 0;
+    int print_enable = 1;
     //str_to_int(config->print_enable, &print_enable);
 
     if (ERROR_LEVEL >= level && print_enable == 1) {

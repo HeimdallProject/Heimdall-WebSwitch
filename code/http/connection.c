@@ -137,8 +137,7 @@ ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
 }
 
 ThrowablePtr accept_connection(const int sockfd, int *connection) {
-    get_log()->d(TAG_CONNECTION, "%ld accept_connection sockfd %d", (long) getpid(), sockfd);
-
+    
     if ((*connection = accept(sockfd, (struct sockaddr *)NULL, NULL)) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "accept_connection");
     }
@@ -148,7 +147,7 @@ ThrowablePtr accept_connection(const int sockfd, int *connection) {
 ThrowablePtr close_connection(const int connection) {
     get_log()->d(TAG_CONNECTION, "%ld close_connection sockfd %d", (long) getpid(), connection);
 
-    if (shutdown(connection, SHUT_RDWR) == -1) {
+    if (close(connection) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - shutdown");
     }
     return get_throwable()->create(STATUS_OK, NULL, "close_connection");

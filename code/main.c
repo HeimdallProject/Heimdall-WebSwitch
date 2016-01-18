@@ -37,38 +37,6 @@ static void set_fd_limit(){
     setrlimit(RLIMIT_NOFILE, &open_file_limit);
 }
 
-// /*
-//  * ---------------------------------------------------------------------------
-//  * Function   : worker_sig_handler
-//  * Description: Function where worker start is execution when 
-//                 receive signal SIGUSR1 from main.
-//  * ---------------------------------------------------------------------------
-//  */
-// static void worker_sig_handler(int sig){
-    
-//     UNUSED(sig);
-    
-//     int *file_descriptor = malloc(sizeof(int));
-//     if (file_descriptor == NULL) {
-//         get_log()->e(TAG_THREAD_POOL, "Memory allocation error in worker_sig_handler!");
-//         exit(EXIT_FAILURE);
-//     }
-
-//     // open unix socket for receice fd from thread pool
-//     ThrowablePtr throwable = receive_fd(file_descriptor);
-//     if (throwable->is_an_error(throwable)) {
-//         get_log()->e(TAG_THREAD_POOL, "Error in receive_fd()");
-//         get_log()->t(throwable);
-//         exit(EXIT_SUCCESS);
-//     }
-
-//     get_log()->i(TAG_THREAD_POOL, "%ld riceived fd %d", (long)getpid(), *file_descriptor);
-
-//     // see worker.c
-//     start_worker(*file_descriptor);
-//     return;
-// }
-
 /*
  * ---------------------------------------------------------------------------
  * Function   : do_prefork
@@ -80,7 +48,7 @@ static void set_fd_limit(){
     ConfigPtr config = get_config();
     UNUSED(config);
 
-    int n_prefork = 15;
+    int n_prefork = N_WORKER;
     //str_to_int(config->pre_fork, &n_prefork); TOTO settato manualmente
 
     // TODO create at least one child if prefork is disabled
@@ -89,8 +57,6 @@ static void set_fd_limit(){
 
     int children;
     for (children = 0; children < n_prefork; ++children){
-
-        /*get_log()->d(TAG_MAIN, "Create child n°%d", children);*/
 
         pid_t child_pid;
         errno = 0;
@@ -101,33 +67,20 @@ static void set_fd_limit(){
 
         // Child 
         if (child_pid == 0){
-                        
-            // ThrowablePtr throwable = set_signal(SIGUSR1, start_worker);
-            // if (throwable->is_an_error(throwable)) {
-            //     get_log()->t(throwable);
-            //     // set signal failure, bye bye
-            //     exit(EXIT_FAILURE);
-            // }
 
-            // pause();
-
+            // see worker.c
             start_worker();
             break;
 
         }else{
 
+            get_log()->d(TAG_MAIN, "Created child n°%d - pid %ld", children, child_pid);
+
             HSharedMemPtr shm_mem = get_shm();
             ThrowablePtr throwable = shm_mem->add_worker_to_array(child_pid);
             if (throwable->is_an_error(throwable)) {
                 get_log()->t(throwable);
-                exit(EXIT_SUCCESS);
             } 
-            
-/*            // last loop, print pool
-            if(children == n_prefork - 1){
-                shm_mem->print_worker_array();
-            }*/
-
         }
     }
 
@@ -151,11 +104,6 @@ int main() {
     if (log == NULL)
         exit(EXIT_FAILURE);
 
-    // Initializes Thread Pool
-    // ThreadPoolPtr th_pool = get_thread_pool();
-    // if (th_pool == NULL)
-    //     exit(EXIT_FAILURE);
-
     // Initializes Scheduler
     SchedulerPtr scheduler = get_scheduler();
     if (scheduler == NULL)
@@ -166,21 +114,20 @@ int main() {
     if (shm_mem == NULL)
         exit(EXIT_FAILURE);
 
-    log->i(TAG_MAIN, "Start main program");
-    log->i(TAG_MAIN, "Config started");
-    log->i(TAG_MAIN, "Log started");
-    log->i(TAG_MAIN, "Thread Pool started");
-    log->i(TAG_MAIN, "Scheduler started");
-
-    // TODO pass limit from config
-    set_fd_limit();
-
     // Spawn child process
     ThrowablePtr throwable = do_prefork();
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
     } 
+
+    // Initializes Thread Pool
+    ThreadPoolPtr th_pool = get_thread_pool();
+    if (th_pool == NULL)
+        exit(EXIT_FAILURE);
+
+    // // TODO pass limit from config
+    set_fd_limit();
 
     // TODO maybe another value to set into config
     int port = 8080;  
@@ -204,67 +151,26 @@ int main() {
 
     log->i(TAG_MAIN, "Ready to accept incoming connections...");
 
+    int conunt = 0;
+
     // Starts to listen incoming connections
     while(TRUE) {
-
-        log->i(TAG_MAIN, "Entering in loop");
-
-        while(TRUE){
-
-            int cc_conn = 0;
-
-            throwable = shm_mem->get_concurrent_connection(&cc_conn);
-            if (throwable->is_an_error(throwable)) {
-                log->t(throwable);
-            }
-
-            // TODO get 15 from config
-            if (cc_conn == 15) {
-                log->i(TAG_MAIN, "No fd space available, wait for space.");
-                usleep(500000);
-            } else {
-                break;
-            }
-        }
 
         // Accepts new connection
         int new_sockfd;
         throwable = accept_connection(sockfd, &new_sockfd);
+        conunt++;
         if (throwable->is_an_error(throwable)) {
             log->t(throwable);
             exit(EXIT_FAILURE);
         }
 
-        throwable = shm_mem->add_fd_to_array(&new_sockfd);
+        throwable = th_pool->add_fd_to_array(&new_sockfd);
         if (throwable->is_an_error(throwable)) {
             log->t(throwable);
             exit(EXIT_FAILURE);
         };
 
-        throwable = shm_mem->print_fd_array();
-        if (throwable->is_an_error(throwable)) {
-            log->t(throwable);
-        } 
-
-        pid_t worker_pid = 0;
-        throwable = shm_mem->get_worker(&worker_pid);
-        if (throwable->is_an_error(throwable)) {
-            log->t(throwable);
-            exit(EXIT_SUCCESS);
-        } 
-
-        // wake up worker
-        //kill(worker_pid, SIGUSR1);
-
-        while (TRUE){
-            throwable = send_fd(new_sockfd, worker_pid);
-            if (throwable->is_an_error(throwable)) {
-                get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long) worker_pid);
-            } else {
-                break;
-            }
-        }
-
-        log->i(TAG_MAIN, "New connection accepted on socket number %d", new_sockfd);
+        log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, conunt);
     }
 }

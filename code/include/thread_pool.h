@@ -15,8 +15,7 @@
 #include <pthread.h>
 #include <signal.h>
 
-#include "../include/fd_pool.h"
-#include "../include/worker_pool.h"
+#include "../include/heimdall_shm.h"
 #include "../include/worker.h"
 #include "../include/log.h"
 #include "../include/heimdall_config.h"
@@ -26,6 +25,8 @@
 #include "../include/connection.h"
 
 #define TAG_THREAD_POOL "THREAD_POOL"
+#define MAX_SEND_ATTEMPT 5
+#define N_MAX_FD 1024
 
 /*
  * ---------------------------------------------------------------------------
@@ -39,7 +40,8 @@
  */
 typedef struct thread_pool {
     pthread_t thread_identifier;
-    ThrowablePtr (*get_worker)(int fd);
+    ThrowablePtr (*add_fd_to_array)(int *fd);
+    ThrowablePtr (*print_fd_array)();
 } ThreadPool, *ThreadPoolPtr;
 
 /*

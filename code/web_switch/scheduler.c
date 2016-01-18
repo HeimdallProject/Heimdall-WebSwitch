@@ -18,7 +18,7 @@ ServerPtr get_ready_server(RRobinPtr rrobin) {
 }
 
 ThrowablePtr apache_score(ServerNodePtr server) {
-    get_log()->d(TAG_SCHEDULER, "scoring routine...");
+    /*get_log()->d(TAG_SCHEDULER, "scoring routine...");*/
     // throwable aux variable
     ThrowablePtr throwable;
 
@@ -57,14 +57,14 @@ ThrowablePtr apache_score(ServerNodePtr server) {
             (WEIGHT_MAXIMUM - WEIGHT_DEFAULT)   /
             (TOTAL_WORKERS  - WEIGHT_DEFAULT)   +   WEIGHT_DEFAULT;
     server->weight = score;
-    get_log()->d(TAG_SCHEDULER, "[SCORE: %d (%s)]", score, server->host_ip);
+    /*get_log()->d(TAG_SCHEDULER, "[SCORE: %d (%s)]", score, server->host_ip);*/
 
     return get_throwable()->create(STATUS_OK, NULL, "apache_score");
 }
 
 void *update_server_routine(void *arg) {
 
-    get_log()->d(TAG_SCHEDULER, "Scheduler update routine init...");
+    /*get_log()->d(TAG_SCHEDULER, "Scheduler update routine init...");*/
 
     // initiliazing throwable
     ThrowablePtr throwable;
@@ -88,7 +88,7 @@ void *update_server_routine(void *arg) {
     ServerNodePtr node;
     for(;;)
         if (time(NULL) - up_since > up_time) {
-            get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATING]");
+            /*get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATING]");*/
             // initializing flag
             proceed = 0;
             // scanning across the serverpool
@@ -114,7 +114,7 @@ void *update_server_routine(void *arg) {
                     return NULL;
                 }
             }
-            get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATE COMPLETE]");
+           /* get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATE COMPLETE]");*/
             // updating timestamp
             up_since = time(NULL);
         }
@@ -205,7 +205,7 @@ SchedulerPtr get_scheduler() {
         return scheduler_singleton;
     } else {
         // getting awareness level from configuration file
-        int awareness = 1;  // TODO set manually
+        int awareness = 0;  // TODO set manually
 /*        ConfigPtr config = get_config();
         ThrowablePtr throwable = str_to_int(config->algorithm_selection, &awareness);
         if (throwable->is_an_error(throwable)) {

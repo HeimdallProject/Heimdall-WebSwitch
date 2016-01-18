@@ -90,7 +90,7 @@ static void set_fd_limit(){
     int children;
     for (children = 0; children < n_prefork; ++children){
 
-        get_log()->d(TAG_MAIN, "Create child n°%d", children);
+        /*get_log()->d(TAG_MAIN, "Create child n°%d", children);*/
 
         pid_t child_pid;
         errno = 0;
@@ -123,10 +123,10 @@ static void set_fd_limit(){
                 exit(EXIT_SUCCESS);
             } 
             
-            // last loop, print pool
+/*            // last loop, print pool
             if(children == n_prefork - 1){
                 shm_mem->print_worker_array();
-            }
+            }*/
 
         }
     }
@@ -222,7 +222,7 @@ int main() {
             if (cc_conn == 15) {
                 log->i(TAG_MAIN, "No fd space available, wait for space.");
                 usleep(500000);
-            }else{
+            } else {
                 break;
             }
         }
@@ -256,11 +256,11 @@ int main() {
         // wake up worker
         //kill(worker_pid, SIGUSR1);
 
-        while (TRUE){
+        while (TRUE) {
             ThrowablePtr throwable = send_fd(new_sockfd, worker_pid);
             if (throwable->is_an_error(throwable)) {
-                get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long)worker_pid);
-            }else{
+                get_log()->e(TAG_THREAD_POOL, "Failed attempt to send file descriptor to %ld", (long) worker_pid);
+            } else {
                 break;
             }
         }

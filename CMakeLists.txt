@@ -4,7 +4,7 @@ project(WebSwitch C)
 FIND_PACKAGE (Threads)
 FIND_LIBRARY(M_LIB m)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
 
 set(SOURCE_FILES_MAIN
         code/main.c

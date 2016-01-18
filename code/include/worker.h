@@ -8,8 +8,6 @@
 #define WEBSWITCH_WORKER_H
 #define _GNU_SOURCE
 
-#define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>

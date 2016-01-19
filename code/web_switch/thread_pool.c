@@ -126,16 +126,16 @@ static void thread_pool_loop(){
 
 	for (;;) {
 
-		ThrowablePtr  throwable = shm_mem->print_worker_array();
+		/*ThrowablePtr  throwable = shm_mem->print_worker_array();
 		if (throwable->is_an_error(throwable)) {
         	get_log()->t(throwable);
-		} 
+		} */
 
 		int fd = 0;
-        throwable = get_fd(&fd);
+        ThrowablePtr throwable = get_fd(&fd);
         if (throwable->is_an_error(throwable)) {
-            get_log()->i(TAG_THREAD_POOL, "No fd to serve.");
-            usleep(500000);
+            //get_log()->i(TAG_THREAD_POOL, "No fd to serve.");
+            throwable->destroy(throwable);
             continue;
         }
 
@@ -143,13 +143,13 @@ static void thread_pool_loop(){
 
         while(TRUE){
 
-        	get_log()->i(TAG_THREAD_POOL, "Passo FD %d", fd);
+        	//get_log()->i(TAG_THREAD_POOL, "Passo FD %d", fd);
 
 			// get worker from shared memory
 	        throwable = shm_mem->get_worker(&worker_pid);
 	        if (throwable->is_an_error(throwable)) {
-	            get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
-	            usleep(500000);
+	            //get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
+	            throwable->destroy(throwable);
 	            continue;
 	        } else{
 	        	break;
@@ -164,7 +164,8 @@ static void thread_pool_loop(){
 		            
 			throwable = send_fd(fd, worker_pid);
 			if (throwable->is_an_error(throwable)) {
-				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
+				//get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
+				throwable->destroy(throwable);
 				attempt++;
 			}else{
 				break;

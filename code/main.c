@@ -81,6 +81,13 @@ static void set_fd_limit(){
             if (throwable->is_an_error(throwable)) {
                 get_log()->t(throwable);
             } 
+
+            if (children == n_prefork - 1){
+                ThrowablePtr throwable = shm_mem->print_worker_array();
+                if (throwable->is_an_error(throwable)) {
+                    get_log()->t(throwable);
+                } 
+            }
         }
     }
 
@@ -165,11 +172,15 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-        throwable = th_pool->add_fd_to_array(&new_sockfd);
-        if (throwable->is_an_error(throwable)) {
-            log->t(throwable);
-            exit(EXIT_FAILURE);
-        };
+        while(TRUE){
+            throwable = th_pool->add_fd_to_array(&new_sockfd);
+            if (throwable->is_an_error(throwable)) {
+                //log->t(throwable);
+                usleep(500000);
+            }else{
+                break;
+            }
+        }
 
         log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, conunt);
     }

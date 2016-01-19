@@ -100,8 +100,6 @@ static ThrowablePtr add_worker_to_array(pid_t worker_pid){
     if(sem_post(sem_id) == -1)
         return get_throwable()->create(STATUS_ERROR, "sem_post", "add_worker_to_array");
 
-    print_worker_array();
-
     if (flag == 0){
         return get_throwable()->create(STATUS_ERROR, "Cannot add worker_pid to array", "add_worker_to_array");        
     }else{

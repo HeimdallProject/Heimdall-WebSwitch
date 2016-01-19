@@ -127,13 +127,14 @@ void *update_server_routine(void *arg) {
 SchedulerPtr init_scheduler(int awareness_level) {
 
     // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
-    //char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
-    //char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
-    //int n = 3;
 
-    char *servers_addresses[1] = {"bifrost.asgard"};
+    char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
+    char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
+    int n = 3;
+
+    /*char *servers_addresses[1] = {"bifrost.asgard"};
     char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;
+    int n = 1;*/
 
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));

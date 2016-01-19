@@ -72,6 +72,10 @@ void *request_work(void *arg) {
     host = get_scheduler()->get_server(get_scheduler()->rrobin)->ip;
     get_log()->d(TAG_WORKER, "HOST: %s", host);
 
+    // Logging - request
+    HTTPRequestPtr request = node->request;
+    get_log()->r(RQST, (void *)request, host);
+
     // Creates a new client
     int sockfd;
     ThrowablePtr throwable = create_client_socket(TCP, host, 80, &sockfd);
@@ -133,6 +137,11 @@ void *request_work(void *arg) {
 
         return NULL;
     }
+
+    // Logging - response
+    HTTPResponsePtr response = node->response;
+    get_log()->r(RESP, (void *)response, host);
+
 
     // Sends signal to condition
     if (pthread_cond_signal(&node->condition) != 0) {
@@ -332,42 +341,12 @@ void *write_work(void *arg) {
             node->destroy(node);
 
             get_log()->i(TAG_WORKER, "%ld - Request dequeued!", (long) getpid());
-            
-//            // Gets mutex
-//             if (pthread_mutex_lock(&mtx_thr_request) != 0) {
-//                 get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
-//                 worker->writer_thread_status = STATUS_ERROR;
-//                 return NULL;
-//             }
-//
-//             // Set condition request for perfom something on the pool
-//             thread_req--;
-//
-//             // Sends signal to condition
-//             if (pthread_cond_signal(&cond_thr_request) != 0) {
-//                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-//             }
-//
-//             // Releases mutex
-//             if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
-//                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-//             }
+
         }
     }
     
     return NULL;
 }
-
-// void handler_sig(int signo) {
-
-//     get_log()->i(TAG_WORKER, "\n\n\n\n\n\n\n\n BOOOOM!\nBOOOOM!\nBOOOOM!\nBOOOOM!\nBOOOOM!\nBOOOOM!\nBOOOOM!\nBOOOOM!\n \n\n\n\n\n %d", signo);
-
-//     //update_shm2();
-
-//     get_log()->d(TAG_WORKER, "End job (error2), Bye bye %ld", (long)getpid());
-
-//     exit(EXIT_FAILURE);
-// }
 
 void start_worker() {
 

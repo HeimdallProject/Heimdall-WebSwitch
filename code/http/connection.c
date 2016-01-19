@@ -137,7 +137,7 @@ ThrowablePtr hostname_to_ip(char *hostname , char *ip) {
 }
 
 ThrowablePtr accept_connection(const int sockfd, int *connection) {
-    
+
     if ((*connection = accept(sockfd, (struct sockaddr *)NULL, NULL)) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "accept_connection");
     }
@@ -518,12 +518,22 @@ ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
 }
 
 ThrowablePtr receive_http_response_header(int sockfd, HTTPResponsePtr http_response) {
-    get_log()->d(TAG_CONNECTION, "%ld receive_http_response_header Sokfd %d", (long) getpid(), sockfd);
-
     // Calls more general function receive_http_request
-    ThrowablePtr throwable = receive_http_request(sockfd, http_response->response);
+    /*ThrowablePtr throwable = receive_http_request(sockfd, http_response->response);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "receive_http_response_header");
+    }*/
+    // Receives the header
+    ThrowablePtr throwable = receive_http_header2(sockfd, http_response->response);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "receive_http_response");
+    }
+
+
+    // Parses it into the structure
+    throwable = http_response->response->read_headers(http_response->response, http_response->response->header, RESP);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "receive_http_response");
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_response_header");
@@ -571,7 +581,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         ssize_t size = (http_response->response->req_content_len - total_received >= http_response->response->req_content_len) ? http_response->response->req_content_len : http_response->response->req_content_len - total_received;
 
         // Reads from the socket and it puts the response into the chunk
-        last_received = read(sockfd, chunk->data, size);
+        last_received = read(sockfd, chunk->data, (size_t) http_response->response->req_content_len);
         
         if (last_received == -1) {   // There is an error
             

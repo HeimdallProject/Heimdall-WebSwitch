@@ -112,4 +112,6 @@ void start_worker();
  */
 WorkerPtr new_worker();
 
+WorkerPtr get_worker();
+
 #endif //WEBSWITCH_WORKER_H

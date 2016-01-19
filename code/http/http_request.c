@@ -109,6 +109,7 @@ ThrowablePtr get_request(HTTPRequestPtr self, char *req_line, int len) {
         if (req_line[i] == delimiter) {
             switch (counter) {
                 case 1:
+                    req_line[i] = '\0';
                     if (asprintf(&self->req_type, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
                     }
@@ -116,6 +117,7 @@ ThrowablePtr get_request(HTTPRequestPtr self, char *req_line, int len) {
                     counter++;
                     break;
                 case 2:
+                    req_line[i] = '\0';
                     if (asprintf(&self->req_resource, "%s", &req_line[start]) == -1) {
                         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_request");
                     }
@@ -340,6 +342,11 @@ ThrowablePtr make_simple_request(HTTPRequestPtr self, char **result) {
     }
 
 
+    get_log()->e(TAG_HTTP_REQUEST, "%s\n%s\n%s\n%s\n",
+                 self->req_type,
+                 self->req_resource,
+                 self->req_protocol,
+                 self->req_host);
 
     if (asprintf(result, "%s %s %s\nHost: %s\n\n", self->req_type, self->req_resource, self->req_protocol, self->req_host) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "get_response");

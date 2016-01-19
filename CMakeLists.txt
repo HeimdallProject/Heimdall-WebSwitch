@@ -4,7 +4,7 @@ project(WebSwitch C)
 FIND_PACKAGE (Threads)
 FIND_LIBRARY(M_LIB m)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Werror -Wextra -fno-strict-aliasing -pthread")
 
 set(SOURCE_FILES_MAIN
         code/main.c
@@ -18,8 +18,7 @@ set(SOURCE_FILES_MAIN
         code/utils/helper.c
         code/utils/throwable.c
         code/web_switch/apache_status.c
-        #code/web_switch/thread_pool.c
-        code/web_switch/worker_pool.c
+        code/web_switch/thread_pool.c
         code/web_switch/message_controller.c
         code/utils/unix_socket.c
         code/web_switch/circular.c
@@ -29,7 +28,6 @@ set(SOURCE_FILES_MAIN
         code/web_switch/chunk.c
         code/web_switch/request_node.c
         code/web_switch/request_queue.c
-        #code/web_switch/fd_pool.c
         code/web_switch/heimdall_shm.c)
 
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})

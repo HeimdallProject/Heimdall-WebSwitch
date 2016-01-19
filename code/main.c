@@ -221,7 +221,7 @@ int main() {
             // TODO get 15 from config
             if (cc_conn == 15) {
                 log->i(TAG_MAIN, "No fd space available, wait for space.");
-                usleep(500000);
+                usleep(25000);
             } else {
                 break;
             }

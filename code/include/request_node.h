@@ -12,9 +12,9 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#include "../include/log.h"
 #include "../include/http_request.h"
 #include "../include/http_response.h"
-#include "../include/log.h"
 #include "../include/macro.h"
 #include "../include/chunk.h"
 

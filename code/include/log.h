@@ -17,6 +17,9 @@
 #include "../include/helper.h"
 #include "../include/throwable.h"
 #include "../include/heimdall_config.h"
+#include "../include/http_request.h"
+#include "../include/http_response.h"
+
 
 #define DEBUG_LEVEL   2
 #define INFO_LEVEL    3
@@ -51,6 +54,7 @@ typedef struct log {
     int (*d)(const char* tag, const char *format, ...);
     int (*i)(const char* tag, const char *format, ...);
     int (*e)(const char* tag, const char *format, ...);
+    int (*r)(int type, void *arg, char *host);
     void (*t)(ThrowablePtr throwable);
 } Log, *LogPtr;
 

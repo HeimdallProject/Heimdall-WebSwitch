@@ -136,7 +136,7 @@ ThrowablePtr accept_connection(const int sockfd, int *connection) {
 }
 
 ThrowablePtr close_connection(const int connection) {
-    struct linger so_linger;
+    /*struct linger so_linger;
     so_linger.l_onoff = TRUE;
     so_linger.l_linger = 0;
     if (setsockopt(connection, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger) == -1) {
@@ -148,6 +148,10 @@ ThrowablePtr close_connection(const int connection) {
     }
     if (close(connection) == -1)
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - close");
+    */
+    if (shutdown(connection, SHUT_RDWR) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "close_connection - shutdown");
+    }
     return get_throwable()->create(STATUS_OK, NULL, "close_connection");
 }
 
@@ -185,6 +189,8 @@ ThrowablePtr send_http_request(int sockfd, HTTPRequestPtr http_request) {
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "send_http_request_1");
     }
+
+    get_log()->e(TAG_HTTP_REQUEST, "REQUEST: %s", request_message);
 
     // Sends request
     throwable = send_http(sockfd, request_message, strlen(request_message));
@@ -483,7 +489,6 @@ ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
         return throwable->thrown(throwable, "receive_http_request");
     }
 
-    get_log()->d(TAG_CONNECTION, http_request->header);
 
     // Parses it into the structure
     throwable = http_request->read_headers(http_request, http_request->header, RQST);
@@ -496,9 +501,21 @@ ThrowablePtr receive_http_request(int sockfd, HTTPRequestPtr http_request) {
 
 ThrowablePtr receive_http_response_header(int sockfd, HTTPResponsePtr http_response) {
     // Calls more general function receive_http_request
-    ThrowablePtr throwable = receive_http_request(sockfd, http_response->response);
+    /*ThrowablePtr throwable = receive_http_request(sockfd, http_response->response);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "receive_http_response_header");
+    }*/
+    // Receives the header
+    ThrowablePtr throwable = receive_http_header2(sockfd, http_response->response);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "receive_http_response");
+    }
+
+
+    // Parses it into the structure
+    throwable = http_response->response->read_headers(http_response->response, http_response->response->header, RESP);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "receive_http_response");
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_response_header");
@@ -537,7 +554,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         }
 
         // Calculates the size to read
-        ssize_t size = (http_response->response->req_content_len - total_received >= http_response->response->req_content_len) ? http_response->response->req_content_len : http_response->response->req_content_len - total_received;
+        //ssize_t size = (http_response->response->req_content_len - total_received >= http_response->response->req_content_len) ? http_response->response->req_content_len : http_response->response->req_content_len - total_received;
 
         // Reads from the socket and it puts the response into the chunk
         last_received = read(sockfd, chunk->data, (size_t) http_response->response->req_content_len);

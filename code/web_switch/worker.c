@@ -460,10 +460,14 @@ void start_worker() {
             get_log()->d(TAG_WORKER, "End connection job (all ok) - %ld", (long) getpid());
         }
 
-        get_log()->d(TAG_WORKER, "%ld -> CLOSE", (long)getpid());
+        get_log()->d(TAG_WORKER, "%ld -> CLOSE %d", (long)getpid(), worker->sockfd);
 
         // close socket connection
-        close_connection(file_descriptor);
+        throwable = close_connection(worker->sockfd);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+        }
+
 
         char *pathname;
         if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long) getpid()) < 0) {

@@ -158,7 +158,7 @@ int main() {
 
     log->i(TAG_MAIN, "Ready to accept incoming connections...");
 
-    int conunt = 0;
+    int count = 0;
 
     // Starts to listen incoming connections
     while(TRUE) {
@@ -166,7 +166,7 @@ int main() {
         // Accepts new connection
         int new_sockfd;
         throwable = accept_connection(sockfd, &new_sockfd);
-        conunt++;
+        count++;
         if (throwable->is_an_error(throwable)) {
             log->t(throwable);
             exit(EXIT_FAILURE);
@@ -175,13 +175,13 @@ int main() {
         while(TRUE){
             throwable = th_pool->add_fd_to_array(&new_sockfd);
             if (throwable->is_an_error(throwable)) {
-                //log->t(throwable);
-                usleep(500000);
+                //get_log()->i(TAG_THREAD_POOL, "No space for FD available, wait for space.");
+                throwable->destroy(throwable);
             }else{
                 break;
             }
         }
 
-        log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, conunt);
+        log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, count);
     }
 }

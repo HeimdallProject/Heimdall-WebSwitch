@@ -143,8 +143,6 @@ static void thread_pool_loop(){
 
         while(TRUE){
 
-        	//get_log()->i(TAG_THREAD_POOL, "Passo FD %d", fd);
-
 			// get worker from shared memory
 	        throwable = shm_mem->get_worker(&worker_pid);
 	        if (throwable->is_an_error(throwable)) {
@@ -155,8 +153,6 @@ static void thread_pool_loop(){
 	        	break;
 	        }
         }
-
-		get_log()->i(TAG_THREAD_POOL, "Invio FD %d a worker %ld", fd, (long)worker_pid);
 
 		int attempt = 0;
 
@@ -176,6 +172,12 @@ static void thread_pool_loop(){
 			kill(worker_pid, SIGKILL);
 			get_log()->e(TAG_THREAD_POOL, "Failed all attempts to send file descriptor to %ld", (long) worker_pid);
 		}
+
+		// close fd from main side
+		throwable = close_connection(fd);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+        }
 	}
 }
 

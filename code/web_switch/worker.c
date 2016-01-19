@@ -198,7 +198,6 @@ void *read_work(void *arg) {
     RequestQueuePtr queue = worker->requests_queue;
 
     while (TRUE) {
-<<<<<<< HEAD
 
 
 //        // Gets mutex
@@ -218,8 +217,6 @@ void *read_work(void *arg) {
 //             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
 //         }
 
-=======
->>>>>>> 0538364b491642cc97ced217ded1c56a57c198c9
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node
@@ -235,8 +232,10 @@ void *read_work(void *arg) {
         ThrowablePtr throwable = receive_http_request(worker->sockfd, node->request);
         if (throwable->is_an_error(throwable)) {
             get_log()->t(throwable);
-            // TODO: is it an error? if 0 bytes is read is not error!
             worker->reader_thread_status = STATUS_ERROR;
+            // TODO: is it an error? if 0 bytes is read is not error!
+            worker->worker_await_flag = WATCH_OVER;
+            pthread_cond_signal(&worker->await_cond);
             pthread_exit(NULL);
         }
 

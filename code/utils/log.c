@@ -12,8 +12,6 @@ static Log *singleton_log = NULL;
  * Description  : Global variable, singleton instance of log file pointer
  * * ---------------------------------------------------------------------------
  */
-static FILE *req_log      = NULL;
-static FILE *resp_log     = NULL;
 
 
 //TODO use a more low level API in order to avoid swap printing
@@ -41,7 +39,6 @@ static int i(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    /*
     int level = 2;
     //str_to_int(config->log_level, &level); TODO settato manualmente
 
@@ -66,7 +63,7 @@ static int i(const char* tag, const char *format, ...) {
         fflush(stdout);
         free(output);
     }
-    */
+
     return byte_read;
     //TODO scrivere sul file se variabile è settata nel config
 }
@@ -96,8 +93,6 @@ static int d(const char* tag, const char *format, ...) {
 
     int byte_read = 0;
 
-    /*
-
     int level = 2;
     //str_to_int(config->log_level, &level); TOTO settato manualmente
 
@@ -122,7 +117,6 @@ static int d(const char* tag, const char *format, ...) {
         fflush(stdout);
         free(output);
     }
-    */
     return byte_read;
 }
 
@@ -218,14 +212,15 @@ static int r(int type, void *arg, char *remote) {
         // handling request logging routine
         if (type == RQST) {
 
+            // initializing file pointer
+            FILE *req_log;
+            // retrieving arg
             HTTPRequestPtr request = arg;
 
             // retrieving log file pointer or allocating it
+            req_log = fopen("/vagrant/log/heimdall_req.log", "a");
             if (req_log == NULL) {
-                req_log = fopen("/vagrant/log/heimdall_req.log", "a");
-                if (req_log == NULL) {
-                    fprintf(stderr, "Error in log file opening!\n");
-                }
+                fprintf(stderr, "Error in log file opening!\n");
             }
             // formatting log line
             byte_write = asprintf(&line, "[%s] - %s to: %s  - -  %s %s %s\n",
@@ -244,14 +239,15 @@ static int r(int type, void *arg, char *remote) {
         // handling response logging routine
         if (type == RESP) {
 
+            // initializing file pointer
+            FILE *resp_log;
+            // retrieving args
             HTTPRequestPtr response = ((HTTPResponsePtr) arg)->response;
 
             // retrieving log file pointer or allocating it
+            resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
             if (resp_log == NULL) {
-                resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
-                if (req_log == NULL) {
-                    fprintf(stderr, "Error in log file opening!\n");
-                }
+                fprintf(stderr, "Error in log file opening!\n");
             }
             // formatting log line
             byte_write = asprintf(&line, "[%s] - %s response to Heimdall: %s %s %s\n",
@@ -334,20 +330,20 @@ Log *get_log() {
         singleton_log = new_log();
     }
 
+    // initializing file pointers
+    FILE *req_log;
+    FILE *resp_log;
+
+    req_log = fopen("/vagrant/log/heimdall_req.log", "a");
     if (req_log == NULL) {
-        req_log = fopen("/vagrant/log/heimdall_req.log", "a");
-        if (req_log == NULL) {
-            fprintf(stderr, "Error in log file opening!\n");
-            exit(EXIT_FAILURE);
-        }
+        fprintf(stderr, "Error in log file opening!\n");
+        exit(EXIT_FAILURE);
     }
 
+    resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
     if (resp_log == NULL) {
-        resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
-        if (req_log == NULL) {
-            fprintf(stderr, "Error in log file opening!\n");
-            exit(EXIT_FAILURE);
-        }
+        fprintf(stderr, "Error in log file opening!\n");
+        exit(EXIT_FAILURE);
     }
 
     // return singleton

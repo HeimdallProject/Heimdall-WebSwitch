@@ -581,7 +581,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         ssize_t size = (http_response->response->req_content_len - total_received >= http_response->response->req_content_len) ? http_response->response->req_content_len : http_response->response->req_content_len - total_received;
 
         // Reads from the socket and it puts the response into the chunk
-        last_received = read(sockfd, chunk->data, (size_t) http_response->response->req_content_len);
+        last_received = read(sockfd, chunk->data, (size_t) size);
         
         if (last_received == -1) {   // There is an error
             

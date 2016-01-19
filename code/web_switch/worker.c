@@ -198,8 +198,6 @@ void *read_work(void *arg) {
     RequestQueuePtr queue = worker->requests_queue;
 
     while (TRUE) {
-<<<<<<< HEAD
-
 
 //        // Gets mutex
 //        if (pthread_mutex_lock(&mtx_thr_request) != 0) {
@@ -218,8 +216,6 @@ void *read_work(void *arg) {
 //             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
 //         }
 
-=======
->>>>>>> 0538364b491642cc97ced217ded1c56a57c198c9
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node

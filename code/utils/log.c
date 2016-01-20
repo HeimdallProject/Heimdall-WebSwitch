@@ -7,6 +7,9 @@
  */
 static Log *singleton_log = NULL;
 
+static FILE *req_log;
+static FILE *resp_log;
+
 /*
  * ---------------------------------------------------------------------------
  * Description  : Global variable, singleton instance of log file pointer
@@ -202,7 +205,7 @@ static int r(int type, void *arg, char *remote) {
 
     int byte_write = 0;
 
-    int print_enable = 1;
+    int print_enable = 0;
     //str_to_int(config->print_enable, &print_enable); TODO settato manualmente
 
     if (print_enable == 1) {
@@ -218,6 +221,7 @@ static int r(int type, void *arg, char *remote) {
             HTTPRequestPtr request = arg;
 
             // retrieving log file pointer or allocating it
+            // TODO get from config
             req_log = fopen("/vagrant/log/heimdall_req.log", "a");
             if (req_log == NULL) {
                 fprintf(stderr, "Error in log file opening!\n");
@@ -245,6 +249,7 @@ static int r(int type, void *arg, char *remote) {
             HTTPRequestPtr response = ((HTTPResponsePtr) arg)->response;
 
             // retrieving log file pointer or allocating it
+            // TODO get from config
             resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
             if (resp_log == NULL) {
                 fprintf(stderr, "Error in log file opening!\n");
@@ -303,6 +308,20 @@ Log *new_log() {
         exit(EXIT_FAILURE);
     }
 
+    // TODO set in config
+    req_log = fopen("/vagrant/log/heimdall_req.log", "a");
+    if (req_log == NULL) {
+        fprintf(stderr, "Error in log file opening!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // TODO set in config
+    resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
+    if (resp_log == NULL) {
+        fprintf(stderr, "Error in log file opening!\n");
+        exit(EXIT_FAILURE);
+    }
+
     // Set "methods"
     log->d = d;
     log->i = i;
@@ -328,22 +347,6 @@ Log *get_log() {
 
     if (singleton_log == NULL) {
         singleton_log = new_log();
-    }
-
-    // initializing file pointers
-    FILE *req_log;
-    FILE *resp_log;
-
-    req_log = fopen("/vagrant/log/heimdall_req.log", "a");
-    if (req_log == NULL) {
-        fprintf(stderr, "Error in log file opening!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
-    if (resp_log == NULL) {
-        fprintf(stderr, "Error in log file opening!\n");
-        exit(EXIT_FAILURE);
     }
 
     // return singleton

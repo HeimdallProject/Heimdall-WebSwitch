@@ -239,6 +239,7 @@ ThrowablePtr retrieve_apache_status(ApacheServerStatusPtr self) {
  * ---------------------------------------------------------------------------
  */
 ThrowablePtr set_url_apache_status(ApacheServerStatusPtr self, char *url) {
+    errno = 0;
     char *new_url = strdup(url);
     if (errno != 0 || new_url == NULL) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "set_url_apache_status");

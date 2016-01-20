@@ -126,7 +126,7 @@ int main() {
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
-    } 
+    }
 
     // Initializes Thread Pool
     ThreadPoolPtr th_pool = get_thread_pool();
@@ -137,7 +137,7 @@ int main() {
     set_fd_limit();
 
     // TODO maybe another value to set into config
-    int port = 8080;  
+    int port = 8080;
 
     // Creates a new server
     int sockfd;

@@ -2,6 +2,8 @@
 
 // making a weighted scheduling discipline
 ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_num) {
+    get_log()->d(TAG_ROUND_ROBIN, "WEIGHTING 1");
+
     // finding the sum for all the servers and sorting them
     int i, j;
     int weight_sum = 0;
@@ -25,13 +27,17 @@ ThrowablePtr weight_servers(CircularPtr circular, Server *servers, int server_nu
         return get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "weight_servers");
     }
 
+    get_log()->d(TAG_ROUND_ROBIN, "WEIGHTING 2");
+
     // weighted pattern creation
     int w = 0;
     int s = 0;
     for (;;) {
+
         // creating pattern taking each round weight times the server
         if ((servers + s)->weight > 0) {
             *(w_servers + w) = *(servers + s);
+            get_log()->d(TAG_ROUND_ROBIN, "WEIGHTING %s with status: %d", (w_servers+w)->ip, (w_servers+w)->status);
             // updating weight info
             (servers + s)->weight -= 1;
             if (++w == weight_sum)
@@ -74,6 +80,8 @@ ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num)
         (servers + s)->ip      = node->host_ip     ;
         (servers + s)->port    = node->port_number ;
         (servers + s)->weight  = node->weight      ;
+        (servers + s)->status  = node->status      ;
+        get_log()->d(TAG_ROUND_ROBIN, "%d STATUS: %d from %d", s, (servers + s)->status, node->status);
         node = node->next;
     }
 
@@ -90,10 +98,15 @@ ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num)
 }
 
 
-Server *get_server(CircularPtr circular) {
+ServerPtr get_server(CircularPtr circular) {
 
     ThrowablePtr throwable;
-    Server *server_ready;
+
+    // allocating server ready struct
+    ServerPtr server_ready = malloc(sizeof(Server));
+    if (server_ready == NULL) {
+        return NULL;
+    }
 
     // entering critical region
     throwable = circular->acquire(circular);
@@ -104,9 +117,33 @@ Server *get_server(CircularPtr circular) {
 
     // performing progressing step
     circular->progress(circular);
-
     // retrieving server
-    server_ready = circular->tail;
+    *server_ready = *(circular->tail);
+
+    // iterating while the servr status is not SERVER_STATUS_BROKEN
+    // (remote machine is not available)
+    int not_available = 0;
+    for (;;) {
+        get_log()->d(TAG_ROUND_ROBIN, "SERVSTATUS: %ld", server_ready->status);
+        // checking if server statys is SERVER_STATUS_READY
+        if (server_ready->status == SERVER_STATUS_READY)
+            break;
+
+        // stepping the circular buffer
+        circular->progress(circular),
+        *server_ready = *(circular->tail);
+        not_available++;
+
+        // checking if the buffer has not been already scanned
+        // if all machines are not available, then return BROKEN as status
+        // and closing connection in the worker routine
+        if (not_available == circular->buffer_len) {
+            get_log()->d(TAG_CIRCULAR, "ALL SERVERS ARE DOWN! - closing connection... now!");
+            // returning server with status broken
+            server_ready->status = SERVER_STATUS_BROKEN;
+            break;
+        }
+    }
 
 
     // exiting critical region

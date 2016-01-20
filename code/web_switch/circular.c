@@ -19,8 +19,18 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
     circular->buffer = *servers;
     circular->buffer_len = len;
 
+    // printing circular buffer
+    int i;
+    for (i = 0; i < circular->buffer_len; i++) {
+        get_log()->d(TAG_CIRCULAR, "CIRCULAR %d: %s - %d", i, (circular->buffer + i)->ip, (circular->buffer + i)->status);
+    }
+
     circular->head = circular->buffer;
-    circular->tail = circular->buffer + len - 1;
+    circular->tail = circular->buffer + (len - 1);
+    get_log()->d(TAG_CIRCULAR, "HEAD: %s - %d - %p", circular->head->ip, circular->head->status, circular->head);
+    get_log()->d(TAG_CIRCULAR, "TAIL: %s - %d - %p", circular->tail->ip, circular->tail->status, circular->tail);
+
+
 
     // exiting critical region
     throwable = circular->release(circular);
@@ -32,12 +42,13 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
 }
 
 // managing the buffer progress updates
-// WARNING: in this implementation there are two main features:
-// - tail is useless 'cause the head will continue to check for all the servers (polling behaviour)
-//   but it can be used to retrieve externally the ready server (when the function returns a PROGRESS_OK)
+// WARNING: in this implementation there are is a main feature:
 // - the circular buffer thread is the only one accessing the circular buffer memory -> let the progress()
 //   be an atomic function using the mutex associated to the circular buffer structer (the user must handle the release)
 void progress(CircularPtr circular) {
+
+    get_log()->d(TAG_CIRCULAR, "HEAD: %s - %d - %p", circular->head->ip, circular->head->status, circular->head);
+    get_log()->d(TAG_CIRCULAR, "TAIL: %s - %d - %p", circular->tail->ip, circular->tail->status, circular->tail);
 
     // recomputing tail, head and buffer position
     circular->tail            = circular->head;

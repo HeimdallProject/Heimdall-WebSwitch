@@ -32,7 +32,13 @@ ThrowablePtr apache_score(ServerNodePtr server) {
     // retrieving status from remote Apache machine
     throwable = apache_status->retrieve(apache_status);
     if (throwable->is_an_error(throwable)) {
+        server->weight = WEIGHT_DEFAULT;
+        server->status = SERVER_STATUS_BROKEN;
+        get_log()->d(TAG_SCHEDULER, "SERVER %s is DOWN", server->host_ip);
         return throwable->thrown(throwable, "apache_score");
+    } else {
+        server->status = SERVER_STATUS_READY;
+        get_log()->d(TAG_SCHEDULER, "SERVER %s is UP", server->host_ip);
     }
     
     // ... and parsing result
@@ -98,8 +104,11 @@ void *update_server_routine(void *arg) {
                 throwable = apache_score(node);
                 if (throwable->is_an_error(throwable)) {
                     get_log()->t(throwable);
-                    proceed -= 1;
+                    get_log()->d(TAG_SCHEDULER, "NODE STATUS %d", node->status);
+                    if (node->status != SERVER_STATUS_BROKEN)
+                        proceed -= 1;
                 }
+
                 // stepping across pool
                 node = node->next;
                 if (node == NULL) 
@@ -108,13 +117,14 @@ void *update_server_routine(void *arg) {
 
             // if routine is not failed...
             if (proceed == 0) {
+                get_log()->d(TAG_SCHEDULER, "SCHEDULING...");
                 throwable = scheduler->rrobin->reset(scheduler->rrobin, scheduler->server_pool, scheduler->server_pool->num_servers);
                 if (throwable->is_an_error(throwable)) {
                     get_log()->t(throwable);
                     return NULL;
                 }
             }
-           /* get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATE COMPLETE]");*/
+            get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATE COMPLETE]");
             // updating timestamp
             up_since = time(NULL);
         }
@@ -128,17 +138,17 @@ SchedulerPtr init_scheduler(int awareness_level) {
 
     // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
 
-    /*char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
+    char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
     char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
-    int n = 3;*/
+    int n = 3;
 
     /*char *servers_addresses[2] = {"bifrost.asgard", "loki.asgard"};
     char *servers_ip[2] = {"192.168.50.3", "192.168.50.4"};
     int n = 2;*/
 
-    char *servers_addresses[1] = {"bifrost.asgard"};
+    /*char *servers_addresses[1] = {"bifrost.asgard"};
     char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;
+    int n = 1;*/
 
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));
@@ -166,6 +176,7 @@ SchedulerPtr init_scheduler(int awareness_level) {
         node->host_address = servers_addresses[i];
         node->host_ip      = servers_ip[i];
         node->weight       = WEIGHT_DEFAULT;
+        node->status       = SERVER_STATUS_READY;
 
         scheduler->server_pool->add_server(scheduler->server_pool, node);
     }

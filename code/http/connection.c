@@ -549,10 +549,10 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         return get_throwable()->create(STATUS_ERROR, "req_content_len not set!", "receive_http_chunks");
     }
 
-    chunk->data = malloc((size_t) http_response->response->req_content_len);
-    if (chunk->data == NULL) {
-        return get_throwable()->create(STATUS_ERROR, "Memory allocation error in receive_http_chunks!", "receive_http_chunks");
-    }
+    // chunk->data = malloc((size_t) http_response->response->req_content_len);
+    // if (chunk->data == NULL) {
+    //     return get_throwable()->create(STATUS_ERROR, "Memory allocation error in receive_http_chunks!", "receive_http_chunks");
+    // }
 
     // TODO need it??
     //(chunk->data)[http_response->response->req_content_len] = '\0';
@@ -578,7 +578,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d TUTTO MIO", (long) getpid(), sockfd);
 
         // Calculates the size to read
-        ssize_t size = (http_response->response->req_content_len - total_received >= http_response->response->req_content_len) ? http_response->response->req_content_len : http_response->response->req_content_len - total_received;
+        ssize_t size = (http_response->response->req_content_len - total_received >= MAX_CHUNK_SIZE) ? MAX_CHUNK_SIZE : http_response->response->req_content_len - total_received;
 
         // Reads from the socket and it puts the response into the chunk
         last_received = read(sockfd, chunk->data, (size_t) size);

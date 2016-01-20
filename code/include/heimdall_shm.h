@@ -24,7 +24,7 @@
 #define SHMOBJ_SEM  "/heimdallsem"
 
 // TODO prelevare dal config
-#define N_WORKER 100
+#define N_WORKER 10
 
 /*
  * ---------------------------------------------------------------------------

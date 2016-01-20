@@ -289,7 +289,7 @@ void *write_work(void *arg) {
 
     while(TRUE) {
 
-        usleep(1000000);
+        get_log()->d(TAG_WORKER, "=========== write_work 1 %d - %d ===========", sid, (long) getpid());
 
         // Gets node
         RequestNodePtr node = queue->get_front(queue);
@@ -304,6 +304,8 @@ void *write_work(void *arg) {
                 return NULL;
             }  
 
+            get_log()->d(TAG_WORKER, "=========== write_work 2 %d ===========", sid);
+
             while (node->response->response->header == NULL) {
                 if (pthread_cond_wait(&node->condition, &node->mutex) != 0) {
                     get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
@@ -312,14 +314,23 @@ void *write_work(void *arg) {
                 }
             }
 
+            get_log()->d(TAG_WORKER, "=========== write_work 3 %d ===========", sid);
+
             // Sends the response header
             ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
             if (throwable->is_an_error(throwable)) {
                 get_log()->t(throwable);
                 worker->writer_thread_status = STATUS_ERROR;
+                
+                // unlock if error
+                if (pthread_mutex_unlock(&node->mutex) != 0) {
+                    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+                }
+
                 return NULL;
             }
             
+            get_log()->d(TAG_WORKER, "=========== write_work 4 %d ===========", sid);
 
             // Releases mutex
             if (pthread_mutex_unlock(&node->mutex) != 0) {
@@ -327,6 +338,8 @@ void *write_work(void *arg) {
                 worker->writer_thread_status = STATUS_ERROR;
                 return NULL;
             }
+
+            get_log()->d(TAG_WORKER, "=========== write_work 5 %d ===========", sid);
 
             // Gets the chunk
             ChunkPtr chunk = node->chunk;
@@ -339,14 +352,20 @@ void *write_work(void *arg) {
                 return NULL;
             }
 
+            get_log()->d(TAG_WORKER, "=========== write_work 6 %d ===========", sid);
+
             // Dequeues the request and it destroys that
             node = queue->dequeue(queue);
             node->destroy(node);
+
+            get_log()->d(TAG_WORKER, "=========== write_work 7 %d ===========", sid);
 
             get_log()->i(TAG_WORKER, "%ld - Request dequeued!", (long) getpid());
 
         }
     }
+
+    get_log()->d(TAG_WORKER, "=========== write_work 8 %d ===========", sid);
     
     return NULL;
 }

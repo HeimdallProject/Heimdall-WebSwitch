@@ -215,17 +215,9 @@ static int r(int type, void *arg, char *remote) {
         // handling request logging routine
         if (type == RQST) {
 
-            // initializing file pointer
-            FILE *req_log;
             // retrieving arg
             HTTPRequestPtr request = arg;
 
-            // retrieving log file pointer or allocating it
-            // TODO get from config
-            req_log = fopen("/vagrant/log/heimdall_req.log", "a");
-            if (req_log == NULL) {
-                fprintf(stderr, "Error in log file opening!\n");
-            }
             // formatting log line
             byte_write = asprintf(&line, "[%s] - %s to: %s  - -  %s %s %s\n",
                                   timestamp(),
@@ -243,17 +235,9 @@ static int r(int type, void *arg, char *remote) {
         // handling response logging routine
         if (type == RESP) {
 
-            // initializing file pointer
-            FILE *resp_log;
             // retrieving args
             HTTPRequestPtr response = ((HTTPResponsePtr) arg)->response;
 
-            // retrieving log file pointer or allocating it
-            // TODO get from config
-            resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
-            if (resp_log == NULL) {
-                fprintf(stderr, "Error in log file opening!\n");
-            }
             // formatting log line
             byte_write = asprintf(&line, "[%s] - %s response to Heimdall: %s %s %s\n",
                                   timestamp(),
@@ -261,7 +245,7 @@ static int r(int type, void *arg, char *remote) {
                                   response->req_protocol,
                                   response->resp_code,
                                   response->resp_msg);
-
+            
             byte_write = (int) fwrite(line, sizeof(char), strlen(line), resp_log);
             fflush(resp_log);
         }
@@ -308,18 +292,19 @@ Log *new_log() {
         exit(EXIT_FAILURE);
     }
 
-    // TODO set in config
-    req_log = fopen("/vagrant/log/heimdall_req.log", "a");
+    
+    // retrieving log file pointer or allocating it
+    // TODO get from config
+    req_log = fopen("/vagrant/log/heimdall_req.log", "a+");
     if (req_log == NULL) {
         fprintf(stderr, "Error in log file opening!\n");
-        exit(EXIT_FAILURE);
     }
 
-    // TODO set in config
-    resp_log = fopen("/vagrant/log/heimdall_resp.log", "a");
+    // retrieving log file pointer or allocating it
+    // TODO get from config
+    resp_log = fopen("/vagrant/log/heimdall_resp.log", "a+");
     if (resp_log == NULL) {
         fprintf(stderr, "Error in log file opening!\n");
-        exit(EXIT_FAILURE);
     }
 
     // Set "methods"

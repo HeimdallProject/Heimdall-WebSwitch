@@ -101,15 +101,7 @@ char *timestamp() {
     
     // Get a human readable way
     char *timestamp = asctime(localtime(&current_time));
-
-    int count = 0;
-    while (1) {
-        if (timestamp[count] == '\n'){
-            timestamp[count] = '\0';
-            break;
-        }
-        ++count;
-    }
+    timestamp[strlen(timestamp) - 1] = '\0';
     
     return timestamp;
 }

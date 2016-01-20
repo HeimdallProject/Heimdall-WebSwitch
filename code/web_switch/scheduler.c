@@ -142,7 +142,9 @@ SchedulerPtr init_scheduler(int awareness_level) {
     char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
     int n = 3;
 
-    /*char *servers_addresses[2] = {"bifrost.asgard", "loki.asgard"};
+    /*char *servers_addresses[2] = {"bifchar *servers_addresses[1] = {"bifrost.asgard"};
+    char *servers_ip[1] = {"192.168.50.3"};
+    int n = 1;rost.asgard", "loki.asgard"};
     char *servers_ip[2] = {"192.168.50.3", "192.168.50.4"};
     int n = 2;*/
 

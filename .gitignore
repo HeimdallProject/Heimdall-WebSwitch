@@ -4,3 +4,6 @@
 build
 *.sublime-*
 report
+log/heimdall_req.log
+log/heimdall_resp.log
+

@@ -170,7 +170,7 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
         free(key);
     }
 
-    fclose(path);
+    fclose(config_file);
 
     return 0;
 }

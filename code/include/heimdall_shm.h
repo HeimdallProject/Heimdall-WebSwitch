@@ -18,13 +18,11 @@
 #include "../include/helper.h"
 #include "../include/log.h"
 #include "../include/throwable.h"
+#include "../include/heimdall_config.h"
 
 #define TAG_HEIMDALL_SHM "HEIMDALL_SHM_H"
 #define SHMOBJ_PATH "/shmwebswitch"
 #define SHMOBJ_SEM  "/heimdallsem"
-
-// TODO prelevare dal config
-#define N_WORKER 10
 
 /*
  * ---------------------------------------------------------------------------

@@ -1,24 +1,21 @@
 #include "../include/watchdog.h"
 #include <syscall.h>
 
-// TODO close socket when watchdog kills
-
 ThrowablePtr detach_watchdog(WatchdogPtr watchdog) {
+    
     // setting up watchdog
     // retrieving the config params for the watchdog and converting them
     Config *config = get_config();
     
-    UNUSED(config);     // TODO usare invece dei set manuali
-    
     long k_time;
     long out_time;
 
-    ThrowablePtr throwable = str_to_long("500000000", &k_time); // TODO settato manualmente
+    ThrowablePtr throwable = str_to_long(config->killer_time, &k_time);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "detach_watchdog");
     }
 
-    throwable = str_to_long("5", &out_time);         // TODO settato manualmente
+    throwable = str_to_long(config->timeout_worker, &out_time);
     if (throwable->is_an_error(throwable)) {
         return throwable->thrown(throwable, "detach_watchdog");
     }

@@ -236,7 +236,6 @@ ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total) {
 
         get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d TUTTO MIO", (long) getpid(), sockfd);
 
-        // Sends chunk TODO better higher or lower level?
         ThrowablePtr throwable = send_http(sockfd, chunk->data, (size_t) chunk->dimen);
         if (throwable->is_an_error(throwable)) {
             return get_throwable()->thrown(throwable, "send_http_chunks");

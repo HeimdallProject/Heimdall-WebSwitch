@@ -225,11 +225,14 @@ void *read_work(void *arg) {
         // Receives request
         ThrowablePtr throwable = receive_http_request(worker->sockfd, node->request);
         if (throwable->is_an_error(throwable)) {
+            
             get_log()->t(throwable);
             worker->reader_thread_status = STATUS_ERROR;
-            // TODO: is it an error? if 0 bytes is read is not error!
+            
+            // if we get some error on cliebt socket 
             worker->worker_await_flag = WATCH_OVER;
             pthread_cond_signal(&worker->await_cond);
+            
             pthread_exit(NULL);
         }
 

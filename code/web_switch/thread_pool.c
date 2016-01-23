@@ -9,8 +9,11 @@
 // Sinlgeton Thread Pool
 static ThreadPoolPtr singleton_thdpool = NULL;
 
+//Do not set here but in config!
+static int max_fd = NULL; 
+
 // FD Array
-static int fd_array[N_MAX_FD];
+static int *fd_array;
 
 // Mutex for access to fd_array
 static pthread_mutex_t mtx_wait_request = PTHREAD_MUTEX_INITIALIZER;
@@ -32,7 +35,7 @@ static ThrowablePtr add_fd_to_array(int *fd){
 		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_lock");
 
     int i, flag = 0;
-    for (i = 0; i < N_MAX_FD; ++i){
+    for (i = 0; i < max_fd; ++i){
         if (fd_array[i] == 0){
             fd_array[i] = *fd;
             flag = 1;
@@ -63,7 +66,7 @@ static ThrowablePtr add_fd_to_array(int *fd){
 static ThrowablePtr print_fd_array(){
 
     int i;
-    for (i = 0; i < N_MAX_FD; ++i){
+    for (i = 0; i < max_fd; ++i){
         get_log()->i(TAG_HEIMDALL_SHM, "FD %d in position %d", fd_array[i], i);
     }
 
@@ -89,7 +92,7 @@ static ThrowablePtr get_fd(int *fd_ptr){
 
     // Scan array and get the first fd != 0
     int i, flag = 0;
-    for (i = 0; i < N_MAX_FD; ++i){
+    for (i = 0; i < max_fd; ++i){
 
         if (fd_array[i] != 0){
             *fd_ptr = fd_array[i];
@@ -197,8 +200,21 @@ static void *init_pool(void *arg){
 	// detach itself
 	pthread_detach(pthread_self());
 
+	ConfigPtr config = get_config();
+
+    max_fd = 0;
+    ThrowablePtr throwable = str_to_int(config->max_fd, &max_fd);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Init static array and save pointer to global variable
+    int array[max_fd];
+    fd_array = array;
+
 	int i;
-    for (i = 0; i < N_MAX_FD; ++i){
+    for (i = 0; i < max_fd; ++i){
 		fd_array[i] = 0;
     }
 

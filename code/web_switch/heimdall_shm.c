@@ -7,6 +7,9 @@
  */
 HSharedMemPtr singleton_hshm = NULL;
 
+//Do not set here but in config!
+int number_of_worker = NULL; 
+
 /*
  * ---------------------------------------------------------------------------
  * Global variable for shared memory
@@ -61,7 +64,7 @@ static ThrowablePtr print_worker_array(){
 
     // Scan array and set fd to first position available
     int i;
-    for (i = 0; i < N_WORKER; ++i){
+    for (i = 0; i < number_of_worker; ++i){
         get_log()->i(TAG_HEIMDALL_SHM, "Worker %ld in position %d available %d", (long)worker_array[i], i, worker_busy[i]);
     }
 
@@ -89,7 +92,7 @@ static ThrowablePtr add_worker_to_array(pid_t worker_pid){
 
     // Scan array and set fd to first position available
     int i, flag = 0;
-    for (i = 0; i < N_WORKER; ++i){
+    for (i = 0; i < number_of_worker; ++i){
         if (worker_array[i] == 0){
             worker_array[i] = worker_pid;
             flag = 1;
@@ -123,7 +126,7 @@ static ThrowablePtr get_worker(pid_t *worker_pid){
 
     // Scan array and get the first fd != 0
     int i, flag = 0;
-    for (i = 0; i < N_WORKER; ++i){
+    for (i = 0; i < number_of_worker; ++i){
 
         if (worker_busy[i] == 0){
             *worker_pid = worker_array[i];
@@ -160,7 +163,7 @@ static ThrowablePtr end_job_worker(pid_t worker_pid){
 
     // Scan array and get the first fd != 0
     int i;
-    for (i = 0; i < N_WORKER; ++i){
+    for (i = 0; i < number_of_worker; ++i){
 
         if (worker_array[i] == worker_pid){
             worker_busy[i] = 0;
@@ -185,8 +188,17 @@ HSharedMemPtr init_shm(){
 
     signal(SIGINT, signal_callback_handler);
 
-    int size_worker_array   = sizeof(pid_t) * N_WORKER; 
-    int size_worker_busy    = sizeof(int) * N_WORKER; 
+    ConfigPtr config = get_config();
+
+    number_of_worker = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &number_of_worker);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        return NULL;
+    }
+
+    int size_worker_array   = sizeof(pid_t) * number_of_worker; 
+    int size_worker_busy    = sizeof(int) * number_of_worker; 
 
     /* want shared segment capable of storing 1 struct heimdall_shm_data */
     int shared_seg_size = (size_worker_array + size_worker_busy);    
@@ -232,7 +244,7 @@ HSharedMemPtr init_shm(){
 
     // reset all array value to 0
     int i;
-    for (i = 0; i < N_WORKER; ++i){
+    for (i = 0; i < number_of_worker; ++i){
         worker_array[i] = 0;
         worker_busy[i]  = 0;
     }

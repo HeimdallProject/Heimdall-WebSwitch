@@ -6,6 +6,7 @@
 //
 #ifndef CONFIG_PARSER_H
 #define CONFIG_PARSER_H
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,20 +42,20 @@
  * ---------------------------------------------------------------------------
  */
 typedef struct config{
-    char *handling_mode;
-    char *max_worker;
-    char *max_thread_for_worker;
     char *algorithm_selection;
     char *pre_fork;
+    char *print_enable;
     char *log_level;
     char *write_enable;
-    char *print_enable;
-    char *log_file;
+    char *log_file_req;
+    char *log_file_resp;
     char *timeout_worker;
     char *killer_time;
     char *update_time;
     char *server_config;
-    char *timeout_request;
+    char *server_main_port;
+    char *backlog;
+    char *max_fd;
 } Config, *ConfigPtr;
 
 /*
@@ -62,7 +63,7 @@ typedef struct config{
  * Max length of line in config file
  * ---------------------------------------------------------------------------
  */
-#define MAX_LENGTH 200
+#define MAX_LENGTH 128
 
 /*
  * ---------------------------------------------------------------------------

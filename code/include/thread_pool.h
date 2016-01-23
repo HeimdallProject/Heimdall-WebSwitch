@@ -26,7 +26,6 @@
 
 #define TAG_THREAD_POOL "THREAD_POOL"
 #define MAX_SEND_ATTEMPT 5
-#define N_MAX_FD 1024
 
 /*
  * ---------------------------------------------------------------------------

@@ -46,12 +46,17 @@ static void set_fd_limit(){
  static ThrowablePtr do_prefork(){
 
     ConfigPtr config = get_config();
-    UNUSED(config);
+    
+    int n_prefork = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
 
-    int n_prefork = N_WORKER;
-    //str_to_int(config->pre_fork, &n_prefork); TOTO settato manualmente
-
-    // TODO create at least one child if prefork is disabled
+    // if prefork is disabled we create anyway 1 child process
+    if(n_prefork == 0){
+        n_prefork = 1;
+    }
 
     get_log()->i(TAG_MAIN, "Prefork %d worker", n_prefork);
 
@@ -92,7 +97,7 @@ static void set_fd_limit(){
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "do_prefork()");
- }
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -100,6 +105,9 @@ static void set_fd_limit(){
  * ---------------------------------------------------------------------------
  */
 int main() {
+
+    // Variable for errors
+    ThrowablePtr throwable = NULL;
 
     // Initializes Config
     ConfigPtr config = get_config();
@@ -122,7 +130,7 @@ int main() {
         exit(EXIT_FAILURE);
 
     // Spawn child process
-    ThrowablePtr throwable = do_prefork();
+    throwable = do_prefork();
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
@@ -133,11 +141,14 @@ int main() {
     if (th_pool == NULL)
         exit(EXIT_FAILURE);
 
-    // // TODO pass limit from config
+    // TODO pass limit from config
     set_fd_limit();
 
-    // TODO maybe another value to set into config
-    int port = 8080;  
+    int port = 0;
+    throwable = str_to_int(config->server_main_port, &port);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
 
     // Creates a new server
     int sockfd;
@@ -150,7 +161,13 @@ int main() {
     log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
     // Starts listening for the clients
-    throwable = listen_to(sockfd, 10);
+    int backlog = 0;
+    throwable = str_to_int(config->backlog, &backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    throwable = listen_to(sockfd, backlog);
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);

@@ -72,14 +72,15 @@ void *update_server_routine(void *arg) {
     // retrieving argument
     SchedulerPtr scheduler = (SchedulerPtr) arg;
 
+    ConfigPtr config = get_config();
+
     // retrieving update time from config
-    time_t up_time = 10;    // TODO set manually
-/*    ConfigPtr config = get_config();
+    time_t up_time = 10;
     throwable = str_to_long(config->update_time, &up_time);
     if (throwable->is_an_error(throwable)) {
         get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in configuration parsing");
         return NULL;
-    }*/
+    }
 
     // retrieving first timestamp
     time_t up_since  = time(NULL);
@@ -128,9 +129,9 @@ SchedulerPtr init_scheduler(int awareness_level) {
 
     // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
 
-    char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
-    char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
-    int n = 3;
+    // char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
+    // char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
+    // int n = 3;
 
     /*char *servers_addresses[2] = {"bifchar *servers_addresses[1] = {"bifrost.asgard"};
     char *servers_ip[1] = {"192.168.50.3"};
@@ -138,9 +139,9 @@ SchedulerPtr init_scheduler(int awareness_level) {
     char *servers_ip[2] = {"192.168.50.3", "192.168.50.4"};
     int n = 2;*/
 
-    /*char *servers_addresses[1] = {"bifrost.asgard"};
+    char *servers_addresses[1] = {"bifrost.asgard"};
     char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;*/
+    int n = 1;
 
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));
@@ -211,16 +212,17 @@ SchedulerPtr get_scheduler() {
     if (scheduler_singleton != NULL) {
         return scheduler_singleton;
     } else {
+        
+        ConfigPtr config = get_config();
+
         // getting awareness level from configuration file
-        int awareness = 1;  // TODO set manually
-/*        ConfigPtr config = get_config();
+        int awareness = 0;     
         ThrowablePtr throwable = str_to_int(config->algorithm_selection, &awareness);
         if (throwable->is_an_error(throwable)) {
-            get_log()->e(TAG_SCHEDULER, config->algorithm_selection);
             get_log()->t(throwable);
-            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - conf parsing");
             exit(EXIT_FAILURE);
-        }*/
+        }
+
         // initializing scheduler
         switch (awareness) {
             case AWARENESS_LEVEL_LOW:

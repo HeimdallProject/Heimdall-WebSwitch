@@ -210,8 +210,11 @@ static void *init_pool(void *arg){
     }
 
     // Init static array and save pointer to global variable
-    int array[max_fd];
-    fd_array = array;
+    fd_array = malloc(sizeof(int) * max_fd);
+    if (fd_array == NULL) {
+        get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_pool!");
+        exit(EXIT_FAILURE);
+    }
 
 	int i;
     for (i = 0; i < max_fd; ++i){

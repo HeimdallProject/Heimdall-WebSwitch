@@ -99,6 +99,19 @@ static void set_fd_limit(){
     return get_throwable()->create(STATUS_OK, NULL, "do_prefork()");
 }
 
+void cleaning(void){
+
+    // Shared memory unlink
+    if (shm_unlink(SHMOBJ_PATH) < 0)
+        get_log()->i(TAG_HEIMDALL_SHM, "Error in shm_unlink");
+    
+
+    // Semaphore unlink
+    if (sem_unlink(SHMOBJ_SEM) < 0)
+        get_log()->i(TAG_HEIMDALL_SHM, "Error in sem_unlink");
+}
+
+
 /*
  * ---------------------------------------------------------------------------
  * MAIN PROGRAM
@@ -174,6 +187,9 @@ int main() {
     } 
 
     log->i(TAG_MAIN, "Ready to accept incoming connections...");
+
+    // Register for cleaning at exit
+    atexit(cleaning);
 
     int count = 0;
 

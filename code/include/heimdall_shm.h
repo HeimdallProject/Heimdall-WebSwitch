@@ -21,8 +21,6 @@
 #include "../include/heimdall_config.h"
 
 #define TAG_HEIMDALL_SHM "HEIMDALL_SHM_H"
-#define SHMOBJ_PATH "/shmwebswitch"
-#define SHMOBJ_SEM  "/heimdallsem"
 
 /*
  * ---------------------------------------------------------------------------

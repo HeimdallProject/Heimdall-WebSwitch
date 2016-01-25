@@ -2,7 +2,7 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Description  : Global variable, singleton instance of Thread Pool
+ * Description  : Global variable, singleton instance of Shared memory
  * ---------------------------------------------------------------------------
  */
 HSharedMemPtr singleton_hshm = NULL;
@@ -10,43 +10,8 @@ HSharedMemPtr singleton_hshm = NULL;
 //Do not set here but in config!
 int number_of_worker = NULL; 
 
-/*
- * ---------------------------------------------------------------------------
- * Global variable for shared memory
- * ---------------------------------------------------------------------------
- */
-static int shmfd;       /* shared memory file descriptor */
-static sem_t * sem_id;  /* sem used for access in shared memory */
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : signal_callback_handler
- * Description: Destroy shm e sem POSIX when SIGINT is received from Main Process.
- * ---------------------------------------------------------------------------
- */
-void signal_callback_handler(int signum){
-
-    /**
-    * Shared memory unlink
-    */
-    if (shm_unlink(SHMOBJ_PATH) < 0)
-        get_log()->i(TAG_HEIMDALL_SHM, "Error in shm_unlink");
-
-    /**
-    * Semaphore Close
-    */
-    if (sem_close(sem_id) < 0)
-        get_log()->i(TAG_HEIMDALL_SHM, "Error in sem_close");
-
-    /**
-    * Semaphore unlink
-    */
-    if (sem_unlink(SHMOBJ_SEM) < 0)
-        get_log()->i(TAG_HEIMDALL_SHM, "Error in sem_unlink");
-    
-   // Terminate program
-   exit(signum);
-}
+// sem used for access in shared memory
+static sem_t * sem_id; 
 
 /*
  * ---------------------------------------------------------------------------
@@ -186,8 +151,6 @@ static ThrowablePtr end_job_worker(pid_t worker_pid){
  */
 HSharedMemPtr init_shm(){
 
-    signal(SIGINT, signal_callback_handler);
-
     ConfigPtr config = get_config();
 
     number_of_worker = 0;
@@ -204,7 +167,7 @@ HSharedMemPtr init_shm(){
     int shared_seg_size = (size_worker_array + size_worker_busy);    
     
     // creating the shared memory object
-    shmfd = shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
+    int shmfd = shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
     if (shmfd < 0){
         get_log()->e(TAG_HEIMDALL_SHM, "Error in shm_open - init_shm");
         return NULL;

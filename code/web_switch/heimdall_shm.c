@@ -167,13 +167,13 @@ HSharedMemPtr init_shm(){
     int shared_seg_size = (size_worker_array + size_worker_busy);    
     
     // creating the shared memory object
-    int shmfd = shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
+    int shmfd = shm_open("/coa", O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
     if (shmfd < 0){
         get_log()->e(TAG_HEIMDALL_SHM, "Error in shm_open - init_shm");
         return NULL;
     }
 
-    get_log()->i(TAG_HEIMDALL_SHM, "Created shared memory object %s", SHMOBJ_PATH);
+    get_log()->i(TAG_HEIMDALL_SHM, "Created shared memory object %s", "/coa");
 
     // adjusting mapped file size
     if(ftruncate(shmfd, shared_seg_size) == -1){
@@ -182,7 +182,7 @@ HSharedMemPtr init_shm(){
     }
 
     // Semaphore open
-    sem_id = sem_open(SHMOBJ_SEM, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_id = sem_open("/iiii", O_CREAT, S_IRUSR | S_IWUSR, 1);
     if(sem_id == SEM_FAILED){
         get_log()->e(TAG_HEIMDALL_SHM, "Error in sem_open - init_shm");
         return NULL;

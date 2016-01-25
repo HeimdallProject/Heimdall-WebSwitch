@@ -28,8 +28,9 @@ set(SOURCE_FILES_MAIN
         code/web_switch/chunk.c
         code/web_switch/request_node.c
         code/web_switch/request_queue.c
-        code/web_switch/heimdall_shm.c
-        code/config/server_config.c)
+        #code/web_switch/heimdall_shm.c
+        code/config/server_config.c
+        code/web_switch/shared_mem.c)
 
 add_executable(WebSwitch ${SOURCE_FILES_MAIN})
 target_link_libraries(WebSwitch ${M_LIB} rt)

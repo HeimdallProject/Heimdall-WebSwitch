@@ -15,7 +15,6 @@
 #include <pthread.h>
 #include <signal.h>
 
-#include "../include/heimdall_shm.h"
 #include "../include/worker.h"
 #include "../include/log.h"
 #include "../include/heimdall_config.h"
@@ -23,6 +22,9 @@
 #include "../include/throwable.h"
 #include "../include/helper.h"
 #include "../include/connection.h"
+#include "../include/shared_mem.h"
+#include "../include/types.h"
+#include "../include/macro.h"
 
 #define TAG_THREAD_POOL "THREAD_POOL"
 #define MAX_SEND_ATTEMPT 5

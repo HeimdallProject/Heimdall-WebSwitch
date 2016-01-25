@@ -67,7 +67,7 @@ static ThrowablePtr print_fd_array(){
 
     int i;
     for (i = 0; i < max_fd; ++i){
-        get_log()->i(TAG_HEIMDALL_SHM, "FD %d in position %d", fd_array[i], i);
+        get_log()->i(TAG_THREAD_POOL, "FD %d in position %d", fd_array[i], i);
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "print_fd_array");
@@ -125,14 +125,21 @@ static ThrowablePtr get_fd(int *fd_ptr){
  */
 static void thread_pool_loop(){
 
-	HSharedMemPtr shm_mem = get_shm();
+	ConfigPtr config = get_config();
+    
+    int n_prefork = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+
+    THPSharedMemPtr worker_pool = get_shm(WRK_SHM_PATH);
+    if (worker_pool == NULL){
+        get_log()->e(TAG_THREAD_POOL, "Error in get_shm2 - thread_pool_loop");
+        exit(EXIT_FAILURE);
+    }
 
 	for (;;) {
-
-		/*ThrowablePtr  throwable = shm_mem->print_worker_array();
-		if (throwable->is_an_error(throwable)) {
-        	get_log()->t(throwable);
-		} */
 
 		int fd = 0;
         ThrowablePtr throwable = get_fd(&fd);
@@ -146,15 +153,56 @@ static void thread_pool_loop(){
 
         while(TRUE){
 
-			// get worker from shared memory
-	        throwable = shm_mem->get_worker(&worker_pid);
-	        if (throwable->is_an_error(throwable)) {
-	            //get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
-	            throwable->destroy(throwable);
-	            continue;
-	        } else{
-	        	break;
-	        }
+            sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+
+            if(sem_wait(sem) == -1){
+                get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                exit(EXIT_FAILURE);
+            }
+
+            // Scan array and get the first fd != 0 with minor usage
+            int i, min = -1, position = -1;
+            for (i = 0; i < n_prefork; ++i){
+                
+                if (worker_pool->worker_busy[i] == 0){
+                    
+                    if(min == -1){
+                        min = worker_pool->worker_counter[i];
+                        position = i;
+                    }
+
+                    if (worker_pool->worker_counter[i] <= min){
+                        min = worker_pool->worker_counter[i];
+                        position = i;
+                    }
+                }
+            }
+
+            // Error no worker available
+            if(position == -1) {
+                
+                get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
+
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                continue;
+            
+            }else{
+                
+                worker_pid = worker_pool->worker_array[position];
+                worker_pool->worker_counter[position] = worker_pool->worker_counter[position] + 1;
+                get_log()->i(TAG_THREAD_POOL, "Get Worker %ld", (long)worker_pid);
+                
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                break;
+            }
         }
 
 		int attempt = 0;

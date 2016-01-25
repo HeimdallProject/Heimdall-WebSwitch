@@ -281,8 +281,6 @@ void *write_work(void *arg) {
 
     while(TRUE) {
 
-        get_log()->d(TAG_WORKER, "=========== write_work 1 %d - %d ===========", sid, (long) getpid());
-
         // Gets node
         RequestNodePtr node = queue->get_front(queue);
 
@@ -296,8 +294,6 @@ void *write_work(void *arg) {
                 return NULL;
             }  
 
-            get_log()->d(TAG_WORKER, "=========== write_work 2 %d ===========", sid);
-
             while (node->response->response->header == NULL) {
                 if (pthread_cond_wait(&node->condition, &node->mutex) != 0) {
                     get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
@@ -305,8 +301,6 @@ void *write_work(void *arg) {
                     return NULL;
                 }
             }
-
-            get_log()->d(TAG_WORKER, "=========== write_work 3 %d ===========", sid);
 
             // Sends the response header
             ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
@@ -322,16 +316,12 @@ void *write_work(void *arg) {
                 return NULL;
             }
             
-            get_log()->d(TAG_WORKER, "=========== write_work 4 %d ===========", sid);
-
             // Releases mutex
             if (pthread_mutex_unlock(&node->mutex) != 0) {
                 get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
                 worker->writer_thread_status = STATUS_ERROR;
                 return NULL;
             }
-
-            get_log()->d(TAG_WORKER, "=========== write_work 5 %d ===========", sid);
 
             // Gets the chunk
             ChunkPtr chunk = node->chunk;
@@ -344,20 +334,14 @@ void *write_work(void *arg) {
                 return NULL;
             }
 
-            get_log()->d(TAG_WORKER, "=========== write_work 6 %d ===========", sid);
-
             // Dequeues the request and it destroys that
             node = queue->dequeue(queue);
             node->destroy(node);
-
-            get_log()->d(TAG_WORKER, "=========== write_work 7 %d ===========", sid);
 
             get_log()->i(TAG_WORKER, "%ld - Request dequeued!", (long) getpid());
 
         }
     }
-
-    get_log()->d(TAG_WORKER, "=========== write_work 8 %d ===========", sid);
     
     return NULL;
 }
@@ -368,6 +352,20 @@ void start_worker() {
     get_log()->d(TAG_WORKER, "start_worker %d", sid);
 
     //get_log()->d(TAG_WORKER, "%ld - start_worker", (long) getpid());
+
+    ConfigPtr config = get_config();
+    
+    int number_of_worker = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &number_of_worker);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+
+    THPSharedMemPtr worker_pool = get_shm(WRK_SHM_PATH);
+    if (worker_pool == NULL){
+        get_log()->e(TAG_WORKER, "Error in get_shm2 - start_worker");
+        exit(EXIT_FAILURE);
+    }
 
     while(TRUE) {
 
@@ -476,6 +474,7 @@ void start_worker() {
         }
 
         char *pathname;
+        // TODO da aggiungere in config!
         if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long) getpid()) < 0) {
             get_log()->e(TAG_WORKER, "asprintf in start_worker");
         }
@@ -511,10 +510,55 @@ void start_worker() {
         free(worker);
 
         // update worker status
-        HSharedMemPtr shm_mem = get_shm();
-        shm_mem->end_job_worker(getpid());
-        
-        get_log()->d(TAG_WORKER, "Restart connection job - %ld", (long) getpid());
+        sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+
+        if(sem_wait(sem) == -1){
+            get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+            exit(EXIT_FAILURE);
+        }
+
+        int i, position = 0;
+        for (i = 0; i < number_of_worker; ++i){
+            if (worker_pool->worker_array[i] == (long)getpid()){
+                worker_pool->worker_busy[i] = 0;
+                get_log()->i(TAG_WORKER, "Worker %ld end job", (long)getpid());
+                position = i;
+                break;
+            }
+        }
+
+        // Print array
+        for (i = 0; i < number_of_worker; ++i){
+            get_log()->i(TAG_WORKER, "Worker %ld in position %d available %d - usage %d", 
+                                    (long)worker_pool->worker_array[i], 
+                                    i, 
+                                    worker_pool->worker_busy[i],
+                                    worker_pool->worker_counter[i]);
+        }
+
+        /* 
+        * If request_counter is equal to max_request_per_worker (see config file)
+        * The worker has reached the end of his life , it's time to die.
+        */
+        int flag_kill = 0;
+        if(request_counter == 1000){
+            worker_pool->worker_array[position]    = 0;
+            worker_pool->worker_busy[position]     = 1;
+            worker_pool->worker_counter[position]  = 0;
+            flag_kill = 1;
+        }
+
+        if(sem_post(sem) == -1){
+            get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+            exit(EXIT_FAILURE);
+        }
+
+        if (flag_kill == 1){
+            get_log()->d(TAG_WORKER, "Worker %ld died", (long) getpid());
+            exit(EXIT_SUCCESS);
+        }else{
+            get_log()->d(TAG_WORKER, "Restart connection job - %ld", (long) getpid());
+        }
     }
 }
 

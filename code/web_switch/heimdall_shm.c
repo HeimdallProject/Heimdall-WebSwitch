@@ -30,19 +30,19 @@ void signal_callback_handler(int signum){
     * Shared memory unlink
     */
     if (shm_unlink(SHMOBJ_PATH) < 0)
-        get_log()->i(TAG_HEIMDALL_SHM, "shm_unlink");
+        get_log()->i(TAG_HEIMDALL_SHM, "Error in shm_unlink");
 
     /**
     * Semaphore Close
     */
     if (sem_close(sem_id) < 0)
-        get_log()->i(TAG_HEIMDALL_SHM, "sem_close");
+        get_log()->i(TAG_HEIMDALL_SHM, "Error in sem_close");
 
     /**
     * Semaphore unlink
     */
     if (sem_unlink(SHMOBJ_SEM) < 0)
-        get_log()->i(TAG_HEIMDALL_SHM, "sem_unlink");
+        get_log()->i(TAG_HEIMDALL_SHM, "Error in sem_unlink");
     
    // Terminate program
    exit(signum);

@@ -127,21 +127,8 @@ void *update_server_routine(void *arg) {
 
 SchedulerPtr init_scheduler(int awareness_level) {
 
-    // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
-
-    // char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
-    // char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
-    // int n = 3;
-
-    /*char *servers_addresses[2] = {"bifchar *servers_addresses[1] = {"bifrost.asgard"};
-    char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;rost.asgard", "loki.asgard"};
-    char *servers_ip[2] = {"192.168.50.3", "192.168.50.4"};
-    int n = 2;*/
-
-    char *servers_addresses[1] = {"bifrost.asgard"};
-    char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;
+    ServerConfigPtr server_config = get_server_config();
+    int n = server_config->total_server;
 
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));
@@ -149,25 +136,28 @@ SchedulerPtr init_scheduler(int awareness_level) {
         get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
         return NULL;
     }
+
     // allocating memory - rrobin
     scheduler->rrobin = new_rrobin();
 
     // allocating memory - server pool
     scheduler->server_pool = init_server_pool();
 
-
     // in server pool adding server nodes
     int i;
     ServerNodePtr node;
     for (i = 0; i < n; i++) {
+
         node = malloc(sizeof(ServerNode));
         if (node == NULL) {
             get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
             return NULL;
         }
 
-        node->host_address = servers_addresses[i];
-        node->host_ip      = servers_ip[i];
+        get_log()->d(TAG_SCHEDULER, "Server n° %d Name %s, IP %s", i, server_config->servers_names[i], server_config->servers_ip[i]);
+
+        node->host_address = server_config->servers_names[i];
+        node->host_ip      = server_config->servers_ip[i];
         node->weight       = WEIGHT_DEFAULT;
 
         scheduler->server_pool->add_server(scheduler->server_pool, node);

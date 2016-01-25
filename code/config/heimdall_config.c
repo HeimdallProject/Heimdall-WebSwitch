@@ -125,7 +125,17 @@ char *_get(char array[], int from, char escape){
 }
 
 /*
- *  See .h for more information.
+ * ---------------------------------------------------------------------------
+ * Function     : init_config
+ * Description  : Parse config file and call callback function for return values.
+ *
+ * Param            :
+ *   path           : Path to file be parsed.
+ *   config_handler : Callback function, return to main key, value and config reference.
+ *   ptr_config     : Pointer to struct.
+ *
+ * Return       :
+ * ---------------------------------------------------------------------------
  */
 int init_config(const char *path, int config_handler(char *key, char *value, void *p_config), void *ptr_config) {
 

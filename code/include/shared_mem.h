@@ -21,11 +21,18 @@
 
 /*
  * ---------------------------------------------------------------------------
- * Function   : get_shm
+ * Function   : init_shm
  * Description: Init POSIX shared memory segment
  * ---------------------------------------------------------------------------
  */
 void *init_shm(char* shared_name, size_t size, char* sem_name);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function   : get_shm
+ * Description: Get exist POSIX shared memory segment
+ * ---------------------------------------------------------------------------
+ */
 void *get_shm(char* shared_name);
 
 #endif //SHARED_MEM_H

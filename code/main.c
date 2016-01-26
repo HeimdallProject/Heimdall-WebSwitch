@@ -105,6 +105,9 @@ void cleaning(void){
         worker_pool->worker_counter[i]  = 0;
     }
 
+    // Get sem for access in shared memory
+    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+
     get_log()->i(TAG_MAIN, "Prefork %d worker", n_prefork);
 
     int children;
@@ -127,8 +130,6 @@ void cleaning(void){
         }else{
 
             get_log()->d(TAG_MAIN, "Created child n°%d - pid %ld", children, child_pid);
-
-            sem_t *sem = sem_open(WRK_SEM_PATH, 0);
 
             if(sem_wait(sem) == -1)
                 return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
@@ -154,85 +155,6 @@ void cleaning(void){
 
     return get_throwable()->create(STATUS_OK, NULL, "do_prefork()");
 }
-
-/*
- * ---------------------------------------------------------------------------
- * Function   : do_prefork2
- * Description: Respawn new child
- * ---------------------------------------------------------------------------
- */
-//  static ThrowablePtr do_prefork2(){
-
-//     ConfigPtr config = get_config();
-    
-//     int n_prefork = 0;
-//     ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
-//     if (throwable->is_an_error(throwable)) {
-//         get_log()->t(throwable);
-//     }
-
-//     if(sem_wait(sem) == -1)
-//         return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
-
-//     int i, count = 0;
-//     for (i = 0; i < n_prefork; ++i){
-//         if (worker_pool->worker_array[i] != 0){
-//             count++;
-//         }
-//     }
-
-//     if(sem_post(sem) == -1)
-//         return get_throwable()->create(STATUS_ERROR, "sem_post", "do_prefork");
-
-//     int children;
-//     for (children = 0; children < (n_prefork - count); ++children){
-
-//         pid_t child_pid;
-//         errno = 0;
-
-//         child_pid = fork();
-//         if (child_pid == -1)
-//             get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "do_prefork"));
-
-//         // Child 
-//         if (child_pid == 0){
-
-//             // see worker.c
-//             start_worker();
-//             break;
-
-//         }else{
-
-//             get_log()->d(TAG_MAIN, "Respawn child n°%d - pid %ld", children, child_pid);
-
-//             sem_t *sem = sem_open(WRK_SEM_PATH, 0);
-
-//             if(sem_wait(sem) == -1)
-//                 return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
-
-//             // Scan array and set fd to first position available
-//             int i, flag = 0;
-//             for (i = 0; i < n_prefork; ++i){
-//                 if (worker_pool->worker_array[i] == 0){
-//                     worker_pool->worker_array[i]    = child_pid;
-//                     worker_pool->worker_busy[i]     = 0;
-//                     worker_pool->worker_counter[i]  = 0;
-//                     flag = 1;
-//                     break;
-//                 }
-//             }
-
-//             if(sem_post(sem) == -1)
-//                 return get_throwable()->create(STATUS_ERROR, "sem_post", "do_prefork");
-
-//             if (flag == 0){
-//                 return get_throwable()->create(STATUS_ERROR, "Cannot add worker_pid to array", "do_prefork");        
-//             }            
-//         }
-//     }
-
-//     return get_throwable()->create(STATUS_OK, NULL, "do_prefork()");
-// }
 
 /*
  * ---------------------------------------------------------------------------
@@ -321,8 +243,6 @@ int main() {
             log->t(throwable);
             exit(EXIT_FAILURE);
         }
-
-        //do_prefork2();
 
         while(TRUE){
             throwable = th_pool->add_fd_to_array(&new_sockfd);

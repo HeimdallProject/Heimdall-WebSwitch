@@ -5,7 +5,7 @@ static pthread_mutex_t mtx_thr_request;
 static pthread_cond_t cond_thr_request;
 
 static int max_thr_request = 0;
-int request_counter = 0;
+static int request_counter = 0;
 
 /*
  *  See .h for more information.
@@ -367,6 +367,9 @@ void start_worker() {
         exit(EXIT_FAILURE);
     }
 
+    // update worker status
+    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+
     while(TRUE) {
 
         get_log()->i(TAG_WORKER, "%ld in wait for fd", (long) getpid());
@@ -509,20 +512,16 @@ void start_worker() {
 
         free(worker);
 
-        // update worker status
-        sem_t *sem = sem_open(WRK_SEM_PATH, 0);
-
         if(sem_wait(sem) == -1){
             get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
             exit(EXIT_FAILURE);
         }
 
-        int i, position = 0;
+        int i;
         for (i = 0; i < number_of_worker; ++i){
             if (worker_pool->worker_array[i] == (long)getpid()){
                 worker_pool->worker_busy[i] = 0;
                 get_log()->i(TAG_WORKER, "Worker %ld end job", (long)getpid());
-                position = i;
                 break;
             }
         }
@@ -536,29 +535,12 @@ void start_worker() {
                                     worker_pool->worker_counter[i]);
         }
 
-        /* 
-        * If request_counter is equal to max_request_per_worker (see config file)
-        * The worker has reached the end of his life , it's time to die.
-        */
-        int flag_kill = 0;
-        if(request_counter == 1000){
-            worker_pool->worker_array[position]    = 0;
-            worker_pool->worker_busy[position]     = 1;
-            worker_pool->worker_counter[position]  = 0;
-            flag_kill = 1;
-        }
-
         if(sem_post(sem) == -1){
             get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
             exit(EXIT_FAILURE);
         }
 
-        if (flag_kill == 1){
-            get_log()->d(TAG_WORKER, "Worker %ld died", (long) getpid());
-            exit(EXIT_SUCCESS);
-        }else{
-            get_log()->d(TAG_WORKER, "Restart connection job - %ld", (long) getpid());
-        }
+        get_log()->d(TAG_WORKER, "Restart connection job - %ld", (long) getpid());
     }
 }
 

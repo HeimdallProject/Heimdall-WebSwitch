@@ -139,6 +139,8 @@ static void thread_pool_loop(){
         exit(EXIT_FAILURE);
     }
 
+    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+
 	for (;;) {
 
 		int fd = 0;
@@ -152,8 +154,6 @@ static void thread_pool_loop(){
         pid_t worker_pid = 0;
 
         while(TRUE){
-
-            sem_t *sem = sem_open(WRK_SEM_PATH, 0);
 
             if(sem_wait(sem) == -1){
                 get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
@@ -192,6 +192,7 @@ static void thread_pool_loop(){
             
             }else{
                 
+                worker_pool->worker_busy[position] = 1;
                 worker_pid = worker_pool->worker_array[position];
                 worker_pool->worker_counter[position] = worker_pool->worker_counter[position] + 1;
                 get_log()->i(TAG_THREAD_POOL, "Get Worker %ld", (long)worker_pid);

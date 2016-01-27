@@ -15,7 +15,7 @@
 #include "../include/macro.h"
 
 #define TAG_CHUNK "CHUNK"
-#define MAX_CHUNK_SIZE 40960
+#define MAX_CHUNK_SIZE 4096
 
 /*
  * ---------------------------------------------------------------------------

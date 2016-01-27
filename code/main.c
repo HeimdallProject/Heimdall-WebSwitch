@@ -66,6 +66,8 @@ void cleaning(void){
  */
  static ThrowablePtr do_prefork(){
 
+    cleaning();
+
     ConfigPtr config = get_config();
     
     int n_prefork = 0;

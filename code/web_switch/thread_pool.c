@@ -216,11 +216,11 @@ static void thread_pool_loop(){
 
 		int attempt = 0;
 
-		while (attempt <= MAX_SEND_ATTEMPT){
+		while (TRUE){
 		            
 			throwable = send_fd(fd, worker_pid);
 			if (throwable->is_an_error(throwable)) {
-				//get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
+				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
 				throwable->destroy(throwable);
 				attempt++;
 			}else{
@@ -228,10 +228,10 @@ static void thread_pool_loop(){
 			}
 		}
 
-		if (attempt == 5){
+		/*if (attempt == 5){
 			kill(worker_pid, SIGKILL);
 			get_log()->e(TAG_THREAD_POOL, "Failed all attempts to send file descriptor to %ld", (long) worker_pid);
-		}
+		}*/
 
 		// close fd from main side
 		throwable = close_connection(fd);

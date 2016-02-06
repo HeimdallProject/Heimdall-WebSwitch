@@ -124,7 +124,6 @@ ServerPtr get_server(CircularPtr circular) {
     // (remote machine is not available)
     int not_available = 0;
     for (;;) {
-        get_log()->d(TAG_ROUND_ROBIN, "SERVSTATUS: %ld", server_ready->status);
         // checking if server statys is SERVER_STATUS_READY
         if (server_ready->status == SERVER_STATUS_READY)
             break;

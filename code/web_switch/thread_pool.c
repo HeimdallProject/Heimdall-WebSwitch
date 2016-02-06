@@ -10,7 +10,7 @@
 static ThreadPoolPtr singleton_thdpool = NULL;
 
 //Do not set here but in config!
-static int max_fd = NULL; 
+static int max_fd; 
 
 // FD Array
 static int *fd_array;

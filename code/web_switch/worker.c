@@ -67,24 +67,6 @@ void *request_work(void *arg) {
         return NULL;
     }
 
-    // Asks which host use
-    ServerPtr remote;
-    // retrieving remote host from the shared memory
-    /* (...) */
-
-    // checking for remote host status
-    if (remote->status == SERVER_STATUS_BROKEN) {
-        *node->worker_status = STATUS_ERROR;
-        return NULL;
-    }
-    // checking for errors in passing the remote host...
-    // ... and proceeding if it is all fine!
-    char *host = remote->ip;
-    if (host == NULL) {
-        *node->worker_status = STATUS_ERROR;
-        return NULL;
-    }
-
     get_log()->d(TAG_WORKER, "HOST: %s", host);
 
     // Logging - request

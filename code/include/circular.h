@@ -22,23 +22,12 @@
 #include "../include/helper.h"
 #include "../include/throwable.h"
 #include "../include/server_pool.h"
+#include "../include/types.h"
 
 #define TAG_CIRCULAR "CIRCULAR"
 
 #define BUFFER_PROGRESS_OK      0
 #define BUFFER_PROGRESS_STOP    -1
-
-/*
- * this is only an example structure to define a circular buffer over a set of
- * finite web servers.
- */
-typedef struct server {
-    char *address;
-    char *ip;
-    int  port;
-    int  weight;
-    int  status;
-} Server, *ServerPtr;
 
 /*
  * ---------------------------------------------------------------------------

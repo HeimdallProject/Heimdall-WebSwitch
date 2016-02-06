@@ -67,6 +67,75 @@ void *request_work(void *arg) {
         return NULL;
     }
 
+    // Using shared memory to retrieve the host
+    ConfigPtr config = get_config();
+
+    int number_of_worker = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &number_of_worker);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+
+    THPSharedMemPtr worker_pool = get_shm(WRK_SHM_PATH);
+    if (worker_pool == NULL){
+        get_log()->e(TAG_WORKER, "Error in get_shm2 - start_worker");
+        exit(EXIT_FAILURE);
+    }
+
+    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+
+    if(sem_wait(sem) == -1){
+        get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+        exit(EXIT_FAILURE);
+    }
+
+    // Asks which host use
+    ServerPtr remote = NULL;
+    // retrieving remote host from the shared memory
+
+    int i;
+    for (i = 0; i < number_of_worker; ++i){
+        if (worker_pool->worker_array[i] == (long)getpid()){
+            remote = &(worker_pool->worker_server[i]);
+            break;
+        }
+    }
+
+    if(sem_post(sem) == -1){
+        get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+        exit(EXIT_FAILURE);
+    }
+
+    // checking for remote host status
+    if (remote->status == SERVER_STATUS_BROKEN) {
+        *node->worker_status = STATUS_ERROR;
+
+        // if we get the server status as broken
+        if (pthread_mutex_unlock(&node->mutex) != 0) {
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+            *node->worker_status = STATUS_ERROR;
+            exit(EXIT_FAILURE);
+        }
+
+        return NULL;
+
+    }
+    // checking for errors in passing the remote host...
+    // ... and proceeding if it is all fine!
+    char *host = remote->ip;
+    if (host == NULL) {
+        *node->worker_status = STATUS_ERROR;
+
+        // if we get error in server params
+        if (pthread_mutex_unlock(&node->mutex) != 0) {
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+            *node->worker_status = STATUS_ERROR;
+            exit(EXIT_FAILURE);
+        }
+
+        return NULL;
+    }
+
     get_log()->d(TAG_WORKER, "HOST: %s", host);
 
     // Logging - request
@@ -75,7 +144,7 @@ void *request_work(void *arg) {
 
     // Creates a new client
     int sockfd;
-    ThrowablePtr throwable = create_client_socket(TCP, host, 80, &sockfd);
+    throwable = create_client_socket(TCP, host, 80, &sockfd);
     if (throwable->is_an_error(throwable)) {
         get_log()->t(throwable);
         *node->worker_status = STATUS_ERROR;
@@ -373,7 +442,7 @@ void start_worker() {
         int file_descriptor = 0;
 
         // open unix socket for receice file_descriptor from main
-        ThrowablePtr throwable = receive_fd(&file_descriptor, getpid());
+        throwable = receive_fd(&file_descriptor, getpid());
         if (throwable->is_an_error(throwable)) {
             get_log()->e(TAG_WORKER, "Error in receive_fd()");
             get_log()->t(throwable);

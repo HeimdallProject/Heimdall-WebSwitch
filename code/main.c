@@ -86,7 +86,7 @@ void cleaning(void){
     total_size+=sizeof(pid_t)*n_prefork; // Array worker
     total_size+=sizeof(int)*n_prefork; // Array busy
     total_size+=sizeof(int)*n_prefork; // Array counter
-    total_size+=sizeof(ServerPtr)*n_prefork; // Array server
+    total_size+=sizeof(Server)*n_prefork; // Array server
 
     // Initializes Shared memory
     void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);

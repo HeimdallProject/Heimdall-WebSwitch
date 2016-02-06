@@ -10,6 +10,7 @@ typedef struct server {
     char *ip;
     int  port;
     int  weight;
+    int  status;
 } Server, *ServerPtr;
 
 /*
@@ -22,8 +23,8 @@ typedef struct server {
 typedef struct thp_shared_mem {
     pid_t *worker_array; // Contains child process pid
     int *worker_busy; // Flag array for check wich process is ready (0) or busy (1)
-    int *worker_counter; // Array where we keep track of the use of use of workers
-    ServerPtr worker_server; 
+    int *worker_counter; // Array where we keep track of the use of workers
+    Server *worker_server; // Array where we keep track of the servers scheduled
 } THPSharedMem, *THPSharedMemPtr;
 
 #endif //TYPES_H

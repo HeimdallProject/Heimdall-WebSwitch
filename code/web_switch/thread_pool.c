@@ -144,7 +144,7 @@ static void thread_pool_loop(){
 	for (;;) {
 
 		int fd = 0;
-        ThrowablePtr throwable = get_fd(&fd);
+        throwable = get_fd(&fd);
         if (throwable->is_an_error(throwable)) {
             //get_log()->i(TAG_THREAD_POOL, "No fd to serve.");
             throwable->destroy(throwable);
@@ -198,12 +198,12 @@ static void thread_pool_loop(){
                 
                 get_log()->i(TAG_THREAD_POOL, "Get Worker %ld", (long)worker_pid);
 
-                // Get server
-                ServerPtr server = get_scheduler()->get_server(get_scheduler());
+                // Retrieving server from scheduler
+                ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
+                // Storing server in shared memory
+                worker_pool->worker_server[position] = *server;
 
-                worker_pool->worker_server[position] = server;
-
-                get_log()->i(TAG_THREAD_POOL, "Server %s assigned to worker %ld", worker_pool->worker_server[position]->ip,(long)worker_pid);
+                get_log()->i(TAG_THREAD_POOL, "Server %s assigned to worker %ld", worker_pool->worker_server[position].ip, (long)worker_pid);
                 
                 if(sem_post(sem) == -1){
                     get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");

@@ -58,6 +58,9 @@ void cleaning(int signum){
     // Semaphore unlink
     if (sem_unlink(WRK_SEM_PATH) < 0)
         get_log()->i(TAG_MAIN, "Error in sem_unlink");
+
+    // Terminate program
+    exit(signum);
 }
 
 /*

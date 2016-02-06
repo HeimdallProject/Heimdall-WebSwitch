@@ -67,10 +67,6 @@ void *request_work(void *arg) {
         return NULL;
     }
 
-    // Asks which host use
-    char *host;
-    host = get_scheduler()->get_server(get_scheduler()->rrobin)->ip;
-
     get_log()->d(TAG_WORKER, "HOST: %s", host);
 
     // Logging - request

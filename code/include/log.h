@@ -54,7 +54,7 @@ typedef struct log {
     int (*d)(const char* tag, const char *format, ...);
     int (*i)(const char* tag, const char *format, ...);
     int (*e)(const char* tag, const char *format, ...);
-    int (*r)(int type, void *arg, char *host);
+    int (*r)(int type, void *arg, char *host, int socket);
     void (*t)(ThrowablePtr throwable);
 } Log, *LogPtr;
 

@@ -27,9 +27,6 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
 
     circular->head = circular->buffer;
     circular->tail = circular->buffer + (len - 1);
-    get_log()->d(TAG_CIRCULAR, "HEAD: %s - %d - %p", circular->head->ip, circular->head->status, circular->head);
-    get_log()->d(TAG_CIRCULAR, "TAIL: %s - %d - %p", circular->tail->ip, circular->tail->status, circular->tail);
-
 
 
     // exiting critical region
@@ -46,10 +43,6 @@ ThrowablePtr allocate_buffer(CircularPtr circular, Server **servers, int len) {
 // - the circular buffer thread is the only one accessing the circular buffer memory -> let the progress()
 //   be an atomic function using the mutex associated to the circular buffer structer (the user must handle the release)
 void progress(CircularPtr circular) {
-
-    get_log()->d(TAG_CIRCULAR, "HEAD: %s - %d - %p", circular->head->ip, circular->head->status, circular->head);
-    get_log()->d(TAG_CIRCULAR, "TAIL: %s - %d - %p", circular->tail->ip, circular->tail->status, circular->tail);
-
     // recomputing tail, head and buffer position
     circular->tail            = circular->head;
     circular->buffer_position = (circular->buffer_position + 1) % circular->buffer_len;

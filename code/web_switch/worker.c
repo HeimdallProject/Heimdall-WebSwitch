@@ -138,10 +138,6 @@ void *request_work(void *arg) {
 
     get_log()->d(TAG_WORKER, "HOST: %s", host);
 
-    // Logging - request
-    HTTPRequestPtr request = node->request;
-    get_log()->r(RQST, (void *)request, host);
-
     // Creates a new client
     int sockfd;
     throwable = create_client_socket(TCP, host, 80, &sockfd);
@@ -158,6 +154,10 @@ void *request_work(void *arg) {
 
         return NULL;
     }
+
+    // Logging - request
+    HTTPRequestPtr request = node->request;
+    get_log()->r(RQST, (void *)request, host, sockfd);
 
     get_log()->d(TAG_WORKER, "io Dott. %ld del %ld Faccio richiesta a %s su socket: %d", (long) pthread_self(), (long) getpid(), node->request->req_host, sockfd);
 
@@ -206,7 +206,7 @@ void *request_work(void *arg) {
 
     // Logging - response
     HTTPResponsePtr response = node->response;
-    get_log()->r(RESP, (void *)response, host);
+    get_log()->r(RESP, (void *)response, host, sockfd);
 
 
     // Sends signal to condition

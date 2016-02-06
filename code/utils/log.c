@@ -195,7 +195,7 @@ static int e(const char* tag, const char *format, ...) {
  *                otherwise a negative number is returned.
  * ---------------------------------------------------------------------------
  */
-static int r(int type, void *arg, char *remote) {
+static int r(int type, void *arg, char *remote, int socket) {
 
     ConfigPtr config = get_config();
 
@@ -218,13 +218,14 @@ static int r(int type, void *arg, char *remote) {
             HTTPRequestPtr request = arg;
 
             // formatting log line
-            byte_write = asprintf(&line, "[%s] - %s to: %s  - -  %s %s %s\n",
+            byte_write = asprintf(&line, "[%s] - %s to: %s  - %s %s %s - socket: %d\n",
                                   timestamp(),
                                   request->req_host,
                                   remote,
                                   request->req_type,
                                   request->req_resource,
-                                  request->req_protocol);
+                                  request->req_protocol,
+                                  socket);
 
             byte_write = (int) fwrite(line, sizeof(char), strlen(line), req_log);
             fflush(req_log);
@@ -238,12 +239,13 @@ static int r(int type, void *arg, char *remote) {
             HTTPRequestPtr response = ((HTTPResponsePtr) arg)->response;
 
             // formatting log line
-            byte_write = asprintf(&line, "[%s] - %s response to Heimdall: %s %s %s\n",
+            byte_write = asprintf(&line, "[%s] - %s response to Heimdall: %s %s %s - socket: %d\n",
                                   timestamp(),
                                   remote,
                                   response->req_protocol,
                                   response->resp_code,
-                                  response->resp_msg);
+                                  response->resp_msg, 
+                                  socket);
             
             byte_write = (int) fwrite(line, sizeof(char), strlen(line), resp_log);
             fflush(resp_log);

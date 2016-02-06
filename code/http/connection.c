@@ -63,6 +63,8 @@ ThrowablePtr create_client_socket(const int type, const char *ip, const int port
     addr.sin_family = AF_INET;                          // Set IPV4 family
     addr.sin_port = (in_port_t) htons((uint16_t) port); // Set server connection on specified PORT
 
+    get_log()->d(TAG_CONNECTION, "====== IP ====== %p", ip);
+
     if (inet_pton(AF_INET, ip, &addr.sin_addr) == -1) {
         return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_client_socket");
     }

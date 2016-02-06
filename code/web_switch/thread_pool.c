@@ -203,7 +203,8 @@ static void thread_pool_loop(){
                 // Storing server in shared memory
                 worker_pool->worker_server[position] = *server;
 
-                get_log()->i(TAG_THREAD_POOL, "Server %s assigned to worker %ld", worker_pool->worker_server[position].ip, (long)worker_pid);
+                get_log()->i(TAG_THREAD_POOL, "========= Server pointer %p", worker_pool->worker_server[position]);
+                //get_log()->i(TAG_THREAD_POOL, "========= Server %s assigned to worker %ld", worker_pool->worker_server[position].ip, (long)worker_pid);
                 
                 if(sem_post(sem) == -1){
                     get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");

@@ -7,6 +7,9 @@ static pthread_cond_t cond_thr_request;
 static int max_thr_request = 0;
 static int request_counter = 0;
 
+THPSharedMemPtr worker_pool;
+sem_t *sem;
+
 /*
  *  See .h for more information.
  */
@@ -76,22 +79,15 @@ void *request_work(void *arg) {
         get_log()->t(throwable);
     }
 
-    THPSharedMemPtr worker_pool = get_shm(WRK_SHM_PATH);
-    if (worker_pool == NULL){
-        get_log()->e(TAG_WORKER, "Error in get_shm2 - start_worker");
-        exit(EXIT_FAILURE);
-    }
-
-    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+    // Asks which host use
+    ServerPtr remote = NULL;
+    
+    // retrieving remote host from the shared memory
 
     if(sem_wait(sem) == -1){
         get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
         exit(EXIT_FAILURE);
     }
-
-    // Asks which host use
-    ServerPtr remote = NULL;
-    // retrieving remote host from the shared memory
 
     int i;
     for (i = 0; i < number_of_worker; ++i){
@@ -136,7 +132,8 @@ void *request_work(void *arg) {
         return NULL;
     }
 
-    get_log()->d(TAG_WORKER, "HOST: %s", host);
+    get_log()->d(TAG_WORKER, "========= HOST POINTER : %p", host);
+    //get_log()->d(TAG_WORKER, "========= HOST: %s", host);
 
     // Creates a new client
     int sockfd;
@@ -426,14 +423,14 @@ void start_worker() {
         get_log()->t(throwable);
     }
 
-    THPSharedMemPtr worker_pool = get_shm(WRK_SHM_PATH);
+    worker_pool = get_shm(WRK_SHM_PATH);
     if (worker_pool == NULL){
         get_log()->e(TAG_WORKER, "Error in get_shm2 - start_worker");
         exit(EXIT_FAILURE);
     }
 
     // update worker status
-    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
+    sem = sem_open(WRK_SEM_PATH, 0);
 
     while(TRUE) {
 

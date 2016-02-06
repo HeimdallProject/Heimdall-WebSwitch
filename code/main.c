@@ -47,7 +47,9 @@ static void set_fd_limit(){
  * Return     : void
  * ---------------------------------------------------------------------------
  */
-void cleaning(void){
+void cleaning(int signum){
+
+    UNUSED(signum);
 
     // Shared memory unlink
     if (shm_unlink(WRK_SHM_PATH) < 0)
@@ -65,8 +67,6 @@ void cleaning(void){
  * ---------------------------------------------------------------------------
  */
  static ThrowablePtr do_prefork(){
-
-    cleaning();
 
     ConfigPtr config = get_config();
     
@@ -197,6 +197,8 @@ int main() {
     if (th_pool == NULL)
         exit(EXIT_FAILURE);
 
+    signal(SIGINT, cleaning);
+
     // TODO pass limit from config
     set_fd_limit();
 
@@ -230,9 +232,6 @@ int main() {
     } 
 
     log->i(TAG_MAIN, "Ready to accept incoming connections...");
-
-    // Register for cleaning at exit
-    atexit(cleaning);
 
     int count = 0;
 

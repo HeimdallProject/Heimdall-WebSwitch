@@ -10,14 +10,9 @@ static Log *singleton_log = NULL;
 static FILE *req_log;
 static FILE *resp_log;
 
-/*
- * ---------------------------------------------------------------------------
- * Description  : Global variable, singleton instance of log file pointer
- * * ---------------------------------------------------------------------------
- */
+// Prototype here for use t inside all log function
+static void t(ThrowablePtr thr);
 
-
-//TODO use a more low level API in order to avoid swap printing
 /*
  * ---------------------------------------------------------------------------
  * Function     : i
@@ -36,17 +31,20 @@ static FILE *resp_log;
 static int i(const char* tag, const char *format, ...) {
 
     ConfigPtr config = get_config();
-    UNUSED(config);
-    UNUSED(tag);
-    UNUSED(format);
 
     int byte_read = 0;
 
-    int level = 2;
-    //str_to_int(config->log_level, &level); TODO settato manualmente
+    int level = 0;
+    ThrowablePtr throwable = str_to_int(config->log_level, &level);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
-    int print_enable = 1;
-    //str_to_int(config->print_enable, &print_enable);
+    int print_enable = 0;
+    throwable = str_to_int(config->print_enable, &print_enable);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
     if (INFO_LEVEL >= level && print_enable == 1) {
 
@@ -68,7 +66,6 @@ static int i(const char* tag, const char *format, ...) {
     }
 
     return byte_read;
-    //TODO scrivere sul file se variabile è settata nel config
 }
 
 /*
@@ -88,19 +85,21 @@ static int i(const char* tag, const char *format, ...) {
  */
 static int d(const char* tag, const char *format, ...) {
 
-    //TODO scrivere sul file se variabile è settata nel config
     ConfigPtr config = get_config();
-    UNUSED(config);
-    UNUSED(tag);
-    UNUSED(format);
 
     int byte_read = 0;
 
-    int level = 2;
-    //str_to_int(config->log_level, &level); TOTO settato manualmente
+    int level = 0;
+    ThrowablePtr throwable = str_to_int(config->log_level, &level);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
-    int print_enable = 1;
-    //str_to_int(config->print_enable, &print_enable);
+    int print_enable = 0;
+    throwable = str_to_int(config->print_enable, &print_enable);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
     if (DEBUG_LEVEL >= level && print_enable == 1) {
 
@@ -120,6 +119,7 @@ static int d(const char* tag, const char *format, ...) {
         fflush(stdout);
         free(output);
     }
+
     return byte_read;
 }
 
@@ -140,20 +140,21 @@ static int d(const char* tag, const char *format, ...) {
  */
 static int e(const char* tag, const char *format, ...) {
 
-    //TODO ma farla globale?
     ConfigPtr config = get_config();
-    UNUSED(config);
-    UNUSED(tag);
-    UNUSED(format);
-
+    
     int byte_read = 0;
 
+    int level = 0;
+    ThrowablePtr throwable = str_to_int(config->log_level, &level);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
-    int level = 2;
-    //str_to_int(config->log_level, &level); TOTO settato manualmente
-
-    int print_enable = 1;
-    //str_to_int(config->print_enable, &print_enable);
+    int print_enable = 0;
+    throwable = str_to_int(config->print_enable, &print_enable);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
     if (ERROR_LEVEL >= level && print_enable == 1) {
         
@@ -176,10 +177,6 @@ static int e(const char* tag, const char *format, ...) {
 
 
     return byte_read;
-
-    //fprintf(stderr, "%s E/%s - %s\n", timestamp(), tag, msg);
-
-    //TODO scrivere sul file se variabile è settata nel config
 }
 
 /*
@@ -201,14 +198,16 @@ static int e(const char* tag, const char *format, ...) {
 static int r(int type, void *arg, char *remote) {
 
     ConfigPtr config = get_config();
-    UNUSED(config);
 
     int byte_write = 0;
 
-    int print_enable = 0;
-    //str_to_int(config->print_enable, &print_enable); TODO settato manualmente
+    int write_enable = 0;
+    ThrowablePtr throwable = str_to_int(config->write_enable, &write_enable);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
 
-    if (print_enable == 1) {
+    if (write_enable == 1) {
 
         char *line;
 
@@ -286,23 +285,22 @@ static void t(ThrowablePtr thr) {
  */
 Log *new_log() {
 
+    ConfigPtr config = get_config();
+
     Log *log = malloc(sizeof(Log));
     if (log == NULL) {
         fprintf(stderr, "Memory allocation error in new_log!");
         exit(EXIT_FAILURE);
     }
-
     
     // retrieving log file pointer or allocating it
-    // TODO get from config
-    req_log = fopen("/vagrant/log/heimdall_req.log", "a+");
+    req_log = fopen(config->log_file_req, "a+");
     if (req_log == NULL) {
         fprintf(stderr, "Error in log file opening!\n");
     }
 
     // retrieving log file pointer or allocating it
-    // TODO get from config
-    resp_log = fopen("/vagrant/log/heimdall_resp.log", "a+");
+    resp_log = fopen(config->log_file_resp, "a+");
     if (resp_log == NULL) {
         fprintf(stderr, "Error in log file opening!\n");
     }

@@ -322,23 +322,19 @@ ThrowablePtr make_simple_request(HTTPRequestPtr self, char **result) {
 
     // checking if params are set
     if (self->req_type == NULL) {
-        //self->req_type = "";
-        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_type set", "make_simple_request"); //TODO 
+        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_type set", "make_simple_request"); 
     }
 
     if (self->req_protocol == NULL) {
-        //self->req_protocol = "";
-        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_protocol set", "make_simple_request"); //TODO 
+        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_protocol set", "make_simple_request"); 
     }
 
     if (self->req_resource == NULL) {
-        //self->req_resource = "";
-        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_resource set", "make_simple_request"); //TODO 
+        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_resource set", "make_simple_request"); 
     }
 
     if (self->req_host == NULL) {
-        //self->req_host = "";
-        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_host set", "make_simple_request"); //TODO 
+        return get_throwable()->create(STATUS_ERROR, "Trying to create a simple http request with no param req_host set", "make_simple_request"); 
     }
 
 

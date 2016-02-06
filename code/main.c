@@ -11,7 +11,9 @@
 #include "include/connection.h"
 #include "include/apache_status.h"
 #include "include/throwable.h"
-#include "include/heimdall_shm.h"
+#include "include/shared_mem.h"
+#include "include/types.h"
+#include "include/macro.h"
 
 #define TAG_MAIN "MAIN"
 
@@ -39,19 +41,74 @@ static void set_fd_limit(){
 
 /*
  * ---------------------------------------------------------------------------
+ * Function   : cleaning
+ * Description: Perform some cleaning action at exit
+ *
+ * Return     : void
+ * ---------------------------------------------------------------------------
+ */
+void cleaning(void){
+
+    // Shared memory unlink
+    if (shm_unlink(WRK_SHM_PATH) < 0)
+        get_log()->i(TAG_MAIN, "Error in shm_unlink");
+
+    // Semaphore unlink
+    if (sem_unlink(WRK_SEM_PATH) < 0)
+        get_log()->i(TAG_MAIN, "Error in sem_unlink");
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Function   : do_prefork
- * Description: Create worker child, the number is get from config file
+ * Description: Create worker child and shared memory for keep track of child PID.
  * ---------------------------------------------------------------------------
  */
  static ThrowablePtr do_prefork(){
 
+    cleaning();
+
     ConfigPtr config = get_config();
-    UNUSED(config);
+    
+    int n_prefork = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
 
-    int n_prefork = N_WORKER;
-    //str_to_int(config->pre_fork, &n_prefork); TOTO settato manualmente
+    // if prefork is disabled we create anyway 1 child process
+    if(n_prefork == 0){
+        n_prefork = 1;
+    }
 
-    // TODO create at least one child if prefork is disabled
+    int total_size = 0;
+    total_size+=sizeof(THPSharedMem);
+    total_size+=sizeof(pid_t)*n_prefork; // Array worker
+    total_size+=sizeof(int)*n_prefork; // Array busy
+    total_size+=sizeof(int)*n_prefork; // Array counter
+
+    // Initializes Shared memory
+    void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);
+    if (start_mem == NULL)
+        exit(EXIT_FAILURE);
+
+    get_log()->i(TAG_THREAD_POOL, "Shared memory start from %p", start_mem);
+
+    // Mappgin shared memory segment
+    THPSharedMemPtr worker_pool = start_mem;
+    worker_pool->worker_array   = start_mem+sizeof(THPSharedMem);
+    worker_pool->worker_busy    = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork;
+    worker_pool->worker_counter = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork;;
+
+    int i = 0;
+    for (i = 0; i < n_prefork; ++i){
+        worker_pool->worker_array[i]    = 0;
+        worker_pool->worker_busy[i]     = 0;
+        worker_pool->worker_counter[i]  = 0;
+    }
+
+    // Get sem for access in shared memory
+    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
 
     get_log()->i(TAG_MAIN, "Prefork %d worker", n_prefork);
 
@@ -76,23 +133,30 @@ static void set_fd_limit(){
 
             get_log()->d(TAG_MAIN, "Created child n°%d - pid %ld", children, child_pid);
 
-            HSharedMemPtr shm_mem = get_shm();
-            ThrowablePtr throwable = shm_mem->add_worker_to_array(child_pid);
-            if (throwable->is_an_error(throwable)) {
-                get_log()->t(throwable);
-            } 
+            if(sem_wait(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
 
-            if (children == n_prefork - 1){
-                ThrowablePtr throwable = shm_mem->print_worker_array();
-                if (throwable->is_an_error(throwable)) {
-                    get_log()->t(throwable);
-                } 
+            // Scan array and set fd to first position available
+            int i, flag = 0;
+            for (i = 0; i < n_prefork; ++i){
+                if (worker_pool->worker_array[i] == 0){
+                    worker_pool->worker_array[i] = child_pid;
+                    flag = 1;
+                    break;
+                }
             }
+
+            if(sem_post(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_post", "do_prefork");
+
+            if (flag == 0){
+                return get_throwable()->create(STATUS_ERROR, "Cannot add worker_pid to array", "do_prefork");        
+            }            
         }
     }
 
     return get_throwable()->create(STATUS_OK, NULL, "do_prefork()");
- }
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -100,6 +164,9 @@ static void set_fd_limit(){
  * ---------------------------------------------------------------------------
  */
 int main() {
+
+    // Variable for errors
+    ThrowablePtr throwable = NULL;
 
     // Initializes Config
     ConfigPtr config = get_config();
@@ -116,28 +183,26 @@ int main() {
     if (scheduler == NULL)
         exit(EXIT_FAILURE);
 
-    // Initializes Shared memory
-    HSharedMemPtr shm_mem = get_shm();
-    if (shm_mem == NULL)
-        exit(EXIT_FAILURE);
-
     // Spawn child process
-    ThrowablePtr throwable = do_prefork();
+    throwable = do_prefork();
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
-    }
+    } 
 
     // Initializes Thread Pool
     ThreadPoolPtr th_pool = get_thread_pool();
     if (th_pool == NULL)
         exit(EXIT_FAILURE);
 
-    // // TODO pass limit from config
+    // TODO pass limit from config
     set_fd_limit();
 
-    // TODO maybe another value to set into config
-    int port = 8080;
+    int port = 0;
+    throwable = str_to_int(config->server_main_port, &port);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
 
     // Creates a new server
     int sockfd;
@@ -150,13 +215,22 @@ int main() {
     log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
 
     // Starts listening for the clients
-    throwable = listen_to(sockfd, 10);
+    int backlog = 0;
+    throwable = str_to_int(config->backlog, &backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    throwable = listen_to(sockfd, backlog);
     if (throwable->is_an_error(throwable)) {
         log->t(throwable);
         exit(EXIT_FAILURE);
     } 
 
     log->i(TAG_MAIN, "Ready to accept incoming connections...");
+
+    // Register for cleaning at exit
+    atexit(cleaning);
 
     int count = 0;
 

@@ -5,7 +5,7 @@ static pthread_mutex_t mtx_thr_request;
 static pthread_cond_t cond_thr_request;
 
 static int max_thr_request = 0;
-int request_counter = 0;
+static int request_counter = 0;
 
 /*
  *  See .h for more information.
@@ -239,11 +239,14 @@ void *read_work(void *arg) {
         // Receives request
         ThrowablePtr throwable = receive_http_request(worker->sockfd, node->request);
         if (throwable->is_an_error(throwable)) {
+            
             get_log()->t(throwable);
             worker->reader_thread_status = STATUS_ERROR;
-            // TODO: is it an error? if 0 bytes is read is not error!
+            
+            // if we get some error on cliebt socket 
             worker->worker_await_flag = WATCH_OVER;
             pthread_cond_signal(&worker->await_cond);
+            
             pthread_exit(NULL);
         }
 
@@ -292,8 +295,6 @@ void *write_work(void *arg) {
 
     while(TRUE) {
 
-        get_log()->d(TAG_WORKER, "=========== write_work 1 %d - %d ===========", sid, (long) getpid());
-
         // Gets node
         RequestNodePtr node = queue->get_front(queue);
 
@@ -307,8 +308,6 @@ void *write_work(void *arg) {
                 return NULL;
             }  
 
-            get_log()->d(TAG_WORKER, "=========== write_work 2 %d ===========", sid);
-
             while (node->response->response->header == NULL) {
                 if (pthread_cond_wait(&node->condition, &node->mutex) != 0) {
                     get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
@@ -316,8 +315,6 @@ void *write_work(void *arg) {
                     return NULL;
                 }
             }
-
-            get_log()->d(TAG_WORKER, "=========== write_work 3 %d ===========", sid);
 
             // Sends the response header
             ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
@@ -333,16 +330,12 @@ void *write_work(void *arg) {
                 return NULL;
             }
             
-            get_log()->d(TAG_WORKER, "=========== write_work 4 %d ===========", sid);
-
             // Releases mutex
             if (pthread_mutex_unlock(&node->mutex) != 0) {
                 get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
                 worker->writer_thread_status = STATUS_ERROR;
                 return NULL;
             }
-
-            get_log()->d(TAG_WORKER, "=========== write_work 5 %d ===========", sid);
 
             // Gets the chunk
             ChunkPtr chunk = node->chunk;
@@ -355,20 +348,14 @@ void *write_work(void *arg) {
                 return NULL;
             }
 
-            get_log()->d(TAG_WORKER, "=========== write_work 6 %d ===========", sid);
-
             // Dequeues the request and it destroys that
             node = queue->dequeue(queue);
             node->destroy(node);
-
-            get_log()->d(TAG_WORKER, "=========== write_work 7 %d ===========", sid);
 
             get_log()->i(TAG_WORKER, "%ld - Request dequeued!", (long) getpid());
 
         }
     }
-
-    get_log()->d(TAG_WORKER, "=========== write_work 8 %d ===========", sid);
     
     return NULL;
 }
@@ -379,6 +366,23 @@ void start_worker() {
     get_log()->d(TAG_WORKER, "start_worker %d", sid);
 
     //get_log()->d(TAG_WORKER, "%ld - start_worker", (long) getpid());
+
+    ConfigPtr config = get_config();
+    
+    int number_of_worker = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &number_of_worker);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+
+    THPSharedMemPtr worker_pool = get_shm(WRK_SHM_PATH);
+    if (worker_pool == NULL){
+        get_log()->e(TAG_WORKER, "Error in get_shm2 - start_worker");
+        exit(EXIT_FAILURE);
+    }
+
+    // update worker status
+    sem_t *sem = sem_open(WRK_SEM_PATH, 0);
 
     while(TRUE) {
 
@@ -487,6 +491,7 @@ void start_worker() {
         }
 
         char *pathname;
+        // TODO da aggiungere in config!
         if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long) getpid()) < 0) {
             get_log()->e(TAG_WORKER, "asprintf in start_worker");
         }
@@ -521,10 +526,34 @@ void start_worker() {
 
         free(worker);
 
-        // update worker status
-        HSharedMemPtr shm_mem = get_shm();
-        shm_mem->end_job_worker(getpid());
-        
+        if(sem_wait(sem) == -1){
+            get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+            exit(EXIT_FAILURE);
+        }
+
+        int i;
+        for (i = 0; i < number_of_worker; ++i){
+            if (worker_pool->worker_array[i] == (long)getpid()){
+                worker_pool->worker_busy[i] = 0;
+                get_log()->i(TAG_WORKER, "Worker %ld end job", (long)getpid());
+                break;
+            }
+        }
+
+        // Print array
+        for (i = 0; i < number_of_worker; ++i){
+            get_log()->i(TAG_WORKER, "Worker %ld in position %d available %d - usage %d", 
+                                    (long)worker_pool->worker_array[i], 
+                                    i, 
+                                    worker_pool->worker_busy[i],
+                                    worker_pool->worker_counter[i]);
+        }
+
+        if(sem_post(sem) == -1){
+            get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+            exit(EXIT_FAILURE);
+        }
+
         get_log()->d(TAG_WORKER, "Restart connection job - %ld", (long) getpid());
     }
 }

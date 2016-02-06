@@ -78,14 +78,15 @@ void *update_server_routine(void *arg) {
     // retrieving argument
     SchedulerPtr scheduler = (SchedulerPtr) arg;
 
+    ConfigPtr config = get_config();
+
     // retrieving update time from config
-    time_t up_time = 10;    // TODO set manually
-/*    ConfigPtr config = get_config();
+    time_t up_time = 10;
     throwable = str_to_long(config->update_time, &up_time);
     if (throwable->is_an_error(throwable)) {
         get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in configuration parsing");
         return NULL;
-    }*/
+    }
 
     // retrieving first timestamp
     time_t up_since  = time(NULL);
@@ -136,21 +137,8 @@ void *update_server_routine(void *arg) {
 
 SchedulerPtr init_scheduler(int awareness_level) {
 
-    // TODO: retrieving from configuration the server list, now assuming we have them as a list of string
-
-    char *servers_addresses[3] = {"bifrost.asgard", "loki.asgard", "thor.asgard"};
-    char *servers_ip[3] = {"192.168.50.3", "192.168.50.4", "192.168.50.5"};
-    int n = 3;
-
-    /*char *servers_addresses[2] = {"bifchar *servers_addresses[1] = {"bifrost.asgard"};
-    char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;rost.asgard", "loki.asgard"};
-    char *servers_ip[2] = {"192.168.50.3", "192.168.50.4"};
-    int n = 2;*/
-
-    /*char *servers_addresses[1] = {"bifrost.asgard"};
-    char *servers_ip[1] = {"192.168.50.3"};
-    int n = 1;*/
+    ServerConfigPtr server_config = get_server_config();
+    int n = server_config->total_server;
 
     // allocating memory - scheduler
     SchedulerPtr scheduler = malloc(sizeof(Scheduler));
@@ -158,25 +146,28 @@ SchedulerPtr init_scheduler(int awareness_level) {
         get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
         return NULL;
     }
+
     // allocating memory - rrobin
     scheduler->rrobin = new_rrobin();
 
     // allocating memory - server pool
     scheduler->server_pool = init_server_pool();
 
-
     // in server pool adding server nodes
     int i;
     ServerNodePtr node;
     for (i = 0; i < n; i++) {
+
         node = malloc(sizeof(ServerNode));
         if (node == NULL) {
             get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
             return NULL;
         }
 
-        node->host_address = servers_addresses[i];
-        node->host_ip      = servers_ip[i];
+        get_log()->d(TAG_SCHEDULER, "Server n° %d Name %s, IP %s", i, server_config->servers_names[i], server_config->servers_ip[i]);
+
+        node->host_address = server_config->servers_names[i];
+        node->host_ip      = server_config->servers_ip[i];
         node->weight       = WEIGHT_DEFAULT;
         node->status       = SERVER_STATUS_READY;
 
@@ -222,16 +213,17 @@ SchedulerPtr get_scheduler() {
     if (scheduler_singleton != NULL) {
         return scheduler_singleton;
     } else {
+        
+        ConfigPtr config = get_config();
+
         // getting awareness level from configuration file
-        int awareness = 1;  // TODO set manually
-/*        ConfigPtr config = get_config();
+        int awareness = 0;     
         ThrowablePtr throwable = str_to_int(config->algorithm_selection, &awareness);
         if (throwable->is_an_error(throwable)) {
-            get_log()->e(TAG_SCHEDULER, config->algorithm_selection);
             get_log()->t(throwable);
-            get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "Error in get_scheduler - conf parsing");
             exit(EXIT_FAILURE);
-        }*/
+        }
+
         // initializing scheduler
         switch (awareness) {
             case AWARENESS_LEVEL_LOW:

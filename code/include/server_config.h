@@ -4,36 +4,20 @@
 // Description: Simple C Config Parser.
 // ===========================================================================
 //
-#ifndef CONFIG_PARSER_H
-#define CONFIG_PARSER_H
+#ifndef CONFIG_SERVER_PARSER_H
+#define CONFIG_SERVER_PARSER_H
 #define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG_CONFIG "CONFIG_PARSER"
+#include "../include/heimdall_config.h"
+#include "../include/log.h"
+#include "../include/throwable.h"
+#include "../include/helper.h"
 
-/*
- * ---------------------------------------------------------------------------
- * Example usage.
- * ---------------------------------------------------------------------------
- *
- * #include "../include/heimdall_config.h"
- *
- *  ConfigPtr config = get_config();
- *  printf("handling_mode: %s",config->handling_mode);
- *  printf("max_worker: %s",config->max_worker);
- *  printf("pre_fork: %s",config->pre_fork);
- *
- */
-
-/*
- * ---------------------------------------------------------------------------
- * Relative position to config file
- * ---------------------------------------------------------------------------
- */
-#define CONFIGFILE "../code/config/heimdall_config.conf"
+#define TAG_SERVER_CONFIG "CONFIG_SERVER_PARSER"
 
 /*
  * ---------------------------------------------------------------------------
@@ -41,22 +25,11 @@
  * Description      : This struct collect all config value from config file.
  * ---------------------------------------------------------------------------
  */
-typedef struct config{
-    char *algorithm_selection;
-    char *pre_fork;
-    char *print_enable;
-    char *log_level;
-    char *write_enable;
-    char *log_file_req;
-    char *log_file_resp;
-    char *timeout_worker;
-    char *killer_time;
-    char *update_time;
-    char *server_config;
-    char *server_main_port;
-    char *backlog;
-    char *max_fd;
-} Config, *ConfigPtr;
+typedef struct server_config{
+    char **servers_names;
+    char **servers_ip;
+    int total_server;
+} ServerConfig, *ServerConfigPtr;
 
 /*
  * ---------------------------------------------------------------------------
@@ -70,8 +43,7 @@ typedef struct config{
  * Escape character used in config file, 'space' by default
  * ---------------------------------------------------------------------------
  */
-#define ESCAPE_CHARACTER ' '
-
+#define ESCAPE_CHR ':'
 
 /*
  * ---------------------------------------------------------------------------
@@ -83,6 +55,6 @@ typedef struct config{
  * Return       : Pointer to object Config.
  * ---------------------------------------------------------------------------
  */
-void *get_config();
+void *get_server_config();
 
-#endif //CONFIG_PARSER_H
+#endif //CONFIG_SERVER_PARSER_H

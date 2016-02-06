@@ -12,9 +12,10 @@
 
 #include <time.h>
 
-#include "apache_status.h"
-#include "round_robin.h"
-#include "server_pool.h"
+#include "../include/apache_status.h"
+#include "../include/round_robin.h"
+#include "../include/server_pool.h"
+#include "../include/server_config.h"
 
 #define AWARENESS_LEVEL_LOW   0
 #define AWARENESS_LEVEL_HIGH  1

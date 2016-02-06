@@ -24,9 +24,10 @@
 #include "../include/heimdall_config.h"
 #include "../include/watchdog.h"
 #include "../include/scheduler.h"
-#include "../include/heimdall_shm.h"
 #include "../include/message_controller.h"
-
+#include "../include/shared_mem.h"
+#include "../include/types.h"
+#include "../include/macro.h"
 
 #define TAG_WORKER "WORKER"
 #define WORK_OVER  42                             // so long and thanks for all the fish!

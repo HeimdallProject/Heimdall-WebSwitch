@@ -49,8 +49,6 @@ static void set_fd_limit(){
  */
 void cleaning(int signum){
 
-    UNUSED(signum);
-
     // Shared memory unlink
     if (shm_unlink(WRK_SHM_PATH) < 0)
         get_log()->i(TAG_MAIN, "Error in shm_unlink");

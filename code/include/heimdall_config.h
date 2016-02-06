@@ -56,6 +56,7 @@ typedef struct config{
     char *server_main_port;
     char *backlog;
     char *max_fd;
+    char *sockets_path;
 } Config, *ConfigPtr;
 
 /*

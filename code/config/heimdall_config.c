@@ -75,7 +75,11 @@ int config_handler(char *key, char *value, void *p_config) {
         if (asprintf(&config->max_fd, "%s", value) == -1)
             return -1;
 
-    } else
+    } else if (strcmp(key, "sockets_path") == 0) {
+        if (asprintf(&config->sockets_path, "%s", value) == -1)
+            return -1;
+
+    }else
         return -1;  /* unknown key, error */
 
     return 0;

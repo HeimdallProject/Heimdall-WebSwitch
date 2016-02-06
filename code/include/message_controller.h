@@ -20,6 +20,7 @@
 #include "../include/unix_socket.h"
 #include "../include/log.h"
 #include "../include/connection.h"
+#include "../include/server_config.h"
 
 #define TAG_MESSAGE_CONTROLLER "MESSAGE_CONTROLLER"
 

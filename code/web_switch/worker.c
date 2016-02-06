@@ -543,7 +543,7 @@ void start_worker() {
 
         char *pathname;
         // TODO da aggiungere in config!
-        if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long) getpid()) < 0) {
+        if (asprintf(&pathname, "%s_%ld", config->sockets_path, (long) getpid()) < 0) {
             get_log()->e(TAG_WORKER, "asprintf in start_worker");
         }
 

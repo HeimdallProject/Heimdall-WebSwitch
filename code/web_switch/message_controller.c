@@ -10,8 +10,10 @@ ThrowablePtr receive_fd(int *file_descriptor, pid_t worker_id){
     int value_lfd = 0;
     ThrowablePtr throwable;
 
+    ConfigPtr config = get_config();
+
     char *pathname;
-    if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long)worker_id) < 0) {
+    if (asprintf(&pathname, "%s_%ld", config->sockets_path, (long)worker_id) < 0) {
         return get_throwable()->create(STATUS_ERROR, "asprintf", "receive_fd");
     }
 
@@ -91,8 +93,10 @@ ThrowablePtr send_fd(int fd, pid_t worker_id){
     int sfd = 0;
     ThrowablePtr throwable;
 
+    ConfigPtr config = get_config();
+
     char *pathname;
-    if (asprintf(&pathname, "%s_%ld", "/home/vagrant/sockets/", (long)worker_id) < 0) {
+    if (asprintf(&pathname, "%s_%ld", config->sockets_path, (long)worker_id) < 0) {
         return get_throwable()->create(STATUS_ERROR, "asprintf", "receive_fd");
     }
 

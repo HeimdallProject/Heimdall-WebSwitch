@@ -10,6 +10,7 @@
 \usepackage{microtype}
 \usepackage{amsfonts,amsmath,amssymb,amsthm,booktabs,color,enumitem,graphicx}
 \usepackage[pdftex,hidelinks]{hyperref}
+\usepackage{listings}
 % Automatically set the PDF metadata fields
 \makeatletter
 \AtBeginDocument{\hypersetup{pdftitle = {\@title}, pdfauthor = {\@author}}}
@@ -136,8 +137,39 @@ Nella nostra implementazione \textbf{thread scheduler} si occupa di fornire,  og
 
 \subsection{State-less: implementazione con Round-Robin}
 L'algoritmo di scheduling Round-Robin (da adesso RR, \emph{n.d.r.}) è un algoritmo che agisce con prelazione distribuendo in maniera equa il lavoro, secondo una metrica stabilita in partenza. \\
-L'algoritmo funziona utilizzando un buffer circolare come possiamo vedere in \emph{figura \ref{fig: rrobin_sl}}: questo permette di iterare la selezione su una lista di elementi precedentemente caricata. E' necessario quindi specificare due passi per il corretto funzionamento. \\ \\
-\textbf{Inizializzazione del buffer: } in questa fase la struttura dati che rappresenta il buffer circolare, che mantiene due puntatori di \emph{testa} e \emph{coda}, 
+L'algoritmo funziona utilizzando un buffer circolare come possiamo vedere in \emph{figura \ref{fig: rrobin_sl}}: questo permette di iterare la selezione su una lista di elementi precedentemente caricata. E' necessario quindi specificare due passi per il corretto funzionamento, dopo aver dato un rapido sguardo alla struttura che lo rappresenta nella nostra implementazione.\\\\
+\begin{lstlisting}[language=C]
+typedef struct circular_buffer {
+    Server      *buffer;
+    int         buffer_position;
+    int         buffer_len;
+    
+    Server      *head;
+    Server      *tail;
+
+    pthread_mutex_t mutex;
+
+    ThrowablePtr (*allocate_buffer)(struct circular_buffer *circular, Server **servers, int len);
+    ThrowablePtr (*acquire)(struct circular_buffer *circular);
+    ThrowablePtr (*release)(struct circular_buffer *circular);
+    void         (*progress)(struct circular_buffer *circular);
+    void         (*destroy_buffer)(struct circular_buffer *circular);
+} Circular, *CircularPtr;
+\end{lstlisting}
+
+
+\textbf{Inizializzazione del buffer:} in questa fase la struttura dati che rappresenta il buffer circolare, che mantiene due puntatori di \emph{testa} e \emph{coda}, viene inizializzata associandovi un array di puntatori di strutture di tipo \emph{Server} e viene eseguita la seguente funzione:
+\begin{lstlisting}[language=C]
+/* inside allocate_buffer ... */
+    // allocating the buffer
+    circular->buffer = *servers;
+    circular->buffer_len = len;
+    // setting params
+    circular->head = circular->buffer;
+    circular->tail = circular->buffer + (len - 1);
+\end{lstlisting}
+In un'ottica di \emph{produttore vs consumatore}
+
 \subsection{State-aware: implementazione con monitor di carico}
 \subsubsection{Modulo ApacheStatus}
 

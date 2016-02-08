@@ -26,7 +26,7 @@
 
 #define TAG_CIRCULAR "CIRCULAR"
 
-#define BUFFER_PROGRESS_OK      0
+#define BUFFER_PROGRESS_OK       0
 #define BUFFER_PROGRESS_STOP    -1
 
 /*

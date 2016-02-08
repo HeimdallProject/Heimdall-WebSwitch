@@ -18,23 +18,24 @@
 \BOOKMARK [3][-]{subsubsection.3.4.6}{Thread di watchdog}{subsection.3.4}% 18
 \BOOKMARK [1][-]{section.4}{Ulteriori proposte}{}% 19
 \BOOKMARK [1][-]{section.5}{Politiche di scheduling}{}% 20
-\BOOKMARK [2][-]{subsection.5.1}{State-less: implementazione con Round Robin}{section.5}% 21
+\BOOKMARK [2][-]{subsection.5.1}{State-less: implementazione con Round-Robin}{section.5}% 21
 \BOOKMARK [2][-]{subsection.5.2}{State-aware: implementazione con monitor di carico}{section.5}% 22
 \BOOKMARK [3][-]{subsubsection.5.2.1}{Modulo ApacheStatus}{subsection.5.2}% 23
 \BOOKMARK [1][-]{section.6}{Performance}{}% 24
 \BOOKMARK [2][-]{subsection.6.1}{Test di carico}{section.6}% 25
 \BOOKMARK [2][-]{subsection.6.2}{Comparazione con Apache}{section.6}% 26
 \BOOKMARK [1][-]{section.7}{Future implementazioni}{}% 27
-\BOOKMARK [2][-]{subsection.7.1}{Webserver performante}{section.7}% 28
-\BOOKMARK [1][-]{section*.7}{Annotazioni}{}% 29
-\BOOKMARK [1][-]{appendix.Alph1}{Manuale per l'uso}{}% 30
-\BOOKMARK [1][-]{appendix.Alph2}{Vagrant}{}% 31
-\BOOKMARK [1][-]{appendix.Alph3}{Cluster virtuale}{}% 32
-\BOOKMARK [1][-]{appendix.Alph4}{Tool per i debug}{}% 33
-\BOOKMARK [2][-]{subsection.Alph4.1}{GDB}{appendix.Alph4}% 34
-\BOOKMARK [2][-]{subsection.Alph4.2}{Valgrind}{appendix.Alph4}% 35
-\BOOKMARK [1][-]{appendix.Alph5}{Tool per i test}{}% 36
-\BOOKMARK [2][-]{subsection.Alph5.1}{PostMan}{appendix.Alph5}% 37
-\BOOKMARK [2][-]{subsection.Alph5.2}{Telnet}{appendix.Alph5}% 38
-\BOOKMARK [2][-]{subsection.Alph5.3}{HttPerf}{appendix.Alph5}% 39
-\BOOKMARK [2][-]{subsection.Alph5.4}{Browser}{appendix.Alph5}% 40
+\BOOKMARK [2][-]{subsection.7.1}{Analisi della richiesta}{section.7}% 28
+\BOOKMARK [2][-]{subsection.7.2}{Webserver performante}{section.7}% 29
+\BOOKMARK [1][-]{section*.7}{Annotazioni}{}% 30
+\BOOKMARK [1][-]{appendix.Alph1}{Manuale per l'uso}{}% 31
+\BOOKMARK [1][-]{appendix.Alph2}{Vagrant}{}% 32
+\BOOKMARK [1][-]{appendix.Alph3}{Cluster virtuale}{}% 33
+\BOOKMARK [1][-]{appendix.Alph4}{Tool per i debug}{}% 34
+\BOOKMARK [2][-]{subsection.Alph4.1}{GDB}{appendix.Alph4}% 35
+\BOOKMARK [2][-]{subsection.Alph4.2}{Valgrind}{appendix.Alph4}% 36
+\BOOKMARK [1][-]{appendix.Alph5}{Tool per i test}{}% 37
+\BOOKMARK [2][-]{subsection.Alph5.1}{PostMan}{appendix.Alph5}% 38
+\BOOKMARK [2][-]{subsection.Alph5.2}{Telnet}{appendix.Alph5}% 39
+\BOOKMARK [2][-]{subsection.Alph5.3}{HttPerf}{appendix.Alph5}% 40
+\BOOKMARK [2][-]{subsection.Alph5.4}{Browser}{appendix.Alph5}% 41

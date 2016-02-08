@@ -114,7 +114,7 @@ ThrowablePtr release_circular(CircularPtr circular) {
 }
 
 
-// how to use it
+/* USAGE EXAMPLE */
 /*int main(int argc, char *argv[]) {
     if (argc != 1) {
         fprintf(stdout, "Usage %s", argv[0]);

@@ -1,8 +1,9 @@
 .vagrant
 .idea
+.texpadtmp
 report/.texpadtmp
 build
 *.sublime-*
 log/heimdall_req.log
 log/heimdall_resp.log
-
+CMakeFiles

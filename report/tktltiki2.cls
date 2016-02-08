@@ -79,29 +79,6 @@
 \renewcommand{\abstract}[1]{\renewcommand{\@abstract}{#1}}
 
 
-% -- Language-dependent strings --
-
-\iflanguage{finnish}{
-    \renewcommand{\@dateofacceptance}{hyv\"aksymisp\"aiv\"a}%
-    \renewcommand{\@grade}{arvosana}%
-    \renewcommand{\@instructor}{arvostelija}%
-    \university{HELSINGIN YLIOPISTO}
-    \faculty{Matemaattis-luonnontieteellinen}
-    \department{Tietojenk\"asittelytieteen laitos}
-    \subject{Tietojenk\"asittelytiede}
-}{}
-\iflanguage{swedish}{
-    \renewcommand{\@dateofacceptance}{godk.datum}%
-    \renewcommand{\@grade}{vitsord}%
-    \renewcommand{\@instructor}{bed\"omare}%
-    \university{HELSINGFORS UNIVERSITET}
-    \faculty{Matematisk-naturvetenskapliga fakulteten}
-    \department{Institutionen f\"or datavetenskap}%
-    \subject{Datavetenskap}
-    \city{Helsingfors}
-}{}
-
-
 % -- Automatic page counting magic --
 
 \newcommand{\lastpage}{%

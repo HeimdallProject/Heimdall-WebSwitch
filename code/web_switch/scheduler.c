@@ -58,7 +58,7 @@ ThrowablePtr apache_score(ServerNodePtr server) {
     int IDLE_WORKERS  = apache_status->idle_workers;
     int TOTAL_WORKERS = apache_status->busy_workers + IDLE_WORKERS;
 
-    // calculating and setting score - mapping in [1, 5]
+    // calculating and setting score - mapping in [w, W]
     score = (IDLE_WORKERS   - WEIGHT_DEFAULT)   *
             (WEIGHT_MAXIMUM - WEIGHT_DEFAULT)   /
             (TOTAL_WORKERS  - WEIGHT_DEFAULT)   +   WEIGHT_DEFAULT;

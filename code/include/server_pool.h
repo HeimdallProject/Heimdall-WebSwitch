@@ -33,7 +33,6 @@
 typedef struct server_node {
     char *host_address;                                         // remote machine canonical name
     char *host_ip;                                              // remote machine ip address
-    int  port_number;                                           // remote port number
     int  status;                                                // remote machine status
     int  weight;                                                // remote machine computation weight
 

@@ -2,13 +2,15 @@
 #define TYPES_H
 
 /*
- * this is only an example structure to define a circular buffer over a set of
- * finite web servers.
+ * ---------------------------------------------------------------------------
+ * Structure    : typedef struct server
+ * Description  : This struct represents a server in the cluster pointed
+ *                by the webswitch
+ * ---------------------------------------------------------------------------
  */
 typedef struct server {
     char *address;
     char *ip;
-    int  port;
     int  weight;
     int  status;
 } Server, *ServerPtr;

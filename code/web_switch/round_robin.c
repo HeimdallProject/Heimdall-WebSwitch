@@ -78,7 +78,6 @@ ThrowablePtr reset_servers(RRobinPtr rrobin, ServerPoolPtr pool, int server_num)
     for (s = 0; s < pool->num_servers; s++) {
         (servers + s)->address = node->host_address;
         (servers + s)->ip      = node->host_ip     ;
-        (servers + s)->port    = node->port_number ;
         (servers + s)->weight  = node->weight      ;
         (servers + s)->status  = node->status      ;
         get_log()->d(TAG_ROUND_ROBIN, "%d STATUS: %d from %d", s, (servers + s)->status, node->status);

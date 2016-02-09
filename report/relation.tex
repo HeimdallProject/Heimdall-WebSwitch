@@ -190,19 +190,51 @@ Il sistema è stato concepito per essere il più modulare possibile con valori d
 \subsubsection*{Connessione}
 \subsubsection*{Richieste HTTP}
 \subsubsection*{Risposte HTTP}
-\subsubsection{Thread di lettura}
-\label{sec:reader}
+\subsubsection{Thread di lettura}\label{ssec:reader}
 Il thread di lettura viene chiamato non appena il worker riceve una connessione da gestire. Questo thread ha il compito di leggere dal socket (tramite read bloccante) e di creare nodi da accodare alla coda delle richieste. Non appena ha accodato una nuova richiesta creerà il thread di richiesta, che chiamando un server sottostante, che si occuperà di gestire la richiesta. L'attuale implementazione fa un uso di un contatore per poter limitare il numero di richieste massime accettabili da una stessa connessione contemporaneamente. Quello che abbiamo notato dai nostri esperimenti è che Apache gestisce al massimo 100 richieste sulla stessa connessione, cosa che noi non limitiamo ma che rendiamo modificabile tramite l'apposita configurazione nel file config.
-Il thread di lettura inoltre, ogni qual volta riceve una nuova connessione aggiorna un timer adibito alla verifica dello stato di vita della connessione ``si veda il paragrafo~\ref{sec:watchdog}.''
-\subsubsection{Thread di scrittura}
-\label{sec:writer}
+Il thread di lettura inoltre, ogni qual volta riceve una nuova connessione aggiorna un timer adibito alla verifica dello stato di vita della connessione ``si veda il paragrafo~\ref{ssec:watchdog}.''
+\subsubsection{Thread di scrittura}\label{ssec:writer}
 Il thread di scrittura è adibito alla scrittura della risposta ottenuta tramite il thread di richiesta~\ref{sec:request}. Questi due thread cooperano per mezzo di una condition andando a scrivere e a leggere nella stessa area di memoria, il chunk~\ref{sec:chunk}. Dovendo rispondere in ordine il thread starà in loop sulla richiesta del fronte della coda e dopo aver inviato l'header di risposta (che non è gestito tramite chuck) 
 \subsubsection{Thread di richiesta}
 \label{sec:request}
 Il thread di richiesta è adibito infine all'invio della richiesta ad un server nel cluster e alla successiva 
-\subsubsection{Thread di watchdog}
-\label{sec:watchdog}
+\subsubsection{Thread di watchdog} \label{ssec:watchdog}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{images/watchdog}
+\caption{Schema della procedura di controllo sul tempo di esecuzione \label{fig: watchdog}}
+\end{figure}
+Il thread di \emph{watchdog}, letteralmente di sorveglianza, è adibito al controllo della \textbf{corretta esecuzione del worker},in particolare al controllo che tale esecuzione, nell'occupare per eccessivo tempo le risorse del sistema, non vado a creare un collo di bottiglia che via via porta al collasso del programma. Per far questo esso viene eseguito in modalità \emph{detached} dal thread principale del worker ed è legato dalle operazioni che vengono eseguite dal processo da una serie di variabili: 
+\begin{itemize}
+	\item \emph{pthread\_condition} su cui è in attesa il thread principale del worker
+	\item \emph{flag} legata alla condition di cui sopra
+	\item \emph{timestamp} settato dal thread di lettura della richiesta in arrivo
+\end{itemize}
+Come appare da una prima analisi della struct del watchdog.
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : typedef struct watchdog_thread
+ * Description      : this struct helps to manage and set attributes for the thread
+ *                    which watch over the remote connection thread termination
+ * ---------------------------------------------------------------------------
+ */
+typedef struct watchdog_thread {
+    int status;                                     
+    pthread_cond_t *worker_await_cond;             
+    int *worker_await_flag;
 
+    time_t killer_time;                             // to schedule the watchdog wakeup
+    time_t timeout_worker;                          // to abort a thread run
+    time_t timestamp_worker;                        // timestamp last worker operation
+} Watchdog, *WatchdogPtr;
+
+\end{lstlisting}
+Dove il \emph{killer\_time} ed il \emph{timeout\_worker} sono definiti dal file di configurazione per dare modo all'operatore di modellare l'implementazione sulle caratteristiche della macchina su cui gira il web switch. \\\\
+Una più schematica rappresentazione del flusso di esecuzione è possibile vederla in \emph{\ref{fig: watchdog}}.
+In particolare quando vengono distaccati i thread ausiliari, il thread principale del worker si mette in attesa della fine di una delle condizioni di termine del servizio di cui si è già discusso sopra, fra cui anche lo scadere del massimo tempo di esecuzione disponibile. In particolare, ad ogni iterazione del thread di lettura, avremo un aggiornamento del timestamp del worker, per cui ogni volta che si ha l'arrivo di una risposta da reinoltrare o di una richiesta da soddisfare si assume il server come operativo od il client in ascolto. \\ 
+Contemporaneamente il watchdog rimane in \emph{nanosleep} per un lasso di tempo pari a quello configurato, a meno dell'arrivo di segnali che vengono gestiti e dopo i quali il watchdog ritorna in attesa, scaduto il quale la variabile di timestamp viene controllata. Se risulta \emph{scaduta} viene aggiornato il flag di attesa del worker e gli viene segnalato di riattivarsi e di mettere in pratica le procedure di \emph{clean up} per scollegarsi dal client e dal server assegnato. \\\\
+Osserviamo come questo controllo viene fatto su una variabile settata dal thread di lettura, permettendoci con semplicità di valutare eventuali problemi sia sulla linea fra web switch e macchina del cluster che fra web switch e client, evitando lo stato di \emph{hanging} che porterebbe ad uno stallo del programma.
 \newpage
 \section{Ulteriori proposte}
 

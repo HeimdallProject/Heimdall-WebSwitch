@@ -267,7 +267,8 @@ void *read_work(void *arg) {
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
         }
-
+        
+        // Updates timer
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node

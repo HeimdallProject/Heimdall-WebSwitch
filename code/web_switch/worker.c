@@ -154,7 +154,7 @@ void *request_work(void *arg) {
 
     // Logging - request
     HTTPRequestPtr request = node->request;
-    get_log()->r(RQST, (void *)request, host, sockfd);
+    get_log()->r(RQST, (void *)request, host, getpid());
 
     get_log()->d(TAG_WORKER, "io Dott. %ld del %ld Faccio richiesta a %s su socket: %d", (long) pthread_self(), (long) getpid(), node->request->req_host, sockfd);
 
@@ -203,7 +203,7 @@ void *request_work(void *arg) {
 
     // Logging - response
     HTTPResponsePtr response = node->response;
-    get_log()->r(RESP, (void *)response, host, sockfd);
+    get_log()->r(RESP, (void *)response, host, getpid());
 
 
     // Sends signal to condition

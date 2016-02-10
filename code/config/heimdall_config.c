@@ -79,6 +79,10 @@ int config_handler(char *key, char *value, void *p_config) {
         if (asprintf(&config->sockets_path, "%s", value) == -1)
             return -1;
 
+    }else if (strcmp(key, "max_thread_pchild") == 0) {
+        if (asprintf(&config->max_thread_pchild, "%s", value) == -1)
+            return -1;
+
     }else
         return -1;  /* unknown key, error */
 

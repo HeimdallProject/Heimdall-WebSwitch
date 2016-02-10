@@ -185,17 +185,12 @@ static int e(const char* tag, const char *format, ...) {
  * Description  : Used for print human-readable request logging
  *
  * Param        : int type: RQST or RESP
- *                void *arg: it can be an HTTPRequestPtr (RQST type) or an
- *                HTTPResponsePtr (RESP type)
- *                const char *remote: the machine to which has been forwarded
- *                the request (log req) and from which we are waiting for a response 
- *                (log resp)
  *
  * Return       : If successful, the total number of characters written is returned
  *                otherwise a negative number is returned.
  * ---------------------------------------------------------------------------
  */
-static int r(int type, void *arg, char *remote, int socket) {
+static int r(int type, void *arg, char *remote, pid_t pid) {
 
     ConfigPtr config = get_config();
 
@@ -218,14 +213,14 @@ static int r(int type, void *arg, char *remote, int socket) {
             HTTPRequestPtr request = arg;
 
             // formatting log line
-            byte_write = asprintf(&line, "[%s] - %s to: %s  - %s %s %s - socket: %d\n",
+            byte_write = asprintf(&line, "[%s] - %s to: %s - worker: %ld - %s %s %s\n",
                                   timestamp(),
                                   request->req_host,
                                   remote,
+                                  (long) pid,
                                   request->req_type,
                                   request->req_resource,
-                                  request->req_protocol,
-                                  socket);
+                                  request->req_protocol);
 
             byte_write = (int) fwrite(line, sizeof(char), strlen(line), req_log);
             fflush(req_log);
@@ -239,13 +234,13 @@ static int r(int type, void *arg, char *remote, int socket) {
             HTTPRequestPtr response = ((HTTPResponsePtr) arg)->response;
 
             // formatting log line
-            byte_write = asprintf(&line, "[%s] - %s response to Heimdall: %s %s %s - socket: %d\n",
+            byte_write = asprintf(&line, "[%s] - %s response to Heimdall - worker: %ld: %s %s %s\n",
                                   timestamp(),
                                   remote,
+                                  (long) pid,
                                   response->req_protocol,
                                   response->resp_code,
-                                  response->resp_msg, 
-                                  socket);
+                                  response->resp_msg);
             
             byte_write = (int) fwrite(line, sizeof(char), strlen(line), resp_log);
             fflush(resp_log);

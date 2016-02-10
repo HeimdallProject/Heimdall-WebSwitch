@@ -32,17 +32,24 @@
 % The following commands define the information used to generate title and
 % abstract pages. The following entries should be always specified:
 \title{%
-  \huge Project Heimdall \\
-  \large Proposta di implementazione per un web switch \\ 
-    concorrente two-way di livello 7 (OSI) con \\
+    \huge Project Heimdall
+    \\
+    \large Proposta di implementazione per un web switch
+    \\
+    concorrente two-way di livello 7 (OSI) con
+    \\
     politiche di bilanciamento del carico stateless e stateful
   }
-\author{\emph{Alessio Moretti} - 0187698 \\\emph{Andrea Cerra} - 0167043\\\emph{Claudio Pastorini} - 0186256}
-\date{\today}
-\level{Corso di Ingegneria di Internet e del Web - A.A. 2014/2015}
-\university{\textbf{Università degli studi di Roma Tor Vergata}}
-\department{\textbf{Facoltà di Ingegneria Informatica}}
-\city{Roma}
+  \author{\emph{Alessio Moretti} - 0187698
+    \\
+    \emph{Andrea Cerra} - 0167043
+    \\
+    \emph{Claudio Pastorini} - 0186256}
+  \date{\today}
+  \level{Corso di Ingegneria di Internet e del Web - A.A. 2014/2015}
+  \university{\textbf{Università degli studi di Roma Tor Vergata}}
+  \department{\textbf{Facoltà di Ingegneria Informatica}}
+  \city{Roma}
 
 \begin{document}
 
@@ -59,7 +66,9 @@
 % Example of a quote
 \begin{quote}
 \flushright
-	\emph{Yggdrasil, l'albero del mondo, che congiunge i nove regni del cosmo con Asgard, la dimora degli dei.} \\ Heimdall, custode del Bifröst
+	\emph{Yggdrasil, l'albero del mondo, che congiunge i nove regni del cosmo con Asgard, la dimora degli dei.}
+  \\
+  Heimdall, custode del Bifröst
 \end{quote}
 
 % Write some science here
@@ -74,11 +83,13 @@ Sample text and a reference\cite{lamport94}. Lorem ipsum dolor sit amet, consect
 \newpage
 \section{Introduzione}
 \subsection{Perché Heimdall?}
-Heimdall è il personaggio dell'universo Marvel, ispirato all'omonimo dio della mitologia norrena, egli è il guardiano del regno di Asgard e del Bifröst. Quest'ultimo è il ponte che unisce la Terra alla dimora degli dei ed Heimdall, come suo custode, ha il compito di aprirlo ed indirizzarlo verso gli altri mondi, permettendo solamente a chi è degno di attraversare le distese dello spazio. \\
+Heimdall è il personaggio dell'universo Marvel, ispirato all'omonimo dio della mitologia norrena, egli è il guardiano del regno di Asgard e del Bifröst. Quest'ultimo è il ponte che unisce la Terra alla dimora degli dei ed Heimdall, come suo custode, ha il compito di aprirlo ed indirizzarlo verso gli altri mondi, permettendo solamente a chi è degno di attraversare le distese dello spazio.
+\\
 Ci piace pensare che questo sia un po' il ruolo del software nato dal nostro progetto: che sia in grado di scegliere come meglio indirizzare le connessioni in arrivo, ponendosi come ``guardiano'' di un cluster di server che fa ad esso capo. Quindi un \textbf{web switch} che sia funzionale sia per ricevere o trasmettere pacchetti di un regolare traffico HTTP, che per bilanciare il carico dello stesso traffico in arrivo sulle varie macchine.
 
 \subsection{Web switch di livello 7}
-Nella terminologia delle reti informatiche uno \textbf{switch} è un commutatore a livello datalink, ovvero un dispositivo che si occupa di instradare opportunamente, attraverso le reti LAN, selezionando i frame ricevuti e reindirizzandoli verso la macchina appropriata a seconda di una propria tabella di inoltro. Un \textbf{web switch}, a livello applicativo, è capace di reindirizzare i dati in funzione dei pacchetti che riceve, analizzandone il contenuto e decidendo opportunamente la destinazione, occupandosi allo stesso tempo di reinoltrare anche l'eventuale risposta della macchina selezionata verso il client che l'ha generata. \\
+Nella terminologia delle reti informatiche uno \textbf{switch} è un commutatore a livello datalink, ovvero un dispositivo che si occupa di instradare opportunamente, attraverso le reti LAN, selezionando i frame ricevuti e reindirizzandoli verso la macchina appropriata a seconda di una propria tabella di inoltro. Un \textbf{web switch}, a livello applicativo, è capace di reindirizzare i dati in funzione dei pacchetti che riceve, analizzandone il contenuto e decidendo opportunamente la destinazione, occupandosi allo stesso tempo di reinoltrare anche l'eventuale risposta della macchina selezionata verso il client che l'ha generata.
+\\
 Le applicazioni sono molteplici per l'implementazione a livello applicativo: può essere considerato un \textbf{proxy}, oppure, selezionando opportunamente la macchina con più velocità di risposta o con minore pressione, può agire come \textbf{bilanciatore di carico}. Infatti ognuno dei client che fa richiesta, ad esempio, per uno specifico sito web, invia un pacchetto ad un indirizzo IP pubblico che corrisponde a quello del nostro switch applicativo. Questi, dopo aver correttamente letto il pacchetto, si occupa di consultare una tabella di inoltro generata con una determinata \textbf{politica di scheduling} e quindi gestire l'inoltro della richiesta ed il reinoltro della risposta del webserver. Tutto questo in maniera totalmente trasparente al client, qualsiasi sia la macchina che ha effettivamente risposto, che sia un web server oppure un cluster di macchine associate ad un ulteriore switch.
 
 \subsection{Assunzioni progettuali sul cluster}
@@ -95,20 +106,28 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 \caption{Esempio di uno \emph{switch di livello 7 (OSI)}}
 \end{figure}
 
-\subsection{Web switch di livello 7}
-
 \newpage
 \section{Architettura}
+\label{sec:architecture}
+
 
 \subsection{Server in ascolto}
+\label{sec:main}
+
 \subsubsection{File di configurazione}
 \label{sec:config}
+
 \subsubsection{Logging}
+\label{sec:logging}
+
 \subsubsection{Gestione degli errori}
+\label{sec:errors}
 
 \subsection{Pool manager}
+\label{sec:pool}
 
-\subsection{Scheduler} \label{ssec: sched}
+\subsection{Scheduler}
+\label{ssec: sched}
 Lo scheduler è un componente fondamentale di un sistema informatica: si occupa di stabilire un ordinamento temporale l'esecuzione di un set di richieste di accesso ad una risorsa. Nel caso di un web switch di livello 7, lo scheduler va a garantire che ognuna delle richieste in arrivo possa essere inoltrata immediatamente alla prima macchina disponibile, secondo una politica di scheduling che sia \emph{state-less}, quindi che non consideri l'attuale carico di lavoro delle macchine del cluster, oppure \emph{state-aware}, che monitori costantemente tale carico e modifichi di conseguenza l'assegnazione delle richieste (verrà spiegato nel dettaglio come lavorano e quando sono disponibili tali politiche in \emph{\ref{sec: sched_p}}). \\\\
 In questa implementazione lo scheduler, che come vedremo va a sfruttare un algoritmo di selezione \emph{Round Robin} la cui struttura verrà esplicitata più avanti, viene definito come segue.
 \begin{lstlisting}
@@ -156,49 +175,295 @@ ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
 worker_pool->worker_server[position] = *server;
 	
 \end{lstlisting}
-Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} e non \emph{READY} è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il worker (che analizzeremo in \emph{\ref{ssec: worker}}) non avvierà nessuna connessione di inoltro della richiesta. \\\\
+Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} e non \emph{READY} è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il worker (che analizzeremo in \emph{\ref{sec:worker}}) non avvierà nessuna connessione di inoltro della richiesta. \\\\
 Dalla necessità progettuale di garantire uno \textbf{scheduling adattabile} a condizioni di stress da carico, quindi per soddisfare specifiche di \emph{state-awareness}, nascono i parametri relativi a status e peso nei nodi della pool di server e nasce un adattamento \emph{pesato} dell'algoritmo di Round Robin.
 
+\subsection{Worker}
+\label{sec:worker}
 
-
-\subsection{Worker} \label{ssec: worker}
-Il worker è il componente principale di Heimdall e non a caso gli è stato assegnato questo nome poiché è lui che ``lavora'' andando a servire le richieste dei client tramite lo smistamento ai vari server presenti nel cluster e il successivo inoltro delle risposte.
+Il \textbf{worker} è il componente principale di Heimdall e non a caso gli è stato assegnato questo nome poiché è lui che ``lavora'' andando a servire le richieste dei client tramite lo smistamento ai vari server presenti nel cluster e il successivo inoltro delle risposte.
 \\
 Nell'attuale implementazione il worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
 \\
-Heimdall è configurato in modo tale da effettuare il prefork di un numero configurabile di processi, questa scelta è stata fatta per evitare di aggiungere ritardo causato dal tempo di creazione di quest'ultimi.
+Heimdall è configurato in modo tale da effettuare il \textbf{prefork} di un numero configurabile di processi (si veda \ref{sec:config}), questa scelta è stata fatta per evitare di aggiungere ritardo causato dal tempo di creazione di quest'ultimi.
 
 \subsubsection{Gestione delle richieste}
-L'applicazione soddisfa le specifiche HTTP 1.1 gestendo connessioni in modo persistente tramite pipeline. Questo vuol dire che da una stessa connessione TCP è possibile ricevere più di una richiesta HTTP (connessione persistente) senza dover necessariamente aver risposto alla richiesta precedente (pipeling). Per ottenere una connessione persistente abbiamo mantenuto aperta la connessione TCP anche dopo aver inviato la risposta e invece per ottere il pipeling abbiamo creato una coda delle richieste. 
-Come detto pocanzi il worker è un processo che viene creato tramite prefork. Questo rimane in pause finché non gliene viene consegnata una connessione (una socket) tramite il message controller. Non appena ricevuta potrà iniziare a lavorare creando i vari thread necessari per 
+\label{sec:requests_management}
+
+% TODO biblio to HTTP1.1 https://tools.ietf.org/html/rfc2616#page-44
+L'applicazione soddisfa le specifiche \textbf{HTTP 1.1} gestendo \textbf{connessioni persistenti} e supportando il \textbf{pipelining} delle richieste. Per ottenere il supporto alle connessioni persistenti Heimdall chiude la connessione con il client solo allo scadere di un timer, così facendo può ricevere più richieste tramite la stessa connessione. Queste non appena ricevute vengono inserite in una coda per essere poi servite nello stesso ordine con cui sono state ricevute.
+Il worker è un processo che viene creato tramite prefork al primo avvio del WebSwitch. Questo rimane in pausa finché non gli viene consegnata una connessione da cui poter ricevere le richieste. Tale passaggio è realizzato tramite il \hyperref[sec:pool]{\emph{pool manager}} e in particolare dal message controller. Non appena ricevuta una connessione da poter servire, inizierà a lavorare creando i vari thread necessari per: la ricezione, l'inoltro e la successiva risposta alla richiesta.
+
 \subsubsection*{Coda delle richieste}
-Per poter supportare la tecnica del pipeling è stato necessario creare una coda delle richieste che contenesse tutte le richieste effettuate da un client tramite la stessa connessione HTTP. È stata implementata una coda poiché è necessario rispettare l'ordine delle richieste. 
-La coda è molto semplice, è stata implementata:
+\label{sec:requests_queue}
 
-La coda espone le seguenti operazioni:
+Come detto pocanzi per poter supportare il pipeling è stato necessario creare una coda che contenesse tutte le richieste effettuate da un client tramite la stessa connessione HTTP. È stata implementata una coda poiché è necessario rispettare l'ordine delle richieste all'atto della risposta.
+% A server MUST send its responses to those requests in the same order that the requests were received. https://tools.ietf.org/html/rfc2616#section-8.1.2.2
 
-All'interno della coda non sono presenti direttamente le richieste ma è stata creata un'ulteriore struttura, i request node. Questi nodi incapsulano al loro interno la richiesta, la risposta e (oltre a varie variabili di supporto per il multithreading) un'ulteriore struttura, il chuck. 
+La coda è molto semplice ed espone le seguenti operazioni:
+\begin{lstlisting}
+    void (*enqueue)(struct request_queue *self, RequestNodePtr node);
+    struct request_node*(*dequeue)(struct request_queue *self);
+    int (*is_empty)(struct request_queue *self);
+    struct request_node*(*get_front)(struct request_queue *self);
+    int (*get_size)(struct request_queue *self);
+
+    void (*destroy)(struct request_queue *self);
+\end{lstlisting}
+
+Questa contiene elementi di tipo RequestNode, struttura dati che incapsula: la richiesta, la risposta, un riferimento al nodo precedente, al nodo successivo e, oltre altre variabili di supporto per il multithreading e per il watchdog, un'ulteriore struttura, il chunk.
+
+\begin{lstlisting}
+    pthread_t thread_id;
+    HTTPRequestPtr request;
+    HTTPResponsePtr response;
+    time_t request_timeout;
+    struct request_node *previous;
+    struct request_node *next;
+    ChunkPtr chunk;
+    int *worker_status;
+    pthread_mutex_t mutex;
+    pthread_cond_t condition;
+\end{lstlisting}
+
 \subsubsection*{Chunk di dati}
 \label{sec:chunk}
-Un chunk è un ``pezzo'' che contiene parte della risposta. Parte, non la risposta completa dato che potrebbe essere anche una risosta corposa e quindi poter richiedere anche molto spazio. All'interno della struttura troviamo:
+Un chunk è un ``pezzo'' che contiene parte della risposta. Questa scelta è stata adottata poiché si è preferito rispondere il più presto possibile al client senza dover attendere necessariamente di aver ottenuto la risposta completa poiché questa potrebbe essere corposa e quindi, oltre occupare ``molto'' spazio, potrebbe richiedere molto tempo per essere completamente ricevuta da Heimdall e aggiungerebbe solo ritardo per il seguente inoltro.
+\\
+La struttura è molto semplice e contiene un'area di memoria fissa allocata alla creazione del chunk di dimensione pari a 4096 byte.
+\\
+È stata fatta questa scelta per alleggerire al massimo il carico su Heimdall, in questo modo, non dovrà avere in memoria risposte complete ma facendo da ``passa carta'' tra server e client avrà in memoria in ogni istante il minor quantitativo di risorsa possibile. Questa implementazione è stata possibile grazie alla natura delle connessioni TCP, cioè quello di essere full duplex
+% A connection can be used to carry data in both directions, that is, it is "full duplex".  https://tools.ietf.org/html/rfc793#section-2.7
 
-È stata fatta questa scelta per poter alleggerire al massimo il carico sul Web Switch che in questo modo non si dovrà appesantire con risorse ma che farà da passa carta tra server e client. Tramite questa soluzione siamo stati anche in grado di poter inviare la risposta in un tempo minore non dovendo aspettare necessariamente che il Web Switch abbia ricevuto completamente la risposta, in questo modo abbiamo ottenuto una risposta in tempi minori con il minor uso di memoria. Questo ci è stato possibile grazie alla natura dei socket che permettono la lettura e la scrittura contemporaneamente, come se lo stream di lettura fosse indipendente dallo stream di entrata.
-
-disegnino socket con tubicini che non venivano usati contemporaneamente se non fosse stato usato il chunk -  utilizzo socket con chunck
+% disegnino socket con tubicini che non venivano usati contemporaneamente se non fosse stato usato il chunk -  utilizzo socket con chunck
 \subsubsection{Gestione delle connessioni}
-Il sistema è stato concepito per essere il più modulare possibile con valori di ritorno il più possibile uniformi. La gestione delle connessioni ne è un esempio lampante. Abbiamo realizzato un wrapping delle API Socket di Berkley in modo tale da gestire tutti gli errori allo stesso modo, tramite l'utilizzo dei Throwable. Oltre a questo abbiamo, fin dove possible, cercato di rendere più snella l'implementazione delle chiamate con  in modo tale da poterci preoccupare solo della logica dell'applicazione e non dalla sua effettiva implementazione. 
 \subsubsection*{Connessione}
+Il sistema è stato concepito per essere il più modulare possibile con valori di ritorno il più possibile uniformi. La gestione delle connessioni ne è un esempio lampante. Abbiamo realizzato un wrapping delle API Socket di Berkley in modo tale da gestire tutti gli errori allo stesso modo, tramite l'utilizzo dei Throwable (si veda \ref{sec:errors}). Oltre a questo abbiamo, fin dove possible, cercato di rendere più snella l'implementazione delle chiamate in modo tale da poterci preoccupare solo della logica dell'applicazione e non dalla sua effettiva implementazione. Sono esplicative le funzioni per creare una nuova connessione di tipo server:
+\begin{lstlisting}
+/*
+ * Function    : create_server_socket
+ * Description : This function creates a TCP or a UDP server
+ *               bound at specified port.
+ *
+ * Param       :
+ *   type   : The type of the socket, 0 for TCP, 1 per UDP.
+ *   port   : The number of the port where bind the server.
+ *   sockfd : The pointer of the int where save the file
+ *            description.
+ *
+ * Return      : A Throwable.
+ */
+ThrowablePtr create_server_socket(const int type, const int port, int *sockfd) {
+
+    ThrowablePtr throwable = create_socket(type, sockfd);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "create_server_socket");
+    }
+
+    struct sockaddr_in addr;
+
+    memset((void *) &addr, 0, sizeof(addr));    // Set all memory to 0
+    addr.sin_family = AF_INET;                  // Set IPV4 family
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);   // Waiting a connection on all server's IP addresses
+    addr.sin_port = htons(port);                // Waiting a connection on PORT
+
+    if (bind(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_server_socket");
+    }
+
+    return get_throwable()->create(STATUS_OK, NULL, "create_server_socket");
+}
+\end{lstlisting}
+
+e di tipo client:
+\begin{lstlisting}
+/*
+ * Function    : create_client_socket
+ * Description : This function creates a TCP or a UDP client
+ *              that connects itself at specific IP thorough
+ *              a specific port.
+ *
+ * Param       :
+ *   type   : The type of the socket, 0 for TCP, 1 per UDP.
+ *   port   : The number of the port where bind the server.
+ *   sockfd : The pointer of the int where save the file
+ *            description.
+ *
+ * Return      : A Throwable.
+ */
+ThrowablePtr create_client_socket(const int type, const char *ip, const int port, int *sockfd) {
+
+    ThrowablePtr throwable = create_socket(type, sockfd);
+    if (throwable->is_an_error(throwable)) {
+        return throwable->thrown(throwable, "create_client_socket");
+    }
+
+    struct sockaddr_in addr;
+
+    memset((void *) &addr, 0, sizeof(addr));            // Set all memory to 0
+    addr.sin_family = AF_INET;                          // Set IPV4 family
+    addr.sin_port = (in_port_t) htons((uint16_t) port); // Set server connection on specified PORT
+
+    if (inet_pton(AF_INET, ip, &addr.sin_addr) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_client_socket");
+    }
+
+    if (connect(*sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "create_client_socket");
+    }
+
+    return get_throwable()->create(STATUS_OK, NULL, "create_client_socket");
+}
+\end{lstlisting}
+Questo approccio ci ha permesso per esempio di modificare più volte il codice che permetteva l'invio delle richieste e la ricezione delle risposte, senza andare a stravolgere, per quanto possibile, la logica del sistema.
 \subsubsection*{Richieste HTTP}
 \subsubsection*{Risposte HTTP}
-\subsubsection{Thread di lettura}\label{ssec:reader}
-Il thread di lettura viene chiamato non appena il worker riceve una connessione da gestire. Questo thread ha il compito di leggere dal socket (tramite read bloccante) e di creare nodi da accodare alla coda delle richieste. Non appena ha accodato una nuova richiesta creerà il thread di richiesta, che chiamando un server sottostante, che si occuperà di gestire la richiesta. L'attuale implementazione fa un uso di un contatore per poter limitare il numero di richieste massime accettabili da una stessa connessione contemporaneamente. Quello che abbiamo notato dai nostri esperimenti è che Apache gestisce al massimo 100 richieste sulla stessa connessione, cosa che noi non limitiamo ma che rendiamo modificabile tramite l'apposita configurazione nel file config.
-Il thread di lettura inoltre, ogni qual volta riceve una nuova connessione aggiorna un timer adibito alla verifica dello stato di vita della connessione ``si veda il paragrafo~\ref{ssec:watchdog}.''
-\subsubsection{Thread di scrittura}\label{ssec:writer}
-Il thread di scrittura è adibito alla scrittura della risposta ottenuta tramite il thread di richiesta~\ref{sec:request}. Questi due thread cooperano per mezzo di una condition andando a scrivere e a leggere nella stessa area di memoria, il chunk~\ref{sec:chunk}. Dovendo rispondere in ordine il thread starà in loop sulla richiesta del fronte della coda e dopo aver inviato l'header di risposta (che non è gestito tramite chuck) 
+\subsubsection{Thread di lettura}
+\label{sec:reader}
+Il thread di lettura ha il compito di leggere le richieste dalla socket tramite una read bloccate una volta che il worker ha ricevuto una connessione da gestire. Quindi accoda le richieste del client, per un massimo numero di richieste configurabile (si veda \ref{sec:config}) andando a creare per ogni richiesta un thread di richiesta che, dialogando con un server nella pool, si occuperà di gestirla. Il thread di lettura quindi è bloccato costantemente in attesa di nuove richieste e, ogni qual volta riceve una nuova connessione, aggiorna un timer adibito alla verifica dello stato di vita della connessione (si veda il paragrafo \ref{sec:watchdog}).
+\begin{lstlisting}
+// Gets queue
+RequestQueuePtr queue = worker->requests_queue;
+
+while (TRUE) {
+    // Waits
+    while (max_thr_request > 100) {
+      if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
+        return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+      }
+    }
+
+    // Updates timer
+    worker->watchdog->timestamp_worker = time(NULL);
+
+    // Creates the node
+    RequestNodePtr node = init_request_node();
+    if (node == NULL) {
+      get_log()->e(TAG_WORKER, "Malloc error in init_request_node");
+      worker->reader_thread_status = STATUS_ERROR;
+      return NULL;
+    }
+    node->worker_status = &worker->request_thread_status;
+
+    // Enques the new node
+    queue->enqueue(queue, node);
+
+    // Receives request
+    ThrowablePtr throwable = receive_http_request(worker->sockfd, node->request);
+    if (throwable->is_an_error(throwable)) {
+
+      get_log()->t(throwable);
+      worker->reader_thread_status = STATUS_ERROR;
+
+      // if we get some error on cliebt socket
+      worker->worker_await_flag = WATCH_OVER;
+      pthread_cond_signal(&worker->await_cond);
+
+      pthread_exit(NULL);
+    }
+
+    request_counter++;
+
+    // Creates the request thread
+    int request_creation = pthread_create(&(node->thread_id), NULL, request_work, (void *) node);
+    if (request_creation != 0) {
+      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read_work"));
+      worker->reader_thread_status = STATUS_ERROR;
+      return NULL;
+    }
+
+    // Gets mutex
+    if (pthread_mutex_lock(&mtx_thr_request) != 0) {
+      return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+    }
+
+    max_thr_request++;
+
+    // Sends signal to condition
+    if (pthread_cond_signal(&cond_thr_request) != 0) {
+      return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+    }
+
+    // Releases mutex
+    if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
+      return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+    }
+}
+\end{lstlisting}
+
+\subsubsection{Thread di scrittura}
+\label{sec:writer}
+Il thread di scrittura è adibito all'inoltro della risposta ottenuta tramite il \hyperref[sec:request]{\emph{thread di richiesta}}. Questi due thread cooperano per mezzo di una condition andando a scrivere e a leggere nella stessa area di memoria, il \hyperref[sec:chunk]{\emph{chunk}}. Dovendo rispondere in ordine il thread si trova in loop sulla coda delle richieste andando a richidere sempre il fronte di questa e, dopo aver inviato l'header di risposta (che non è gestito tramite chuck), inizia questo ``balletto'' con il \hyperref[sec:request]{\emph{thread di richiesta}}.
+\begin{lstlisting}
+// Gets queue
+RequestQueuePtr queue = worker->requests_queue;
+
+while(TRUE) {
+
+    // Gets node
+    RequestNodePtr node = queue->get_front(queue);
+
+    if (node != NULL) {
+
+        // Gets mutex
+        if (pthread_mutex_lock(&node->mutex) != 0) {
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+            worker->writer_thread_status = STATUS_ERROR;
+            return NULL;
+        }
+
+        while (node->response->response->header == NULL) {
+            if (pthread_cond_wait(&node->condition, &node->mutex) != 0) {
+                get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+                worker->writer_thread_status = STATUS_ERROR;
+                return NULL;
+            }
+        }
+
+        // Sends the response header
+        ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+            worker->writer_thread_status = STATUS_ERROR;
+
+            // unlock if error
+            if (pthread_mutex_unlock(&node->mutex) != 0) {
+                get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+            }
+
+            return NULL;
+        }
+
+        // Releases mutex
+        if (pthread_mutex_unlock(&node->mutex) != 0) {
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
+            worker->writer_thread_status = STATUS_ERROR;
+            return NULL;
+        }
+
+        // Gets the chunk
+        ChunkPtr chunk = node->chunk;
+
+        // Sends the response chunks
+        throwable = send_http_chunks(worker->sockfd, chunk, node->response->response->req_content_len);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+            worker->writer_thread_status = STATUS_ERROR;
+            return NULL;
+        }
+
+        // Dequeues the request and it destroys that
+        node = queue->dequeue(queue);
+        node->destroy(node);
+    }
+}
+\end{lstlisting}
+
 \subsubsection{Thread di richiesta}
 \label{sec:request}
 Il thread di richiesta è adibito infine all'invio della richiesta ad un server nel cluster e alla successiva 
-\subsubsection{Thread di watchdog} \label{ssec:watchdog}
+\subsubsection{Thread di watchdog}
+\label{sec:watchdog}
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{images/watchdog}
@@ -239,8 +504,11 @@ Osserviamo come questo controllo viene fatto su una variabile settata dal thread
 \section{Ulteriori proposte}
 
 \newpage
-\section{Politiche di scheduling} \label{sec: sched_p}
-La schedulazione permette la selezione della macchina predisposta a rispondere alla richiesta HTTP appena arrivata da parte del client, si basa su una tecnica nota come \textbf{bilanciamento del carico}, ovvero la distribuzione del carico, solitamente di elaborazione o di erogazione di uno specifico servizio, tra più server. Questo permette di poter \textbf{scalare} sulla potenza di calcolo del cluster dietro al web switch, lasciando che siano diverse macchine a rispondere a seconda di quella che è più veloce, più performante, oppure monitorando costantemente lo stato dei server e scegliendo quello meno sottoposto ad una pressione del carico di lavoro. Le macchine, specificando hostname ed indirizzi IP, sono date in un apposito file di configurazione.\\\\ 
+\section{Politiche di scheduling}
+ \label{sec: sched_p}
+La schedulazione permette la selezione della macchina predisposta a rispondere alla richiesta HTTP appena arrivata da parte del client, si basa su una tecnica nota come \textbf{bilanciamento del carico}, ovvero la distribuzione del carico, solitamente di elaborazione o di erogazione di uno specifico servizio, tra più server. Questo permette di poter \textbf{scalare} sulla potenza di calcolo del cluster dietro al web switch, lasciando che siano diverse macchine a rispondere a seconda di quella che è più veloce, più performante, oppure monitorando costantemente lo stato dei server e scegliendo quello meno sottoposto ad una pressione del carico di lavoro. Le macchine, specificando hostname ed indirizzi IP, sono date in un apposito file di configurazione.
+\\
+\\
 Nella nostra implementazione \textbf{thread scheduler} si occupa di fornire,  ogni volta che viene invocato, una macchina selezionata secondo una delle due politiche che andremo ora a spiegare nel dettaglio.
 
 \subsection{State-less: implementazione con Round-Robin}
@@ -279,8 +547,11 @@ L'algoritmo funziona utilizzando un \textbf{buffer circolare} come possiamo vede
 	Le funzioni restanti permettono di inizializzare il buffer (oltre che di liberare con sicurezza l'area di memoria occupata) e di aggiornare i puntatori sopra menzionati.\\
 
 \subsection{State-less: implementazione con Round-Robin}
-L'algoritmo di scheduling Round-Robin (da adesso RR, \emph{n.d.r.}) è un algoritmo che agisce con prelazione distribuendo in maniera equa il lavoro, secondo una metrica stabilita in partenza. \\
-L'algoritmo funziona utilizzando un buffer circolare come possiamo vedere in \hyperref[fig: rrobin_sl]{\emph{figura}}: questo permette di iterare la selezione su una lista di elementi precedentemente caricata. E' necessario quindi specificare due passi per il corretto funzionamento, dopo aver dato un rapido sguardo alla struttura che lo rappresenta nella nostra implementazione.\\\\
+L'algoritmo di scheduling Round-Robin (da adesso RR, \emph{n.d.r.}) è un algoritmo che agisce con prelazione distribuendo in maniera equa il lavoro, secondo una metrica stabilita in partenza.
+\\
+L'algoritmo funziona utilizzando un buffer circolare come possiamo vedere in \hyperref[fig: rrobin_sl]{\emph{figura}}: questo permette di iterare la selezione su una lista di elementi precedentemente caricata. E' necessario quindi specificare due passi per il corretto funzionamento, dopo aver dato un rapido sguardo alla struttura che lo rappresenta nella nostra implementazione.
+\\
+\\
 \begin{lstlisting}
 /*
  * ---------------------------------------------------------------------------
@@ -353,10 +624,11 @@ In conclusione quello che stiamo attuando è un \textbf{bilanciamento del carico
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{images/rrobin_stateaware}
-\caption{Schema della procedura di aggiornamento dello stato dei server \label{fig: rrobin_sa}}
+\caption{Schema della procedura di aggiornamento dello stato dei server
+\label{fig:rrobin_sa}}
 \end{figure}
 
-Un algoritmo di schedulazione cosiddetto \emph{state-aware} si occupa di selezionare la macchina a cui inoltrare la connessione basandosi non solo sulla conoscenza delle macchine presenti nel cluster ma anche sul loro status. In particolare, in questa implementazione, si è deciso di ricorrere all'analisi dei risultati di un \textbf{monitor di carico} presente su ciascuna delle macchine del cluster (in riferimento alle assunzioni progettuali, questi è i modulo \emph{ApacheStatus} di cui si parlerà più avanti in \emph{\ref{sssec: apachestatus}} ). Tale monitor, che ritorna una serie di parametri indici dell'attuale impiego di risorse della macchina, permette di definire un \textbf{algoritmo pesato} per la selezione del server che risponderà alla connessione in arrivo al web switch. \\
+Un algoritmo di schedulazione cosiddetto \emph{state-aware} si occupa di selezionare la macchina a cui inoltrare la connessione basandosi non solo sulla conoscenza delle macchine presenti nel cluster ma anche sul loro status. In particolare, in questa implementazione, si è deciso di ricorrere all'analisi dei risultati di un \textbf{monitor di carico} presente su ciascuna delle macchine del cluster (in riferimento alle assunzioni progettuali, questi è i modulo \emph{ApacheStatus} di cui si parlerà più avanti in \emph{\ref{sssec:apachestatus}} ). Tale monitor, che ritorna una serie di parametri indici dell'attuale impiego di risorse della macchina, permette di definire un \textbf{algoritmo pesato} per la selezione del server che risponderà alla connessione in arrivo al web switch. \\
 Anche in questo caso andremo a determinare una serie di passi che vengono seguiti, tenendo conto che in fase progettuale \emph{si è deciso di sfruttare lo stesso algoritmo RR} già utilizzato nel caso \emph{state-less}, ma che ricordiamo essere stato predisposto per una ulteriore versione pesata. Per far questo si lavora sulla struttura Server \\\\
 \textbf{Detachment del thread di update} nei file di configurazione dell'applicazione è possibile definire due livelli di lavoro:
 	\begin{itemize}
@@ -364,7 +636,7 @@ Anche in questo caso andremo a determinare una serie di passi che vengono seguit
 		\item \textbf{AWARENESS\_LEVEL\_HIGH} che corrisponde all'algoritmo state-aware e che necessiterà di una routine di aggiornamento dello stato delle macchine del cluster
 	\end{itemize}
 	Il secondo caso è proprio quello qui descritto e corrisponde a lavorare utilizzando, oltre al thread principale che si occupa di accettare le connessioni in arrivo, un \textbf{thread predisposto alla sola verifica dello stato dei server}. Tale thread viene istanziato nel momento in cui viene inizializzato lo scheduler e vengono allocate le strutture dati alla base di RR. \\
-	Il lavoro di tale thread, che ora vedremo nel dettaglio, è quello deducibile da \emph{figura \ref{fig: rrobin_sa}}.\\\\
+	Il lavoro di tale thread, che ora vedremo nel dettaglio, è quello deducibile da \emph{figura \ref{fig:rrobin_sa}}.\\\\
 \textbf{Routine di score} all'interno di questa routine, che viene eseguita da un thread distaccato e che viene eseguita una volta ogni \emph{UP\_TIME} secondi, tempo di update in secondi definito dall'utente nei file di configurazione, viene richiamata più volte la funzione che si occupa di recuperare e parsare l'interrogazione del modulo \emph{ApacheStatus} e recupare da questa i \textbf{worker in \emph{idle state} ed i worker in \emph{busy state}}. A questo punto si va a modificare il nodo della pool dei server precedentemente allocata (di cui si è già parlato in \emph{\ref{ssec: sched}}). Viene quindi eseguita la sequente routine. \\
 \begin{lstlisting}
     /* inside apache_score ... */
@@ -397,11 +669,12 @@ Alla fine quello che ottengo è uno \textbf{score} che vado a settare nel nodo c
 \end{align*}
 ottenendo quello che un \emph{mapping} del rapporto fra i worker occupati nella macchina ed i worker totali a disposizione di Apache per rispondere ad una richiesta in arriva. Tale indice viene memorizzato come \emph{peso del server nel cluster}.\\
 Notiamo che nel caso ci siano problemi nel recuperare l'indice di score si supporrà che il server non è momentaneamente disponibile ed il suo status verrà segnalato come BROKEN, fino al prossimo aggiornamento.\\\\
-\textbf{RR pesato} dai nodi della pool dei server aggiornati con il loro peso viene costruito, secondo lo schema in \emph{\ref{fig: rrobin_sa}}, un pattern dei server secondo il loro peso, di modo da distribuire il carico secondo sempre un algoritmo RR, ma in cui per ogni sequenza il server viene selezionato un numero di volte pari al suo peso: comparirà massimo \emph{W} in caso di basso carico di lavoro ed al minimo \emph{w} volte in condizioni di forte stress. I due parametri sono, in questa implementazione, macro che possono essere modificate a seconda dei limiti delle macchine del proprio cluster, di default \emph{w = 1} e \emph{W = 5}, soggetti al tuning del web switch in fase di installazione ed ottimizzazione. Alla prima iterazione tutte le macchine so di default settata con peso minimo (pari a \emph{w})\\\\ 
+\textbf{RR pesato} dai nodi della pool dei server aggiornati con il loro peso viene costruito, secondo lo schema in \emph{\ref{fig:rrobin_sa}}, un pattern dei server secondo il loro peso, di modo da distribuire il carico secondo sempre un algoritmo RR, ma in cui per ogni sequenza il server viene selezionato un numero di volte pari al suo peso: comparirà massimo \emph{W} in caso di basso carico di lavoro ed al minimo \emph{w} volte in condizioni di forte stress. I due parametri sono, in questa implementazione, macro che possono essere modificate a seconda dei limiti delle macchine del proprio cluster, di default \emph{w = 1} e \emph{W = 5}, soggetti al tuning del web switch in fase di installazione ed ottimizzazione. Alla prima iterazione tutte le macchine so di default settata con peso minimo (pari a \emph{w})\\\\
 In conclusione, con questa opzione abilitata, si ha la possibilità di ridistribuire equamente il lavoro, permettendo al web switch di adattare la distribuzione del carico a secondo dello stato attuale, evitando di sovraccaricare nodi sensibili allo stress in determinate condizioni o che sono stati sottoposti già ad uno stress eccessivo. Si è scelto di riadattare RR per ottenere una soluzione modulare e che fosse facile riadattare ed ottimizzare a seconda di entrambe le condizioni operative, sia senza che con conoscenza dello stato delle macchine. Osserviamo infatti che in entrambi i casi RR risulta pesato, nel secondo caso preso in esame tale peso non è più fisso e minimo ma variabile dipendentemente dalle condizioni delle macchine.\\\\
 La ricerca di una soluzione modulare che possa essere presa poi in esame da futuri sviluppatore e possa essere oggetto di un \emph{tuning} più approfondito, è stata intrapresa perseguendo il principio per cui \emph{simplicity favours regularity}.
 
-\subsubsection{Modulo Apache Status} \label{ssec:apachestatus}
+\subsubsection{Modulo Apache Status}
+\label{sssec:apachestatus}
 Il modulo Apache Status (modstatus) è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nient altro, per utilizzarlo è necessario solo attivarlo nella configurazione del sito. Il modulo formatta tramite una pagina HTML tutta una serie statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readble che in questa applicazione usiamo). I dettagli che fornisce sono il numero di worker che servono richieste, il numero di worker che sono in pausa, lo stato di ognuno di questi worker, il numero di accessi e byte serviti, il numero di richieste per secondo e la percentuale di CPU usata da ogni worker e in totale da Apache.
 Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato di una macchina senza la necessità di installare nessun componente aggiuntivo.
 
@@ -439,12 +712,6 @@ Non è difficile immaginare che, in una futura implementazione, l'applicazione n
   Addison Wesley, Massachusetts,
   2nd edition,
   1994.
-\bibitem{mod_status}
-  Leslie Lamport,
-  \emph{\LaTeX: a document preparation system},
-  Addison Wesley, Massachusetts,
-  2nd edition,
-  1994.
   
 \end{thebibliography}
 
@@ -455,6 +722,12 @@ Non è difficile immaginare che, in una futura implementazione, l'applicazione n
 \section{Manuale per l'uso}
 \newpage
 \section{Vagrant}
+
+Durante lo sviluppo ci siamo imbattuti in alcune problematiche
+legate alla portabilità del codice che stavamo scrivendo, errori di inclusione di file header, funzioni con comportamenti anomali, macro differenti e problemi nella compilazione. Questo perché lo sviluppo procedeva su macchine con sistemi operativi differenti, nello specifico Mac OSX e Debian. Da qui la necessità di avere un ambiente unificato per l'esecuzione del codice. La soluzione al problema era di facile intuizione, creare una macchina virtuale su VirtualBox e distribuirla su tutti i computer utilizzati per lo sviluppo, purtroppo però mettere in piedi questa soluzione può rivelarsi un'operazione tediosa, installazione del sistema operativo, configurazione dei programmi per lo sviluppo e condivisione di una VM che pesa diversi MB.\\\\
+\textbf{Vagrant} è uno strumento per la creazione di ambienti di sviluppo completo. Fondamentalmente si tratta di un’applicativo scritto in Ruby che sfruttando le API messe a disposizione da VirtualBox è in grado di manipolare la gestione delle macchine virtuali al suo interno. Il tutto semplicemente compilando una "ricetta" chiamata Vagrantfile. Il \textbf{Vagrantfile} è un file all’interno del quale si inseriscono tutte le specifiche riguardo la VM che vogliamo preparare, impostando il sistema operativo, ulteriori programmi da installare, cartelle condivise, configurazioni di rete e quant'altro. Una volta preparato il vagrantfile questo può essere condiviso tra tutti gli sviluppatori, quindi senza dover condividere l'intera VM basterà solo questo file per poter avere tutte le macchine virtuali allo stesso stato. Ogni volta che uno sviluppatore avrà necessità di modificare il comportamento della VM basterà modificare il Vagrantfile e condividerlo con gli altri. Ultima caratteristica è che vagrant è pensato per lasciare allo sviluppatore la scelta dell'IDE che preferisce creando un ambiente completamente trasparente per lo sviluppo del software.\\\\
+\emph{Vagrant makes the "works on my machine" excuse a relic of the past.}
+
 \newpage
 \section{Cluster virtuale}
 
@@ -474,7 +747,7 @@ In questo caso ci si riferisce al programma da linea di comando che, implementan
 $ telnet localhost 8080
 Trying 127.0.0.1...
 Connected to localhost.
-Escape character is '^]'.   
+Escape character is '^]'.
 GET / HTTP/1.1
 Host: 127.0.0.1
 
@@ -482,9 +755,9 @@ Host: 127.0.0.1
 \subsection{PostMan}
 Questa è una applicazione presente nel \emph{Chrome Web Store} e che gira come plug-in del famoso browser Google Chrome. E' concepita come tool per testare le API, in particolare permette di specificare una richiesta HTTP con focus su quelli che sono i parametri ed i metodi specifici del protocollo. Nel nostro caso ha permesso di costruire un pacchetto base HTTP e verificare la corretta risposta del web switch al variare dei parametri. Potendo, inoltre, concentrarci su un singolo file da richiedere al server remoto, si è potuto sfruttare PostMan per analizzare i tempi di risposta, soprattutto in condizioni di file di grandi dimensioni.
 \subsection{HttPerf}
-E' un tool per misurare le performance di un server web, svilupatto dai laboratori della HP. E' stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il \emph{numero di connessioni}, il \emph{numero di richiesto}, il \emph{rate} con cui effettuare tali connessioni, la \emph{risorsa} da richiedere, nonchè la possibilità di aprire un numero necessario di porte TCP per verificare la risposta di un certo carico di lavoro durante una sessione. 
+E' un tool per misurare le performance di un server web, svilupatto dai laboratori della HP. E' stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il \emph{numero di connessioni}, il \emph{numero di richiesto}, il \emph{rate} con cui effettuare tali connessioni, la \emph{risorsa} da richiedere, nonchè la possibilità di aprire un numero necessario di porte TCP per verificare la risposta di un certo carico di lavoro durante una sessione.
 \begin{lstlisting}
-$ httperf --server=localhost --uri=/index.html --port=8080 
+$ httperf --server=localhost --uri=/index.html --port=8080
           --num-conns=3000 --num-calls=2 --rate=500
 
 \end{lstlisting}
@@ -495,7 +768,7 @@ $ httperf --server=localhost --uri=/index.html --port=8080
 \caption{Schermata con la richiesta, soddisfatta con successo, del sito ospitato durante lo sviluppo su una delle macchine del cluster (browser utilizzato: Mozilla Firefox)}
 \end{figure}
 Questo è il tool principe per quanto riguarda il test "finale" del web switch: ci permette di verificare che l'esperienza utente nell'utilizzo di Heimdall nell'inoltrare le richieste ad un clsuter è confrontabile con una richiesta diretta ad una delle macchine del cluster stesso. Tuttavia in fase di sviluppo ci si è scontrati con le caratteristiche proprie di ciascun browser, per poterne valutare le performance. \\
-Ci si è imbattuti innanzitutto nella funzionalità di \emph{pipelining} disabilitata di default su \textbf{Firefox} ma che è possibile abilitare, oppure l'apertura di diverse connessioni con il server entro le quali vengono effettuate molteplici richieste come \emph{Chrome} o \emph{Safari} o, generalmente, un qualsiasi browser moderno. \\\\ 
+Ci si è imbattuti innanzitutto nella funzionalità di \emph{pipelining} disabilitata di default su \textbf{Firefox} ma che è possibile abilitare, oppure l'apertura di diverse connessioni con il server entro le quali vengono effettuate molteplici richieste come \emph{Chrome} o \emph{Safari} o, generalmente, un qualsiasi browser moderno. \\\\
 E' possibile osservare tali peculiarità, durante la richiesta verso un sito mediamente complesso, come quello utilizzato durante i test, dal listato sottostante, preso dai \emph{file di log durante una navigazione verso l'homepage con Chrome Web Browser}.
 \begin{lstlisting}[basicstyle=\fontsize{4}{7}\selectfont\ttfamily]
 
@@ -514,7 +787,7 @@ Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6882 - GE
 [Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /img/header.jpg HTTP/1.1
 [Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /font-awesome/fonts/fontawesome-webfont.woff?v=4.3.0 HTTP/1.1
 [Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6877 - GET /favicon.ico HTTP/1.1
- 
+
 \end{lstlisting}
 
 \end{document}

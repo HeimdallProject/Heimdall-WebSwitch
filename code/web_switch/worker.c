@@ -154,7 +154,7 @@ void *request_work(void *arg) {
 
     // Logging - request
     HTTPRequestPtr request = node->request;
-    get_log()->r(RQST, (void *)request, host, sockfd);
+    get_log()->r(RQST, (void *)request, host, getpid());
 
     get_log()->d(TAG_WORKER, "io Dott. %ld del %ld Faccio richiesta a %s su socket: %d", (long) pthread_self(), (long) getpid(), node->request->req_host, sockfd);
 
@@ -203,7 +203,7 @@ void *request_work(void *arg) {
 
     // Logging - response
     HTTPResponsePtr response = node->response;
-    get_log()->r(RESP, (void *)response, host, sockfd);
+    get_log()->r(RESP, (void *)response, host, getpid());
 
 
     // Sends signal to condition
@@ -259,15 +259,24 @@ void *read_work(void *arg) {
     // Gets queue
     RequestQueuePtr queue = worker->requests_queue;
 
+    ConfigPtr config = get_config();
+    
+    int max_thread_pchild = 0;
+    ThrowablePtr throwable = str_to_int(config->max_thread_pchild, &max_thread_pchild);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+
     while (TRUE) {
 
         // Waits
-        while (max_thr_request > 100) {
+        while (max_thr_request > max_thread_pchild) {
             if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
         }
-
+        
+        // Updates timer
         worker->watchdog->timestamp_worker = time(NULL);
 
         // Creates the node

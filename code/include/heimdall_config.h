@@ -57,6 +57,7 @@ typedef struct config{
     char *backlog;
     char *max_fd;
     char *sockets_path;
+    char *max_thread_pchild;
 } Config, *ConfigPtr;
 
 /*

@@ -405,9 +405,6 @@ La ricerca di una soluzione modulare che possa essere presa poi in esame da futu
 Il modulo Apache Status (modstatus) è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nient altro, per utilizzarlo è necessario solo attivarlo nella configurazione del sito. Il modulo formatta tramite una pagina HTML tutta una serie statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readble che in questa applicazione usiamo). I dettagli che fornisce sono il numero di worker che servono richieste, il numero di worker che sono in pausa, lo stato di ognuno di questi worker, il numero di accessi e byte serviti, il numero di richieste per secondo e la percentuale di CPU usata da ogni worker e in totale da Apache.
 Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato di una macchina senza la necessità di installare nessun componente aggiuntivo.
 
-
-\newpage
-\section{Logging}
 \newpage
 \section{Performance}
 \subsection{Test di carico}
@@ -415,6 +412,8 @@ Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato d
 \newpage
 \section{Future implementazioni}
 \subsection{Analisi della richiesta}
+Come abbiamo già visto nei paragrafi dedicati al \emph{parsing} delle richieste e delle risposte HTTP, è stato possibile, in fase progettuale, scegliere su quali \emph{header} basare il funzionamento elementare del web switch. Abbiamo visto anche come i file di configurazione garantiscono veramente molta flessibilità al sistemista in sede di installazione. \\
+Non è difficile immaginare che, in una futura implementazione, l'applicazione non possa basarsi su file di configurazione più dettagliati e quindi possibilità di utilizzare tutti i parametri a disposizione per l'analisi di richiesta e risposta. Per cui si aprono scenari in cui si possono, ad esempio, configurare server di \emph{cache di immagini} in particolari posizioni del cluster, oppure utilizzare un algoritmo di schedulazione \emph{state-aware} che si basi anche sulla grandezza dei file richiesti e che quindi, a monte, eviti il carico di macchine sensibili.
 \subsection{Webserver performante}
 
 
@@ -452,21 +451,70 @@ Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato d
 % --- Appendices --- 
 \newpage
 \appendix
- 
+\newpage
 \section{Manuale per l'uso}
-
+\newpage
 \section{Vagrant}
-
+\newpage
 \section{Cluster virtuale}
 
+\newpage
 \section{Tool per i debug}
 \subsection{GDB}
 \subsection{Valgrind}
 
+\newpage
+%TODO check for download links
 \section{Tool per i test}
-\subsection{PostMan}
+In fase di sviluppo è necessario eseguire molteplici test prima di poter dare per \emph{certificato} il corretto funzionamento di un componente del programma. Nel nostro caso non è stata tanto la quantità dei test l'elemento caratterizzante, quanto la necessità di compiere questi test in un set molto variegato di casi. \\\\
+Andiamo ora a vedere nel dettaglio quali sono stati i \emph{tool} che ci hanno permesso prima di verificare la corretta risposta del web switch all'arrivo di una richiesta secondo protocollo HTTP/1.1, quindi di aumentare il livello di complessità: dalla corretta ricezione di un file da un server remoto fino al funzionamento in condizioni di ideali utilizzo (via browser da parte di un client qualsiasi), passando per le condizioni di stress da carico nell'analisi delle performance.
 \subsection{Telnet}
+In questo caso ci si riferisce al programma da linea di comando che, implementando il protocollo di rete omonimo lato client, permette di instaurare una sessione di login verso un host remoto. Nel nostro caso ci ha permesso di eseguire il \emph{debugging} della risposta ad un regolare, semplificato, pacchetto HTTP. E' possibile utilizzare un client telnet da qualsiasi sistema operativo, inoltre è già presente nella maggior parte delle distribuzioni Linux.
+\begin{lstlisting}
+$ telnet localhost 8080
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.   
+GET / HTTP/1.1
+Host: 127.0.0.1
+
+\end{lstlisting}
+\subsection{PostMan}
+Questa è una applicazione presente nel \emph{Chrome Web Store} e che gira come plug-in del famoso browser Google Chrome. E' concepita come tool per testare le API, in particolare permette di specificare una richiesta HTTP con focus su quelli che sono i parametri ed i metodi specifici del protocollo. Nel nostro caso ha permesso di costruire un pacchetto base HTTP e verificare la corretta risposta del web switch al variare dei parametri. Potendo, inoltre, concentrarci su un singolo file da richiedere al server remoto, si è potuto sfruttare PostMan per analizzare i tempi di risposta, soprattutto in condizioni di file di grandi dimensioni.
 \subsection{HttPerf}
+E' un tool per misurare le performance di un server web, svilupatto dai laboratori della HP. E' stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il \emph{numero di connessioni}, il \emph{numero di richiesto}, il \emph{rate} con cui effettuare tali connessioni, la \emph{risorsa} da richiedere, nonchè la possibilità di aprire un numero necessario di porte TCP per verificare la risposta di un certo carico di lavoro durante una sessione. 
+\begin{lstlisting}
+$ httperf --server=localhost --uri=/index.html --port=8080 
+          --num-conns=3000 --num-calls=2 --rate=500
+
+\end{lstlisting}
 \subsection{Browser}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{images/screen_browser}
+\caption{Schermata con la richiesta, soddisfatta con successo, del sito ospitato durante lo sviluppo su una delle macchine del cluster (browser utilizzato: Mozilla Firefox)}
+\end{figure}
+Questo è il tool principe per quanto riguarda il test "finale" del web switch: ci permette di verificare che l'esperienza utente nell'utilizzo di Heimdall nell'inoltrare le richieste ad un clsuter è confrontabile con una richiesta diretta ad una delle macchine del cluster stesso. Tuttavia in fase di sviluppo ci si è scontrati con le caratteristiche proprie di ciascun browser, per poterne valutare le performance. \\
+Ci si è imbattuti innanzitutto nella funzionalità di \emph{pipelining} disabilitata di default su \textbf{Firefox} ma che è possibile abilitare, oppure l'apertura di diverse connessioni con il server entro le quali vengono effettuate molteplici richieste come \emph{Chrome} o \emph{Safari} o, generalmente, un qualsiasi browser moderno. \\\\ 
+E' possibile osservare tali peculiarità, durante la richiesta verso un sito mediamente complesso, come quello utilizzato durante i test, dal listato sottostante, preso dai \emph{file di log durante una navigazione verso l'homepage con Chrome Web Browser}.
+\begin{lstlisting}[basicstyle=\fontsize{4}{7}\selectfont\ttfamily]
+
+
+Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6882 - GET /font-awesome/css/font-awesome.min.css HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.6 - worker: 6881 - GET /css/animate.min.css HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /js/bootstrap.min.js HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6879 - GET /js/jquery.easing.min.js HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6882 - GET /js/jquery.fittext.js HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6880 - GET /js/wow.min.js HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.6 - worker: 6881 - GET /js/creative.js HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.6 - worker: 6878 - GET /img/portfolio/2.jpg HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /img/portfolio/4.jpg HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6879 - GET /img/portfolio/5.jpg HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6880 - GET /img/portfolio/6.jpg HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /img/header.jpg HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /font-awesome/fonts/fontawesome-webfont.woff?v=4.3.0 HTTP/1.1
+[Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6877 - GET /favicon.ico HTTP/1.1
+ 
+\end{lstlisting}
 
 \end{document}

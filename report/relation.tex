@@ -110,17 +110,309 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 \section{Architettura}
 \label{sec:architecture}
 
+\subsection{Overview}
+\label{ssec:overview}
 
 \subsection{Server in ascolto}
 \label{sec:main}
 
-\subsubsection{File di configurazione}
+\subsection{File di configurazione}
 \label{sec:config}
+I file di configurazione sono gli unici file accessibili all'utente che installa sulla propria macchina Heimdall WebSwitch. Tramite questi file è possibile impostare alcuni parametri per adattare il WebSwitch alle proprie esigenze.\\\\
+I file di cui stiamo parlando sono due e adesso ne illustreremo i dettagli.
+\subsubsection{File dei parametri}
+\label{sec:config_parser}
+Questo è il file di configurazione generale di Heimdall. Al suo interno possiamo trovare i seguenti parametri:
 
-\subsubsection{Logging}
+\begin{itemize}
+	
+	% TODO modificare quelle macro con descrizioni decenti e mettere ref
+	\item \emph{algorithm\_selection}: specifica il tipo di algoritmo che si vuole usare per Heimdall, con il valore 0 si sceglie di usare l'algoritmo STATELESSRR, con il valore 1 si sceglie di usare l'algoritmo STATEFUL.
+	
+	% TODO ref a worker per i processi figli
+	\item \emph{pre\_fork}: specifica il numero di proessi figli che verranno creati all'avvio di Heimdall, i processi figli ricordiamo sono i processi che gestiranno le connessioni HTTP. Se il valore di questo parametro viene impostato a 0 Heimdall creerà automaticamente 1 processo figlio per gestire le richieste.
+	
+	\item \emph{print\_enable}: abilita le stampe a video se impostato a 1, altrimenti le disabilita.
+		
+	\item \emph{log\_level}: specifica il livello di stampe che si vogliono avere sul terminale, i livelli di log saranno spiegati bene nella sezione dedicata.
+	
+	\item \emph{write\_enable}: abilita la scrittura dei file di log.
+ 	
+	\item \emph{log\_file\_req}: specifica il percorso del file di log per le connessioni richieste a heimdall.
+		
+	\item \emph{log\_file\_resp}: specifica il percorso del file di log per le risposte fatte alle connessioni.
+		
+	% TODO spiegato meglio nella sezione del watchdog?
+	\item \emph{timeout\_worker}: specifica il	
+	\item \emph{update\_time}: questo parametro indica il
+	
+	\item \emph{server\_config} specifica il percorso del file di configurazione dovengono specificati i server del cluster collegati a Heimdall.
+	
+	\item \emph{server\_main\_port}: specifica la porta di ascolto del processo padre di Heimdall per accettare nuove connessioni.
+			
+	\item \emph{backlog}: specifica il valore di backlog passato alla funzione accept.
+	
+	\item \emph{max\_fd}: specifica il numero massimo di connessioni persistenti che Heimdall è in grado di gestire. Questo parametro può variare in base al numero massimo di file descriptor che possono essere contemporaneamente aperti nel sistema.
+	
+	\item \emph{sockets\_path}: specifica una directory del sistema dove Heimdall potrà creare socket AF\_UNIX, necessarie per permettere la comunicazione tra il processo padre e i suoi figli. Heimdall dovrà avere permessi di lettura e scrittura su questa directory.
+	
+	\item \emph{max\_thread\_pchild}: specifica il numero massimo di thread\_request che ogni Worker può creare, e cioè il massimo numero di richieste che possono essere accettate contemporaneamente su una singola connessione persistente.
+	
+\end{itemize}
+Rappresentiamo qui con un esempio un file dei parametri:
+
+\begin{lstlisting}
+	# STATELESSRR 0 STATEFUL 1
+	algorithm_selection 1
+
+	# The number of active processes to handle requests
+	# If prefork is 0, the system create anyway 1 child process
+	pre_fork 10
+
+	# If 1 log print to shell is enabled
+	print_enable 1
+
+	# Specify the log level desired
+	log_level 2
+
+	# Write on log file enabled, see log_file_req and log_file_resp variable
+	write_enable 0
+	
+	...
+	...
+	
+\end{lstlisting}
+
+\subsubsection{File dei server}
+\label{ssec:config_server}
+Il file dei server è il file dove vengono specificati i server del cluster collegati a Heimdall, questo file è specificato (all'interno del file di configurazione) nel parametro \emph{server\_config}. Al suo interno vengono specificati un nome per il server associato ed il relativo indirizzo ip.
+\\\\Rappresentiamo qui con un esempio un file dei server:
+
+\begin{lstlisting}
+
+# Server 1
+Name:bifrost.asgard
+IP:192.168.1.4
+
+\end{lstlisting}
+
+\subsubsection{Implementazione dei file di configurazione}
+\label{ssec:file_config_impl}
+
+La lettura del file dei parametri spetta al parser Heimdall Config, la sua implementazione è presente nei file heimdall\_config.c e heimdall\_config.h \\\\ All'interno del file .h sono presenti alcuni valori necessari al funzionamento del parser, tra questi troviamo:
+
+\begin{itemize}
+
+\item Una costante \emph{CONFIGFILE} dove va specificato il percorso del file dei parametri.
+	
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Relative position to config file
+ * ---------------------------------------------------------------------------
+ */
+#define CONFIGFILE "../code/config/heimdall_config.conf"
+\end{lstlisting}
+	
+\item Una struttura dati di tipo \emph{ConfigPtr}
+
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : Config struct
+ * Description      : This struct collect all config value from config file.
+ * ---------------------------------------------------------------------------
+ */
+typedef struct config{
+    char *algorithm_selection;
+    char *pre_fork;
+    char *print_enable;
+    char *log_level;
+    char *write_enable;
+    char *log_file_req;
+    char *log_file_resp;
+    char *timeout_worker;
+    char *killer_time;
+    char *update_time;
+    char *server_config;
+    char *server_main_port;
+    char *backlog;
+    char *max_fd;
+    char *sockets_path;
+    char *max_thread_pchild;
+} Config, *ConfigPtr;	
+\end{lstlisting}
+
+\end{itemize}
+Come possiamo notare i campi della struttura sono esattamente le chiavi che abbiamo elencato precedentemente nel paragrafo relativo al file dei parametri. Come si vede dall'esempio i campi all'interno del file sono disposti in un ordine preciso, dettato da una regola ti tipo \emph{chiave:valore}. Il parser esegue la lettura del file una riga per volta, estrae la chiave, il suo valore e passa il tutto ad una funzione di callback.
+
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : _get
+ * Description  : Used for get key and value from a line.
+ *
+ * Param        :
+ *   array[]    : line string.
+ *   from       : from value start.
+ *   to         : escape character where function stop.
+ *
+ * Return       : string.
+ * ---------------------------------------------------------------------------
+ */
+char *_get(char array[], int from, char escape){
+
+    int from_cpy = from;
+    int total = 0;
+
+    while (1) {
+        if (array[from_cpy] == escape)
+            break;
+        ++from_cpy;
+        ++total;
+    }
+
+    total++; // add \0 space
+
+    char *subset = malloc(sizeof(char) * total);    
+    if (subset == NULL) {
+        fprintf(stderr, "Error in _get config_parser. \n");
+        return NULL;
+    }
+
+    int j;
+    for(j = 0; j < total - 1; ++j, ++from) {
+        subset[j] = array[from];
+    }
+
+    subset[total-1] = '\0';
+
+    return subset;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Function     : init_config
+ * Description  : Parse config file and call callback function for return values.
+ *
+ * Param            :
+ *   path           : Path to file be parsed.
+ *   config_handler : Callback function, return to main key, value and config reference.
+ *   ptr_config     : Pointer to struct.
+ *
+ * Return       :
+ * ---------------------------------------------------------------------------
+ */
+int init_config(const char *path, int config_handler(char *key, char *value, void *p_config), void *ptr_config) {
+
+    singleton_config = ptr_config;
+
+    // open file
+    FILE *config_file = fopen(path, "r");
+    if (config_file == NULL) {
+        fprintf(stderr, "Error while trying to open config file. \n");
+        return -1;
+    }
+
+    // while each line
+    char string[MAX_LENGTH];
+
+    while(fgets(string, MAX_LENGTH, config_file)) {
+
+        // skip, line comment or empty line
+        if (string[0] == '#' || string[0] == '\n')
+            continue;
+        
+        char *key = _get(string, 0, ESCAPE_CHARACTER);
+        if (key == NULL) {
+            fprintf(stderr, "Error in init_config config_parser. \n");
+            return -1;
+        }
+
+        char *value = _get(string, strlen(key)+1, '\n');
+        if (value == NULL) {
+            fprintf(stderr, "Error in init_config config_parser. \n");
+            return -1;
+        }
+
+        if(config_handler(key, value, ptr_config) == -1) {
+            fprintf(stderr, "Error config parser, no key '%s' found in Config. \n", key);
+            return -1;
+        }
+
+        free(value);
+        free(key);
+    }
+
+    fclose(config_file);
+
+    return 0;
+}
+\end{lstlisting}
+La funzione config\_handler riceve la chiave e il valore estratto, ed effettuando un semplice confronto con la chiave esegue l'inserimento del valore all'interno della struct.
+
+\begin{lstlisting}
+/*
+* ---------------------------------------------------------------------------
+* Function     : config_handler
+* Description  : Callback function, see heimdall_config.c for more information.
+*
+* Return       : 0 if ok, -1 if error.
+* ---------------------------------------------------------------------------
+*/
+int config_handler(char *key, char *value, void *p_config) {
+
+    Config* config = (Config *)p_config;
+        
+    if (strcmp(key, "algorithm_selection") == 0) {
+        if (asprintf(&config->algorithm_selection, "%s", value) == -1)
+            return -1;
+
+    }else if (strcmp(key, "pre_fork") == 0) {
+        if (asprintf(&config->pre_fork, "%s", value) == -1)
+            return -1;
+            
+            ...
+            ...
+            
+    }else
+        return -1;  /* unknown key, error */
+
+    return 0;
+}
+\end{lstlisting}
+Il funzionamento del parser per il file dei server è a grandi linee lo stesso, il codice relativo può essere trovato nei file server\_config.c e server\_config.h. Unica differenza è che questo parser non ritorna una struct con tutti i valori del file config bensì ritorna una struttura contenente questi valori:
+
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : Config struct
+ * Description      : This struct collect all config value from config file.
+ * ---------------------------------------------------------------------------
+ */
+typedef struct server_config{
+    char **servers_names;
+    char **servers_ip;
+    int total_server;
+} ServerConfig, *ServerConfigPtr;
+\end{lstlisting}
+Ossia un array di puntatori ai nomi, un array di puntatori ai relativi indirizzi ip e un intero che indica il numero totale dei server identificati nel file, quest'ultimo utile per scansionare gli array descritti.
+\\\\Come ultima caratteristica di implementazione facciamo notare che la lettura dei file e quindi la relativa esecuzione dei parser viene eseguita solamente una volta all'avvio del programma, questo per ridurre gli evidenti accessi di I/O che sarebbero necessari per estrarre di volta in volta il valore richiesto. Per fare ciò è stato quindi utilizzato un approccio alla programmazione chiamato \emph{Singeleton}, infatti una volta eseguito il parser dei file, il riferimento alla struttura viene salvato nella variabile globale:
+
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Description  : Global variable, singleton instance of Config
+ * ---------------------------------------------------------------------------
+ */
+void *singleton_config = NULL;
+\end{lstlisting}
+Un semplice controllo viene comunque eseguito ed è lo stesso controllo che avvia l'esecuzione del parser la prima volta, se la variabile è NULL viene eseguita la lettura del file ed inizializzata la relativa struttura. Grazie poi alla chiamata fork() che viene eseguita qualche momento dopo tutti i figli riceveranno "gratuitamente" in eredità la struttura Config.
+
+\subsection{Logging}
 \label{sec:logging}
 
-\subsubsection{Gestione degli errori}
+\subsection{Gestione degli errori}
 \label{sec:errors}
 
 \subsection{Pool manager}

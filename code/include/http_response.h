@@ -21,6 +21,13 @@
 
 #define TAG_HTTP_RESPONSE "HTTP_RESPONSE"
 
+/*
+ * ---------------------------------------------------------------------------
+ * Structure        : typedef struct http_response
+ * Description      : This struct collect all attributes and functions pointers to
+ *                    manage, retrieving or creating, HTTP responses
+ * ---------------------------------------------------------------------------
+ */
 typedef struct http_response {
     struct http_request  *response;                            // http_request struct pointer which handle a basic response retrieval
                                                                // and will be extended into this struct

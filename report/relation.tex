@@ -114,8 +114,181 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 \subsection{Overview}
 \label{ssec:overview}
 
-\subsection{Server in ascolto}
-\label{sec:main}
+\subsection{Il processo principale}
+\label{ssec:main_process}
+Il cuore di Heimdall sta ovviamente nel file principale del programma, il \emph{main.c}, una volta avviato il programma, il processo principale prenderà vita nel sistema ed eseguirà le inizializzazioni dei componenti principali, tra questi abbiamo:
+
+\begin{itemize}
+	\item Config
+	\item Log
+	\item Scheduler
+	\item Pool Manager
+\end{itemize}
+Possiamo dividere questi 4 componenti in 2 categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché come sarà più chiaro nei relativi paragrafi, i due componenti hanno da svolgere alcuni compiti dedicati che altrimenti sarebbero dovuti essere eseguiti dal programma principale intaccando le prestazioni del sistema dovute al fatto che non veniva sfruttata alcun tipo di concorrenza.
+
+\subsubsection{I processi figli e la memoria condivisa}
+\label{ssec:child_process}
+Fatte le prime inizializzazioni il processo principale si avvia ad eseguire il suo compito ma prima di questo è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()} presente nel file \emph{main.c} il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa che verrà utilizzata appunto per la comunicazione tra il processo padre e i processi figli, per motivi che saranno più chiari in seguito chiameremo da adesso in poi i processi figli: \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
+
+\begin{lstlisting}
+    ConfigPtr config = get_config();
+    
+    int n_prefork = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+\end{lstlisting}
+Dal Config viene recuperato il numero di processi figli da creare, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()} viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati 4 array, vediamoli nel dettaglio:
+
+\begin{itemize}
+	\item \textbf{\emph{worker\_array}}: In questo array vengono memorizzati i \emph{pid\_t} dei processi figli creati.          
+	\item \textbf{\emph{worker\_busy}}: Questo è un array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un worker. Nello specifico alla posizione i-esima che viene identificata a partire dal primo array possiamo trovare due valori distinti, un 1 per indicare che il worker è occupato a gestire una connessione e uno 0 per indicare che il worker è libero e in attesa di nuove connessioni.
+	\item \textbf{\emph{worker\_counter}}: Questo array serve a contare quante connessioni sono state assegnate al worker, questo parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei worker.
+	\item \textbf{\emph{worker\_server}}: Questa è una struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdal, la sua funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
+\end{itemize}
+Di seguito il codice che si occupa dell'inizializzazione della memoria condivisa:
+\begin{lstlisting}
+	int total_size = 0;
+    total_size+=sizeof(THPSharedMem);
+    total_size+=sizeof(pid_t)*n_prefork; // Array worker
+    total_size+=sizeof(int)*n_prefork; // Array busy
+    total_size+=sizeof(int)*n_prefork; // Array counter
+    total_size+=sizeof(Server)*n_prefork; // Array server
+
+    // Initializes Shared memory
+    void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);
+    if (start_mem == NULL)
+        exit(EXIT_FAILURE);
+
+    get_log()->i(TAG_THREAD_POOL, "Shared memory start from %p", start_mem);
+
+    // Mappgin shared memory segment
+    THPSharedMemPtr worker_pool = start_mem;
+    worker_pool->worker_array   = start_mem+sizeof(THPSharedMem);
+    worker_pool->worker_busy    = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork;
+    worker_pool->worker_counter = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork;
+    worker_pool->worker_server  = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork+sizeof(int)*n_prefork;
+
+    int i = 0;
+    for (i = 0; i < n_prefork; ++i){
+        worker_pool->worker_array[i]    = 0;
+        worker_pool->worker_busy[i]     = 0;
+        worker_pool->worker_counter[i]  = 0;
+    }
+\end{lstlisting}
+La porzione di codice qui sopra mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa. La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.\\\\
+Fatto questo siamo finalmente giunti alla creazione dei processi figli, ancora una volta evidenziamo qui la porzione di codice interessata:
+
+\begin{lstlisting}
+	
+    int children;
+    for (children = 0; children < n_prefork; ++children){
+
+        pid_t child_pid;
+        errno = 0;
+
+        child_pid = fork();
+        if (child_pid == -1)
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "do_prefork"));
+
+        // Child 
+        if (child_pid == 0){
+
+            // see worker.c
+            start_worker();
+            break;
+
+        }else{
+            
+            if(sem_wait(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
+
+            // Scan array and set worker to first position available
+            int i, flag = 0;
+            for (i = 0; i < n_prefork; ++i){
+                if (worker_pool->worker_array[i] == 0){
+                    worker_pool->worker_array[i] = child_pid;
+                    flag = 1;
+                    break;
+                }
+            }
+
+            if(sem_post(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_post", "do_prefork");
+
+            if (flag == 0){
+                return get_throwable()->create(STATUS_ERROR, "Cannot add worker_pid to array", "do_prefork");        
+            }            
+        }
+    }
+\end{lstlisting}
+Come vediamo viene eseguito un for \emph{n\_prefork} volte dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il processo figlio nasce e avvia l'esecuzione della sua funzione main e cioè la funzione \emph{start\_worker()}, il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato poco fa. \\\\Facciamo notare che l'esecuzione della chiamata di sistema \emph{fork()} non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre verso il figlio e grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
+
+\subsubsection{Server in ascolto}
+\label{sec:main_server}
+Una volta completata l'inizializzazione dei componenti di base di Heimdall il processo principale si avvia a svolgere il suo incarico cioè quello di mettersi in ascolto su una porta (configurabile nel file di configurazione) in attesa di nuove connessione.
+\begin{lstlisting}
+	    int port = 0;
+    throwable = str_to_int(config->server_main_port, &port);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    // Creates a new server
+    int sockfd;
+    throwable = create_server_socket(TCP, port, &sockfd);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    } 
+
+    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
+
+    // Starts listening for the clients
+    int backlog = 0;
+    throwable = str_to_int(config->backlog, &backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    throwable = listen_to(sockfd, backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    } 
+
+    log->i(TAG_MAIN, "Ready to accept incoming connections...");
+
+    int count = 0;
+
+    // Starts to listen incoming connections
+    while(TRUE) {
+
+        // Accepts new connection
+        int new_sockfd;
+        throwable = accept_connection(sockfd, &new_sockfd);
+        count++;
+        if (throwable->is_an_error(throwable)) {
+            log->t(throwable);
+            exit(EXIT_FAILURE);
+        }
+
+        while(TRUE){
+            throwable = th_pool->add_fd_to_array(&new_sockfd);
+            if (throwable->is_an_error(throwable)) {
+                //get_log()->i(TAG_THREAD_POOL, "No space for FD available, wait for space.");
+                throwable->destroy(throwable);
+            }else{
+                break;
+            }
+        }
+
+        log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, count);
+    }
+\end{lstlisting}
+Questo è il cuore di Heimdall, come possiamo notare da queste poche righe il processo principale recupera dal config la porta dove mettersi in ascolto, crea un nuovo "server socket" e si mette in attesa dell'arrivo di nuove connessione in un loop infinito. Quando un nuovo client si collega la funzione accept\_connection ritorna e il processo principale prosegue la sua strada. Qui vogliamo far notare che lo sviluppo della funzione main è stato pensato per poter eseguire il minor numero di linee di codice, questo per permettere al processo principale di tornare immediatamente in ascolto di nuove connessioni, infatti dopo aver salvato il file descriptor della socket in una apposita struttura dati (che sarà descritta nel paragrafo worker pool), il processo principale termina il primo ciclo del loop infinito e torna in ascolto di nuove connessioni.
+
 
 \subsection{File di configurazione}
 \label{sec:config}

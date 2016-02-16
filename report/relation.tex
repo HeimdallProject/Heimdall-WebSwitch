@@ -590,7 +590,218 @@ Un semplice controllo viene comunque eseguito ed è lo stesso controllo che avvi
 \label{sec:errors}
 
 \subsection{Pool manager}
-\label{sec:pool}
+\label{ssec:pool}
+
+Abbiamo già nominato questo componente nel paragrafo sul processo principale. Il \emph{Pool Manager} è un thread del processo principale creato all'avvio del programma. Il compito principale di questo thread è di gestire la schedulazione dei worker, vediamo in dettaglio questo come avviene.\\\\ Come già detto l'inizializzazione del Pool Manager viene eseguita dal main con queste righe di codice:
+\begin{lstlisting}
+    // Initializes Thread Pool
+    ThreadPoolPtr th_pool = get_thread_pool();
+    if (th_pool == NULL)
+        exit(EXIT_FAILURE);
+\end{lstlisting}
+La funzione \emph{get\_thread\_pool()} è presente all'interno dei file \emph{thread\_pool.c} e \emph{thread\_pool.h} ed è definita come segue:
+
+\begin{lstlisting}
+ThreadPoolPtr get_thread_pool() {
+
+	if (singleton_thdpool == NULL) {
+		singleton_thdpool = init_thread_pool();
+    }
+
+    // return singleton
+    return singleton_thdpool;
+}
+
+static ThreadPoolPtr init_thread_pool() {
+
+	get_log()->i(TAG_THREAD_POOL, "Thread pool start.");
+
+	pthread_t t1;
+	int born;
+	
+	born = pthread_create(&t1, NULL, init_pool, NULL); 
+	if (born != 0) {
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_create");
+		return NULL;
+	}
+
+	ThreadPoolPtr th_pool = malloc(sizeof(ThreadPool));
+    if (th_pool == NULL) {
+    	get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool!");
+        return NULL;
+    }
+
+    th_pool->thread_identifier 	= t1;
+    th_pool->add_fd_to_array 	= add_fd_to_array;
+    th_pool->print_fd_array 	= print_fd_array;
+
+    return th_pool;
+}
+\end{lstlisting}
+Ancora una volta l'approccio utilizzato per la creazione del Pool Manager è il \emph{Singleton}, infatti esiste una sola istanza del Pool Manager all'interno di tutto il programma. La funzione \emph{init\_thread\_pool()} conferma quando detto fin ora, infatti questa funzione che viene eseguita dal main non fa altro che creare un thread e una struttura \emph{ThreadPoolPtr}.\\\\ La \emph{pthread\_create()} specifica come funzione di start per il thread la funzione \emph{init\_pool()} che riportiamo di seguito:
+\begin{lstlisting}
+	static void *init_pool(void *arg){
+
+	// detach itself
+	pthread_detach(pthread_self());
+
+	ConfigPtr config = get_config();
+
+    max_fd = 0;
+    ThrowablePtr throwable = str_to_int(config->max_fd, &max_fd);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Init static array and save pointer to global variable
+    fd_array = malloc(sizeof(int) * max_fd);
+    if (fd_array == NULL) {
+        get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_pool!");
+        exit(EXIT_FAILURE);
+    }
+
+	int i;
+    for (i = 0; i < max_fd; ++i){
+		fd_array[i] = 0;
+    }
+
+    // enter in thread pool loop
+    thread_pool_loop();
+
+    // Never reached
+    return arg;
+}
+\end{lstlisting}
+Queste sono le prime linee di codice che vengono eseguite dal thread Pool Manager. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.\\\\
+
+\begin{lstlisting}
+
+	for (;;) {
+
+		int fd = 0;
+        throwable = get_fd(&fd);
+        if (throwable->is_an_error(throwable)) {
+            //get_log()->i(TAG_THREAD_POOL, "No fd to serve.");
+            throwable->destroy(throwable);
+            continue;
+        }
+        
+       	...
+       	...	
+\end{lstlisting}
+
+All'interno della funzione \emph{thread\_pool\_loop()} è presente, come è di facile intuizione dato il nome, un loop infinito. Questo perché il thread eseguirà una costante verifica dell'esistenza di un file descriptor presente all'interno dell'array, infatti la funzione \emph{get\_fd()} è definita come segue:
+
+\begin{lstlisting}
+	static ThrowablePtr get_fd(int *fd_ptr){
+
+	int s = 0;
+	s = pthread_mutex_lock(&mtx_wait_request);
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_lock");
+
+    // Scan array and get the first fd != 0
+    int i, flag = 0;
+    for (i = 0; i < max_fd; ++i){
+
+        if (fd_array[i] != 0){
+            *fd_ptr = fd_array[i];
+            fd_array[i] = 0;
+            flag = 1;
+            break;
+        }
+    }
+
+	s = pthread_mutex_unlock(&mtx_wait_request); 
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_unlock");
+
+    if (flag == 0){
+        return get_throwable()->create(STATUS_ERROR, "Cannot get fd", "get_fd");        
+    }else{
+        return get_throwable()->create(STATUS_OK, NULL, "get_fd()");;
+    }
+}
+\end{lstlisting}
+
+Come vediamo la funzione si occupa dell'accesso all'array dei file descriptor che abbiamo inizializzato prima, facciamo notare che l'accesso all'array è gestito da un semaforo mutex, questo perché anche il main accede a questa struttura quando arrivano nuove conessioni, infatti se ricordiamo quanto detto nel paragrafo del processo principale quando un client si collega la funzione \emph{accept\_connection()} ritorna il file descriptor associato alla socket, questo viene poi messo all'interno dell'array dei file descriptor tramite la funzione \emph{add\_fd\_to\_array()}. Ora che abbiamo spiegato anche l'ultimo passaggio della funzione main capiamo che il thread pool è l'incaricato di verificare che ci siano nuovi file descriptor da servire. La funzione \emph{get\_fd()} è di facile lettura, viene semplicemente eseguito un for sull'array dei file descriptor e viene ritornato il primo file descriptor disponibile.\\\\ Una volta recuperato il file descriptor della connessione è necessario individuare un worker che la gestisca, questo compito è sempre svolto dalla funzione \emph{thread\_pool\_loop()} che esegue il seguente codice:
+
+\begin{lstlisting}
+	int i, min = -1, position = -1;
+	for (i = 0; i < n_prefork; ++i){
+		if (worker_pool->worker_busy[i] == 0){
+			if(min == -1){
+				min = worker_pool->worker_counter[i];
+              	position = i;
+           	}
+
+			if (worker_pool->worker_counter[i] <= min){
+				min = worker_pool->worker_counter[i];
+				position = i;
+			}
+		}
+	}
+\end{lstlisting}
+Qui incontriamo le strutture dati che abbiamo descritto nel paragrafo del processo principale, ossia le strutture dati che si trovano in memoria condivisa. L'accesso a questa zone di memoria è eseguito come anche nel main tramite l'utilizzo di semafori POSIX, nello specifico i \emph{named semaphore}. Prima di tutto viene individuato un worker libero, ricordiamo che l'array worker\_busy è un array di flag, lo 0 indica un worker libero. Una volta identificato un possibile worker viene valutato il suo stato di lavoro eseguendo il controllo sull'array worker\_counter, dal quale riusciamo a risalire al numero di connessioni che il worker ha gestito in totale. Tramite queste due ricerche identifichiamo il worker che ha lavorato meno e lo selezioniamo per la nuova connessione. Tutto questo viene fatto per distribuire il carico di lavoro in maniera equa su tutti i worker in modo tale da non avere dei processi annoiati e evitando così di sovraccaricarne altri.\\\\
+
+\begin{lstlisting}
+	        
+	        // Error no worker available
+            if(position == -1) {
+                
+                get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
+
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                continue;
+            
+            }else{
+                
+                worker_pool->worker_busy[position] = 1;
+                worker_pid = worker_pool->worker_array[position];
+                worker_pool->worker_counter[position] = worker_pool->worker_counter[position] + 1;
+                
+                get_log()->i(TAG_THREAD_POOL, "Get Worker %ld", (long)worker_pid);
+
+                // Retrieving server from scheduler
+                ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
+                // Storing server in shared memory
+                worker_pool->worker_server[position] = *server;
+                
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                break;
+            }
+\end{lstlisting}
+All'interno della variabile \emph{position} viene salvato l'indice del worker selezionato, se questo è -1 vuol dire che tutti i worker sono occupati perché stanno gestendo altre connessioni, in questo caso il ciclo di schedulazione ricomincia e continua finche non ci sarà un worker pronto a gestire la connessione. In caso di successo le strutture dati in memoria condivisa vengono aggiornate, il flag all'interno del'array worker\_busy passa a 1 per indicare che il worker non è più disponibile, dal worker\_array viene recuperato il pid del processo, il contatore delle connessioni gestite dal worker viene aggiornato nell'array worker\_counter e infine come ultimo passaggio richiamiamo il thread Scheduler per richiedere di fornirci un server dove il worker andrà a eseguire le richieste del client, sblocchiamo il semaforo, visto che abbiamo terminato l'utilizzo della memoria condvisa, e ci avviamo ad eseguire le ultime linee di codice della funzione:
+
+\begin{lstlisting}
+		while (TRUE){
+		            
+			throwable = send_fd(fd, worker_pid);
+			if (throwable->is_an_error(throwable)) {
+				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
+				throwable->destroy(throwable);
+				attempt++;
+			}else{
+				break;
+			}
+		}
+
+		// close fd from main side
+		throwable = close_connection(fd);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+        }
+\end{lstlisting}
+Abbiamo quindi recuperato dall'array un file descriptor associato a una socket, abbiamo selezionato il worker per servire la connessione ci manca solamente di dire al worker quale sia questo file descriptor. Per fare questo viene utilizzato un altro componente di Heimdall, il \emph{message controller}.\\\\ Il message controller non è altro che una serie di funzioni che utilizzano le socket locali AF\_UNIX per lo scambio di file descriptor. Infatti la funzione \emph{send\_fd()} che è definita all'interno del file \emph{message\_controlller.c} e \emph{message\_controller.h} non fa altro che creare un socket AF\_UNIX per l'invio del file descriptor al worker. Vengono utilizzate le socket perché non è possibile scambiare il file descriptor senza scambiare anche i permessi di lettura di su quel file, infatti al di fuori del contesto di un processo un file descriptor non è altro che un semplice intero, facciamo notare anche che vengono eseguiti dei tentativi di invio perché nel momento dell'invio del file descriptor il worker, causa problemi di schedulazione da parte del sistema operativo, potrebbe non essere pronto a ricevere il dato. Una volta effettuato lo scambio il Pool Manger ha terminato la sua esecuzione e può tornare a schedulare altri worker, come ultima cosa non ci dimentichiamo di chiudere il file descriptor dal lato del processo padre infatti una volta inviato, un altro riferimento al file viene creato nella tabella dei file descriptor del worker e quindi quello presente nel processo principale non è più necessario.
 
 \subsection{Scheduler}
 \label{ssec: sched}

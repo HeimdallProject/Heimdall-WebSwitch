@@ -113,8 +113,181 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 \subsection{Overview}
 \label{ssec:overview}
 
-\subsection{Server in ascolto}
-\label{sec:main}
+\subsection{Il processo principale}
+\label{ssec:main_process}
+Il cuore di Heimdall sta ovviamente nel file principale del programma, il \emph{main.c}, una volta avviato il programma, il processo principale prenderà vita nel sistema ed eseguirà le inizializzazioni dei componenti principali, tra questi abbiamo:
+
+\begin{itemize}
+	\item Config
+	\item Log
+	\item Scheduler
+	\item Pool Manager
+\end{itemize}
+Possiamo dividere questi 4 componenti in 2 categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché come sarà più chiaro nei relativi paragrafi, i due componenti hanno da svolgere alcuni compiti dedicati che altrimenti sarebbero dovuti essere eseguiti dal programma principale intaccando le prestazioni del sistema dovute al fatto che non veniva sfruttata alcun tipo di concorrenza.
+
+\subsubsection{I processi figli e la memoria condivisa}
+\label{ssec:child_process}
+Fatte le prime inizializzazioni il processo principale si avvia ad eseguire il suo compito ma prima di questo è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()} presente nel file \emph{main.c} il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa che verrà utilizzata appunto per la comunicazione tra il processo padre e i processi figli, per motivi che saranno più chiari in seguito chiameremo da adesso in poi i processi figli: \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
+
+\begin{lstlisting}
+    ConfigPtr config = get_config();
+    
+    int n_prefork = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+\end{lstlisting}
+Dal Config viene recuperato il numero di processi figli da creare, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()} viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati 4 array, vediamoli nel dettaglio:
+
+\begin{itemize}
+	\item \textbf{\emph{worker\_array}}: In questo array vengono memorizzati i \emph{pid\_t} dei processi figli creati.          
+	\item \textbf{\emph{worker\_busy}}: Questo è un array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un worker. Nello specifico alla posizione i-esima che viene identificata a partire dal primo array possiamo trovare due valori distinti, un 1 per indicare che il worker è occupato a gestire una connessione e uno 0 per indicare che il worker è libero e in attesa di nuove connessioni.
+	\item \textbf{\emph{worker\_counter}}: Questo array serve a contare quante connessioni sono state assegnate al worker, questo parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei worker.
+	\item \textbf{\emph{worker\_server}}: Questa è una struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdal, la sua funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
+\end{itemize}
+Di seguito il codice che si occupa dell'inizializzazione della memoria condivisa:
+\begin{lstlisting}
+	int total_size = 0;
+    total_size+=sizeof(THPSharedMem);
+    total_size+=sizeof(pid_t)*n_prefork; // Array worker
+    total_size+=sizeof(int)*n_prefork; // Array busy
+    total_size+=sizeof(int)*n_prefork; // Array counter
+    total_size+=sizeof(Server)*n_prefork; // Array server
+
+    // Initializes Shared memory
+    void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);
+    if (start_mem == NULL)
+        exit(EXIT_FAILURE);
+
+    get_log()->i(TAG_THREAD_POOL, "Shared memory start from %p", start_mem);
+
+    // Mappgin shared memory segment
+    THPSharedMemPtr worker_pool = start_mem;
+    worker_pool->worker_array   = start_mem+sizeof(THPSharedMem);
+    worker_pool->worker_busy    = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork;
+    worker_pool->worker_counter = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork;
+    worker_pool->worker_server  = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork+sizeof(int)*n_prefork;
+
+    int i = 0;
+    for (i = 0; i < n_prefork; ++i){
+        worker_pool->worker_array[i]    = 0;
+        worker_pool->worker_busy[i]     = 0;
+        worker_pool->worker_counter[i]  = 0;
+    }
+\end{lstlisting}
+La porzione di codice qui sopra mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa. La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.\\\\
+Fatto questo siamo finalmente giunti alla creazione dei processi figli, ancora una volta evidenziamo qui la porzione di codice interessata:
+
+\begin{lstlisting}
+	
+    int children;
+    for (children = 0; children < n_prefork; ++children){
+
+        pid_t child_pid;
+        errno = 0;
+
+        child_pid = fork();
+        if (child_pid == -1)
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "do_prefork"));
+
+        // Child 
+        if (child_pid == 0){
+
+            // see worker.c
+            start_worker();
+            break;
+
+        }else{
+            
+            if(sem_wait(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
+
+            // Scan array and set worker to first position available
+            int i, flag = 0;
+            for (i = 0; i < n_prefork; ++i){
+                if (worker_pool->worker_array[i] == 0){
+                    worker_pool->worker_array[i] = child_pid;
+                    flag = 1;
+                    break;
+                }
+            }
+
+            if(sem_post(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_post", "do_prefork");
+
+            if (flag == 0){
+                return get_throwable()->create(STATUS_ERROR, "Cannot add worker_pid to array", "do_prefork");        
+            }            
+        }
+    }
+\end{lstlisting}
+Come vediamo viene eseguito un for \emph{n\_prefork} volte dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il processo figlio nasce e avvia l'esecuzione della sua funzione main e cioè la funzione \emph{start\_worker()}, il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato poco fa. \\\\Facciamo notare che l'esecuzione della chiamata di sistema \emph{fork()} non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre verso il figlio e grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
+
+\subsubsection{Server in ascolto}
+\label{sec:main_server}
+Una volta completata l'inizializzazione dei componenti di base di Heimdall il processo principale si avvia a svolgere il suo incarico cioè quello di mettersi in ascolto su una porta (configurabile nel file di configurazione) in attesa di nuove connessione.
+\begin{lstlisting}
+	    int port = 0;
+    throwable = str_to_int(config->server_main_port, &port);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    // Creates a new server
+    int sockfd;
+    throwable = create_server_socket(TCP, port, &sockfd);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    } 
+
+    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
+
+    // Starts listening for the clients
+    int backlog = 0;
+    throwable = str_to_int(config->backlog, &backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    throwable = listen_to(sockfd, backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    } 
+
+    log->i(TAG_MAIN, "Ready to accept incoming connections...");
+
+    int count = 0;
+
+    // Starts to listen incoming connections
+    while(TRUE) {
+
+        // Accepts new connection
+        int new_sockfd;
+        throwable = accept_connection(sockfd, &new_sockfd);
+        count++;
+        if (throwable->is_an_error(throwable)) {
+            log->t(throwable);
+            exit(EXIT_FAILURE);
+        }
+
+        while(TRUE){
+            throwable = th_pool->add_fd_to_array(&new_sockfd);
+            if (throwable->is_an_error(throwable)) {
+                //get_log()->i(TAG_THREAD_POOL, "No space for FD available, wait for space.");
+                throwable->destroy(throwable);
+            }else{
+                break;
+            }
+        }
+
+        log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, count);
+    }
+\end{lstlisting}
+Questo è il cuore di Heimdall, come possiamo notare da queste poche righe il processo principale recupera dal config la porta dove mettersi in ascolto, crea un nuovo "server socket" e si mette in attesa dell'arrivo di nuove connessione in un loop infinito. Quando un nuovo client si collega la funzione accept\_connection ritorna e il processo principale prosegue la sua strada. Qui vogliamo far notare che lo sviluppo della funzione main è stato pensato per poter eseguire il minor numero di linee di codice, questo per permettere al processo principale di tornare immediatamente in ascolto di nuove connessioni, infatti dopo aver salvato il file descriptor della socket in una apposita struttura dati (che sarà descritta nel paragrafo worker pool), il processo principale termina il primo ciclo del loop infinito e torna in ascolto di nuove connessioni.
+
 
 \subsection{File di configurazione}
 \label{sec:config}
@@ -474,7 +647,218 @@ In questo caso viene chiamata la funzione \emph{str\_to\_int()}, che ritorna un 
 La struttura è allocata dinamicamente tramite la funzione \emph{create()} e, di conseguenza, è necessario liberare lo spazio utilizzato: se la funzione \emph{is\_an\_error()} non rileva alcun errore, provvederà essa stessa alla deallocazione; in caso contrario, lo sviluppatore o la chiamata a \emph{log->t()} libererà la memoria, dopo aver stampato un report dell'errore.
 
 \subsection{Pool manager}
-\label{sec:pool}
+\label{ssec:pool}
+
+Abbiamo già nominato questo componente nel paragrafo sul processo principale. Il \emph{Pool Manager} è un thread del processo principale creato all'avvio del programma. Il compito principale di questo thread è di gestire la schedulazione dei worker, vediamo in dettaglio questo come avviene.\\\\ Come già detto l'inizializzazione del Pool Manager viene eseguita dal main con queste righe di codice:
+\begin{lstlisting}
+    // Initializes Thread Pool
+    ThreadPoolPtr th_pool = get_thread_pool();
+    if (th_pool == NULL)
+        exit(EXIT_FAILURE);
+\end{lstlisting}
+La funzione \emph{get\_thread\_pool()} è presente all'interno dei file \emph{thread\_pool.c} e \emph{thread\_pool.h} ed è definita come segue:
+
+\begin{lstlisting}
+ThreadPoolPtr get_thread_pool() {
+
+	if (singleton_thdpool == NULL) {
+		singleton_thdpool = init_thread_pool();
+    }
+
+    // return singleton
+    return singleton_thdpool;
+}
+
+static ThreadPoolPtr init_thread_pool() {
+
+	get_log()->i(TAG_THREAD_POOL, "Thread pool start.");
+
+	pthread_t t1;
+	int born;
+	
+	born = pthread_create(&t1, NULL, init_pool, NULL); 
+	if (born != 0) {
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_create");
+		return NULL;
+	}
+
+	ThreadPoolPtr th_pool = malloc(sizeof(ThreadPool));
+    if (th_pool == NULL) {
+    	get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool!");
+        return NULL;
+    }
+
+    th_pool->thread_identifier 	= t1;
+    th_pool->add_fd_to_array 	= add_fd_to_array;
+    th_pool->print_fd_array 	= print_fd_array;
+
+    return th_pool;
+}
+\end{lstlisting}
+Ancora una volta l'approccio utilizzato per la creazione del Pool Manager è il \emph{Singleton}, infatti esiste una sola istanza del Pool Manager all'interno di tutto il programma. La funzione \emph{init\_thread\_pool()} conferma quando detto fin ora, infatti questa funzione che viene eseguita dal main non fa altro che creare un thread e una struttura \emph{ThreadPoolPtr}.\\\\ La \emph{pthread\_create()} specifica come funzione di start per il thread la funzione \emph{init\_pool()} che riportiamo di seguito:
+\begin{lstlisting}
+	static void *init_pool(void *arg){
+
+	// detach itself
+	pthread_detach(pthread_self());
+
+	ConfigPtr config = get_config();
+
+    max_fd = 0;
+    ThrowablePtr throwable = str_to_int(config->max_fd, &max_fd);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Init static array and save pointer to global variable
+    fd_array = malloc(sizeof(int) * max_fd);
+    if (fd_array == NULL) {
+        get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_pool!");
+        exit(EXIT_FAILURE);
+    }
+
+	int i;
+    for (i = 0; i < max_fd; ++i){
+		fd_array[i] = 0;
+    }
+
+    // enter in thread pool loop
+    thread_pool_loop();
+
+    // Never reached
+    return arg;
+}
+\end{lstlisting}
+Queste sono le prime linee di codice che vengono eseguite dal thread Pool Manager. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.\\\\
+
+\begin{lstlisting}
+
+	for (;;) {
+
+		int fd = 0;
+        throwable = get_fd(&fd);
+        if (throwable->is_an_error(throwable)) {
+            //get_log()->i(TAG_THREAD_POOL, "No fd to serve.");
+            throwable->destroy(throwable);
+            continue;
+        }
+        
+       	...
+       	...	
+\end{lstlisting}
+
+All'interno della funzione \emph{thread\_pool\_loop()} è presente, come è di facile intuizione dato il nome, un loop infinito. Questo perché il thread eseguirà una costante verifica dell'esistenza di un file descriptor presente all'interno dell'array, infatti la funzione \emph{get\_fd()} è definita come segue:
+
+\begin{lstlisting}
+	static ThrowablePtr get_fd(int *fd_ptr){
+
+	int s = 0;
+	s = pthread_mutex_lock(&mtx_wait_request);
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_lock");
+
+    // Scan array and get the first fd != 0
+    int i, flag = 0;
+    for (i = 0; i < max_fd; ++i){
+
+        if (fd_array[i] != 0){
+            *fd_ptr = fd_array[i];
+            fd_array[i] = 0;
+            flag = 1;
+            break;
+        }
+    }
+
+	s = pthread_mutex_unlock(&mtx_wait_request); 
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_unlock");
+
+    if (flag == 0){
+        return get_throwable()->create(STATUS_ERROR, "Cannot get fd", "get_fd");        
+    }else{
+        return get_throwable()->create(STATUS_OK, NULL, "get_fd()");;
+    }
+}
+\end{lstlisting}
+
+Come vediamo la funzione si occupa dell'accesso all'array dei file descriptor che abbiamo inizializzato prima, facciamo notare che l'accesso all'array è gestito da un semaforo mutex, questo perché anche il main accede a questa struttura quando arrivano nuove conessioni, infatti se ricordiamo quanto detto nel paragrafo del processo principale quando un client si collega la funzione \emph{accept\_connection()} ritorna il file descriptor associato alla socket, questo viene poi messo all'interno dell'array dei file descriptor tramite la funzione \emph{add\_fd\_to\_array()}. Ora che abbiamo spiegato anche l'ultimo passaggio della funzione main capiamo che il thread pool è l'incaricato di verificare che ci siano nuovi file descriptor da servire. La funzione \emph{get\_fd()} è di facile lettura, viene semplicemente eseguito un for sull'array dei file descriptor e viene ritornato il primo file descriptor disponibile.\\\\ Una volta recuperato il file descriptor della connessione è necessario individuare un worker che la gestisca, questo compito è sempre svolto dalla funzione \emph{thread\_pool\_loop()} che esegue il seguente codice:
+
+\begin{lstlisting}
+	int i, min = -1, position = -1;
+	for (i = 0; i < n_prefork; ++i){
+		if (worker_pool->worker_busy[i] == 0){
+			if(min == -1){
+				min = worker_pool->worker_counter[i];
+              	position = i;
+           	}
+
+			if (worker_pool->worker_counter[i] <= min){
+				min = worker_pool->worker_counter[i];
+				position = i;
+			}
+		}
+	}
+\end{lstlisting}
+Qui incontriamo le strutture dati che abbiamo descritto nel paragrafo del processo principale, ossia le strutture dati che si trovano in memoria condivisa. L'accesso a questa zone di memoria è eseguito come anche nel main tramite l'utilizzo di semafori POSIX, nello specifico i \emph{named semaphore}. Prima di tutto viene individuato un worker libero, ricordiamo che l'array worker\_busy è un array di flag, lo 0 indica un worker libero. Una volta identificato un possibile worker viene valutato il suo stato di lavoro eseguendo il controllo sull'array worker\_counter, dal quale riusciamo a risalire al numero di connessioni che il worker ha gestito in totale. Tramite queste due ricerche identifichiamo il worker che ha lavorato meno e lo selezioniamo per la nuova connessione. Tutto questo viene fatto per distribuire il carico di lavoro in maniera equa su tutti i worker in modo tale da non avere dei processi annoiati e evitando così di sovraccaricarne altri.\\\\
+
+\begin{lstlisting}
+	        
+	        // Error no worker available
+            if(position == -1) {
+                
+                get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
+
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                continue;
+            
+            }else{
+                
+                worker_pool->worker_busy[position] = 1;
+                worker_pid = worker_pool->worker_array[position];
+                worker_pool->worker_counter[position] = worker_pool->worker_counter[position] + 1;
+                
+                get_log()->i(TAG_THREAD_POOL, "Get Worker %ld", (long)worker_pid);
+
+                // Retrieving server from scheduler
+                ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
+                // Storing server in shared memory
+                worker_pool->worker_server[position] = *server;
+                
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                break;
+            }
+\end{lstlisting}
+All'interno della variabile \emph{position} viene salvato l'indice del worker selezionato, se questo è -1 vuol dire che tutti i worker sono occupati perché stanno gestendo altre connessioni, in questo caso il ciclo di schedulazione ricomincia e continua finche non ci sarà un worker pronto a gestire la connessione. In caso di successo le strutture dati in memoria condivisa vengono aggiornate, il flag all'interno del'array worker\_busy passa a 1 per indicare che il worker non è più disponibile, dal worker\_array viene recuperato il pid del processo, il contatore delle connessioni gestite dal worker viene aggiornato nell'array worker\_counter e infine come ultimo passaggio richiamiamo il thread Scheduler per richiedere di fornirci un server dove il worker andrà a eseguire le richieste del client, sblocchiamo il semaforo, visto che abbiamo terminato l'utilizzo della memoria condvisa, e ci avviamo ad eseguire le ultime linee di codice della funzione:
+
+\begin{lstlisting}
+		while (TRUE){
+		            
+			throwable = send_fd(fd, worker_pid);
+			if (throwable->is_an_error(throwable)) {
+				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
+				throwable->destroy(throwable);
+				attempt++;
+			}else{
+				break;
+			}
+		}
+
+		// close fd from main side
+		throwable = close_connection(fd);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+        }
+\end{lstlisting}
+Abbiamo quindi recuperato dall'array un file descriptor associato a una socket, abbiamo selezionato il worker per servire la connessione ci manca solamente di dire al worker quale sia questo file descriptor. Per fare questo viene utilizzato un altro componente di Heimdall, il \emph{message controller}.\\\\ Il message controller non è altro che una serie di funzioni che utilizzano le socket locali AF\_UNIX per lo scambio di file descriptor. Infatti la funzione \emph{send\_fd()} che è definita all'interno del file \emph{message\_controlller.c} e \emph{message\_controller.h} non fa altro che creare un socket AF\_UNIX per l'invio del file descriptor al worker. Vengono utilizzate le socket perché non è possibile scambiare il file descriptor senza scambiare anche i permessi di lettura di su quel file, infatti al di fuori del contesto di un processo un file descriptor non è altro che un semplice intero, facciamo notare anche che vengono eseguiti dei tentativi di invio perché nel momento dell'invio del file descriptor il worker, causa problemi di schedulazione da parte del sistema operativo, potrebbe non essere pronto a ricevere il dato. Una volta effettuato lo scambio il Pool Manger ha terminato la sua esecuzione e può tornare a schedulare altri worker, come ultima cosa non ci dimentichiamo di chiudere il file descriptor dal lato del processo padre infatti una volta inviato, un altro riferimento al file viene creato nella tabella dei file descriptor del worker e quindi quello presente nel processo principale non è più necessario.
 
 \subsection{Scheduler}
 \label{ssec: sched}

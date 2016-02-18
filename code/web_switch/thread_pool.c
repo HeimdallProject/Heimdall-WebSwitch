@@ -160,7 +160,7 @@ static void thread_pool_loop(){
                 exit(EXIT_FAILURE);
             }
 
-            // Scan array and get the first fd != 0 with minor usage
+            // Scan array and get the first worker != 0 with minor usage
             int i, min = -1, position = -1;
             for (i = 0; i < n_prefork; ++i){
                 

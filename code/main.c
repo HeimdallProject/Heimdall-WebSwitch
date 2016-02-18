@@ -139,7 +139,7 @@ void cleaning(int signum){
             if(sem_wait(sem) == -1)
                 return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
 
-            // Scan array and set fd to first position available
+            // Scan array and set worker to first position available
             int i, flag = 0;
             for (i = 0; i < n_prefork; ++i){
                 if (worker_pool->worker_array[i] == 0){

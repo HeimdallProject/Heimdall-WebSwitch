@@ -33,9 +33,9 @@
 % The following commands define the information used to generate title and
 % abstract pages. The following entries should be always specified:
 \title{%
-    \huge Project Heimdall
+    \huge Project Heimdall 
     \\
-    \large Proposta di implementazione per un web switch
+    \large Proposta di implementazione per un web switch 
     \\
     concorrente two-way di livello 7 (OSI) con
     \\
@@ -96,10 +96,9 @@ Le applicazioni sono molteplici per l'implementazione a livello applicativo: pu�
 \subsection{Assunzioni progettuali sul cluster}
 Nella fase di progettazione e realizzazione sono state definite le seguenti assunzioni:
 \begin{itemize}
-	\item Ognuna delle macchine del cluster dispone di un web server Apache in ascolto sulla porta 80
+	\item Ognuna delle macchine del cluster dispone di un web server Apache\cite{apache_server} in ascolto sulla porta 80
 	\item Ognuna delle macchine monta il modulo ApacheStatus come monitor di carico
 \end{itemize}
-
 
 \begin{figure}
 \centering
@@ -114,8 +113,181 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 \subsection{Overview}
 \label{ssec:overview}
 
-\subsection{Server in ascolto}
-\label{sec:main}
+\subsection{Il processo principale}
+\label{ssec:main_process}
+Il cuore di Heimdall sta ovviamente nel file principale del programma, il \emph{main.c}, una volta avviato il programma, il processo principale prenderà vita nel sistema ed eseguirà le inizializzazioni dei componenti principali, tra questi abbiamo:
+
+\begin{itemize}
+	\item Config
+	\item Log
+	\item Scheduler
+	\item Pool Manager
+\end{itemize}
+Possiamo dividere questi 4 componenti in 2 categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché come sarà più chiaro nei relativi paragrafi, i due componenti hanno da svolgere alcuni compiti dedicati che altrimenti sarebbero dovuti essere eseguiti dal programma principale intaccando le prestazioni del sistema dovute al fatto che non veniva sfruttata alcun tipo di concorrenza.
+
+\subsubsection{I processi figli e la memoria condivisa}
+\label{ssec:child_process}
+Fatte le prime inizializzazioni il processo principale si avvia ad eseguire il suo compito ma prima di questo è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()} presente nel file \emph{main.c} il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa che verrà utilizzata appunto per la comunicazione tra il processo padre e i processi figli, per motivi che saranno più chiari in seguito chiameremo da adesso in poi i processi figli: \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
+
+\begin{lstlisting}
+    ConfigPtr config = get_config();
+    
+    int n_prefork = 0;
+    ThrowablePtr throwable = str_to_int(config->pre_fork, &n_prefork);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+    }
+\end{lstlisting}
+Dal Config viene recuperato il numero di processi figli da creare, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()} viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati 4 array, vediamoli nel dettaglio:
+
+\begin{itemize}
+	\item \textbf{\emph{worker\_array}}: In questo array vengono memorizzati i \emph{pid\_t} dei processi figli creati.          
+	\item \textbf{\emph{worker\_busy}}: Questo è un array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un worker. Nello specifico alla posizione i-esima che viene identificata a partire dal primo array possiamo trovare due valori distinti, un 1 per indicare che il worker è occupato a gestire una connessione e uno 0 per indicare che il worker è libero e in attesa di nuove connessioni.
+	\item \textbf{\emph{worker\_counter}}: Questo array serve a contare quante connessioni sono state assegnate al worker, questo parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei worker.
+	\item \textbf{\emph{worker\_server}}: Questa è una struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdal, la sua funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
+\end{itemize}
+Di seguito il codice che si occupa dell'inizializzazione della memoria condivisa:
+\begin{lstlisting}
+	int total_size = 0;
+    total_size+=sizeof(THPSharedMem);
+    total_size+=sizeof(pid_t)*n_prefork; // Array worker
+    total_size+=sizeof(int)*n_prefork; // Array busy
+    total_size+=sizeof(int)*n_prefork; // Array counter
+    total_size+=sizeof(Server)*n_prefork; // Array server
+
+    // Initializes Shared memory
+    void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);
+    if (start_mem == NULL)
+        exit(EXIT_FAILURE);
+
+    get_log()->i(TAG_THREAD_POOL, "Shared memory start from %p", start_mem);
+
+    // Mappgin shared memory segment
+    THPSharedMemPtr worker_pool = start_mem;
+    worker_pool->worker_array   = start_mem+sizeof(THPSharedMem);
+    worker_pool->worker_busy    = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork;
+    worker_pool->worker_counter = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork;
+    worker_pool->worker_server  = start_mem+sizeof(THPSharedMem)+sizeof(pid_t)*n_prefork+sizeof(int)*n_prefork+sizeof(int)*n_prefork;
+
+    int i = 0;
+    for (i = 0; i < n_prefork; ++i){
+        worker_pool->worker_array[i]    = 0;
+        worker_pool->worker_busy[i]     = 0;
+        worker_pool->worker_counter[i]  = 0;
+    }
+\end{lstlisting}
+La porzione di codice qui sopra mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa. La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.\\\\
+Fatto questo siamo finalmente giunti alla creazione dei processi figli, ancora una volta evidenziamo qui la porzione di codice interessata:
+
+\begin{lstlisting}
+	
+    int children;
+    for (children = 0; children < n_prefork; ++children){
+
+        pid_t child_pid;
+        errno = 0;
+
+        child_pid = fork();
+        if (child_pid == -1)
+            get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "do_prefork"));
+
+        // Child 
+        if (child_pid == 0){
+
+            // see worker.c
+            start_worker();
+            break;
+
+        }else{
+            
+            if(sem_wait(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_wait", "do_prefork");
+
+            // Scan array and set worker to first position available
+            int i, flag = 0;
+            for (i = 0; i < n_prefork; ++i){
+                if (worker_pool->worker_array[i] == 0){
+                    worker_pool->worker_array[i] = child_pid;
+                    flag = 1;
+                    break;
+                }
+            }
+
+            if(sem_post(sem) == -1)
+                return get_throwable()->create(STATUS_ERROR, "sem_post", "do_prefork");
+
+            if (flag == 0){
+                return get_throwable()->create(STATUS_ERROR, "Cannot add worker_pid to array", "do_prefork");        
+            }            
+        }
+    }
+\end{lstlisting}
+Come vediamo viene eseguito un for \emph{n\_prefork} volte dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il processo figlio nasce e avvia l'esecuzione della sua funzione main e cioè la funzione \emph{start\_worker()}, il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato poco fa. \\\\Facciamo notare che l'esecuzione della chiamata di sistema \emph{fork()} non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre verso il figlio e grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
+
+\subsubsection{Server in ascolto}
+\label{sec:main_server}
+Una volta completata l'inizializzazione dei componenti di base di Heimdall il processo principale si avvia a svolgere il suo incarico cioè quello di mettersi in ascolto su una porta (configurabile nel file di configurazione) in attesa di nuove connessione.
+\begin{lstlisting}
+	    int port = 0;
+    throwable = str_to_int(config->server_main_port, &port);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    // Creates a new server
+    int sockfd;
+    throwable = create_server_socket(TCP, port, &sockfd);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    } 
+
+    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
+
+    // Starts listening for the clients
+    int backlog = 0;
+    throwable = str_to_int(config->backlog, &backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+    }
+
+    throwable = listen_to(sockfd, backlog);
+    if (throwable->is_an_error(throwable)) {
+        log->t(throwable);
+        exit(EXIT_FAILURE);
+    } 
+
+    log->i(TAG_MAIN, "Ready to accept incoming connections...");
+
+    int count = 0;
+
+    // Starts to listen incoming connections
+    while(TRUE) {
+
+        // Accepts new connection
+        int new_sockfd;
+        throwable = accept_connection(sockfd, &new_sockfd);
+        count++;
+        if (throwable->is_an_error(throwable)) {
+            log->t(throwable);
+            exit(EXIT_FAILURE);
+        }
+
+        while(TRUE){
+            throwable = th_pool->add_fd_to_array(&new_sockfd);
+            if (throwable->is_an_error(throwable)) {
+                //get_log()->i(TAG_THREAD_POOL, "No space for FD available, wait for space.");
+                throwable->destroy(throwable);
+            }else{
+                break;
+            }
+        }
+
+        log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, count);
+    }
+\end{lstlisting}
+Questo è il cuore di Heimdall, come possiamo notare da queste poche righe il processo principale recupera dal config la porta dove mettersi in ascolto, crea un nuovo "server socket" e si mette in attesa dell'arrivo di nuove connessione in un loop infinito. Quando un nuovo client si collega la funzione accept\_connection ritorna e il processo principale prosegue la sua strada. Qui vogliamo far notare che lo sviluppo della funzione main è stato pensato per poter eseguire il minor numero di linee di codice, questo per permettere al processo principale di tornare immediatamente in ascolto di nuove connessioni, infatti dopo aver salvato il file descriptor della socket in una apposita struttura dati (che sarà descritta nel paragrafo worker pool), il processo principale termina il primo ciclo del loop infinito e torna in ascolto di nuove connessioni.
+
 
 \subsection{File di configurazione}
 \label{sec:config}
@@ -415,9 +587,278 @@ Un semplice controllo viene comunque eseguito ed è lo stesso controllo che avvi
 
 \subsection{Gestione degli errori}
 \label{sec:errors}
+Come detto in precedenza, Heimdall, pur essendo scritto in C (linguaggio per definizione e per storia di tipo procedurale), è stato concepito avendo in mente la programmazione orientata agli oggetti e sopratutto al linguaggio Java. Questo ci ha portato alla creazione della struttura dati Throwable, che ricorda molto la class omonima di Java\cite{throwable_java}.
+Questa struttura rappresenta il valore di ritorno di ogni funzione del sistema, tale che essa sia l'unico modo per poter gestire gli errori.
+\begin{lstlisting}
+/*
+ * ---------------------------------------------------------------------------
+ * Structure    : typedef struct throwable
+ * Description  : This struct collect all functions pointers and attributes for messages.
+ *
+ * Data:
+ *  status      : Error level, 0 or -1 see macro in this .h.
+ *  message     : The error message.
+ *  stack_trace : Contains all function name where error occurs.
+ *
+ * Functions:
+ *  create  : Pointer to create_throwable function.
+ * ---------------------------------------------------------------------------
+ */
+typedef struct throwable {
+    int status;
+    char *message;
+    char *stack_trace;
+
+    struct throwable* (*create)(int status, char *msg, char *stack_trace);
+    struct throwable* (*thrown)(struct throwable* self, char *stack_trace);
+    int (*is_an_error)(struct throwable* self);
+    
+    void (*destroy)(struct throwable *self);
+} Throwable, *ThrowablePtr;
+\end{lstlisting} 
+Il \emph{Throwable} è definito tramite le variabili \textbf{status}, \textbf{message} e \textbf{stack\_trace}. \\
+La variabile \textbf{status} può assumere uno dei seguenti valori:
+\begin{itemize}
+  \item \emph{STATUS\_OK}, se non ci sono errori;
+  \item \emph{STATUS\_ERROR}, se si è verificato qualche errore.
+\end{itemize}
+La variabile \textbf{message} contiene la descrizione del problema (che può derivare da una chiamata di sistema e quindi è utile la funzione \emph{get\_error\_by\_errno()}).
+\\
+La variabile \textbf{stack\_trace} contiene la lista delle funzioni che il Throwable ha attraversato ed è di fondamentale importanza per comprendere la dinamica dell'errore.
+\\
+Il Throwable è istanziabile tramite la chiamata \emph{get\_throwable().create()}, a cui vengono passati i parametri sopra descritti. In particolar modo, stack\_trace conterrà solamente il nome della funzione che sta invocando la chiamata.
+\\
+Avendo reso omogenee tutte le chiamate a funzioni, risulta semplificato il controllo, l'inoltro o la stampa degli errori.
+\\
+Per esempio, all'interno della funzione \emph{get\_data()}, utile per il parsing delle risposte ricevute dal modulo di Apache Status (si veda \ref{sssec:apachestatus}), abbiamo:
+
+\begin{lstlisting}
+ if (strcmp(text, "idleworkers") == 0) {
+  throwable = str_to_int(text_data, &(self->idle_workers));
+  if (throwable->is_an_error(throwable)) {
+    return throwable->thrown(throwable, "get_data.idle_workers");
+  }
+}
+
+return get_throwable()->create(STATUS_OK, NULL, "get_data");
+\end{lstlisting}
+In questo caso viene chiamata la funzione \emph{str\_to\_int()}, che ritorna un throwable (tale funzione è una wrapper della funzione \emph{strotol()}, che effettua la conversione di una stringa in un intero). Il throwable viene quindi controllato tramite la chiamata \emph{is\_an\_error()}, che, verificandone lo status, ritorna un booleano. Nel caso il valore di ritorno sia positivo, viene eseguito il thrown dell'errore, specificando da dove lo si sta effettuando (in questo caso, nella funzione \emph{get\_data\_idle\_workers}).
+\\
+La struttura è allocata dinamicamente tramite la funzione \emph{create()} e, di conseguenza, è necessario liberare lo spazio utilizzato: se la funzione \emph{is\_an\_error()} non rileva alcun errore, provvederà essa stessa alla deallocazione; in caso contrario, lo sviluppatore o la chiamata a \emph{log->t()} libererà la memoria, dopo aver stampato un report dell'errore.
 
 \subsection{Pool manager}
-\label{sec:pool}
+\label{ssec:pool}
+
+Abbiamo già nominato questo componente nel paragrafo sul processo principale. Il \emph{Pool Manager} è un thread del processo principale creato all'avvio del programma. Il compito principale di questo thread è di gestire la schedulazione dei worker, vediamo in dettaglio questo come avviene.\\\\ Come già detto l'inizializzazione del Pool Manager viene eseguita dal main con queste righe di codice:
+\begin{lstlisting}
+    // Initializes Thread Pool
+    ThreadPoolPtr th_pool = get_thread_pool();
+    if (th_pool == NULL)
+        exit(EXIT_FAILURE);
+\end{lstlisting}
+La funzione \emph{get\_thread\_pool()} è presente all'interno dei file \emph{thread\_pool.c} e \emph{thread\_pool.h} ed è definita come segue:
+
+\begin{lstlisting}
+ThreadPoolPtr get_thread_pool() {
+
+	if (singleton_thdpool == NULL) {
+		singleton_thdpool = init_thread_pool();
+    }
+
+    // return singleton
+    return singleton_thdpool;
+}
+
+static ThreadPoolPtr init_thread_pool() {
+
+	get_log()->i(TAG_THREAD_POOL, "Thread pool start.");
+
+	pthread_t t1;
+	int born;
+	
+	born = pthread_create(&t1, NULL, init_pool, NULL); 
+	if (born != 0) {
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_create");
+		return NULL;
+	}
+
+	ThreadPoolPtr th_pool = malloc(sizeof(ThreadPool));
+    if (th_pool == NULL) {
+    	get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_thread_pool!");
+        return NULL;
+    }
+
+    th_pool->thread_identifier 	= t1;
+    th_pool->add_fd_to_array 	= add_fd_to_array;
+    th_pool->print_fd_array 	= print_fd_array;
+
+    return th_pool;
+}
+\end{lstlisting}
+Ancora una volta l'approccio utilizzato per la creazione del Pool Manager è il \emph{Singleton}, infatti esiste una sola istanza del Pool Manager all'interno di tutto il programma. La funzione \emph{init\_thread\_pool()} conferma quando detto fin ora, infatti questa funzione che viene eseguita dal main non fa altro che creare un thread e una struttura \emph{ThreadPoolPtr}.\\\\ La \emph{pthread\_create()} specifica come funzione di start per il thread la funzione \emph{init\_pool()} che riportiamo di seguito:
+\begin{lstlisting}
+	static void *init_pool(void *arg){
+
+	// detach itself
+	pthread_detach(pthread_self());
+
+	ConfigPtr config = get_config();
+
+    max_fd = 0;
+    ThrowablePtr throwable = str_to_int(config->max_fd, &max_fd);
+    if (throwable->is_an_error(throwable)) {
+        get_log()->t(throwable);
+        exit(EXIT_FAILURE);
+    }
+
+    // Init static array and save pointer to global variable
+    fd_array = malloc(sizeof(int) * max_fd);
+    if (fd_array == NULL) {
+        get_log()->e(TAG_THREAD_POOL, "Memory allocation error in init_pool!");
+        exit(EXIT_FAILURE);
+    }
+
+	int i;
+    for (i = 0; i < max_fd; ++i){
+		fd_array[i] = 0;
+    }
+
+    // enter in thread pool loop
+    thread_pool_loop();
+
+    // Never reached
+    return arg;
+}
+\end{lstlisting}
+Queste sono le prime linee di codice che vengono eseguite dal thread Pool Manager. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.\\\\
+
+\begin{lstlisting}
+
+	for (;;) {
+
+		int fd = 0;
+        throwable = get_fd(&fd);
+        if (throwable->is_an_error(throwable)) {
+            //get_log()->i(TAG_THREAD_POOL, "No fd to serve.");
+            throwable->destroy(throwable);
+            continue;
+        }
+        
+       	...
+       	...	
+\end{lstlisting}
+
+All'interno della funzione \emph{thread\_pool\_loop()} è presente, come è di facile intuizione dato il nome, un loop infinito. Questo perché il thread eseguirà una costante verifica dell'esistenza di un file descriptor presente all'interno dell'array, infatti la funzione \emph{get\_fd()} è definita come segue:
+
+\begin{lstlisting}
+	static ThrowablePtr get_fd(int *fd_ptr){
+
+	int s = 0;
+	s = pthread_mutex_lock(&mtx_wait_request);
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_lock");
+
+    // Scan array and get the first fd != 0
+    int i, flag = 0;
+    for (i = 0; i < max_fd; ++i){
+
+        if (fd_array[i] != 0){
+            *fd_ptr = fd_array[i];
+            fd_array[i] = 0;
+            flag = 1;
+            break;
+        }
+    }
+
+	s = pthread_mutex_unlock(&mtx_wait_request); 
+	if (s != 0)
+		get_log()->e(TAG_THREAD_POOL, "Error in pthread_mutex_unlock");
+
+    if (flag == 0){
+        return get_throwable()->create(STATUS_ERROR, "Cannot get fd", "get_fd");        
+    }else{
+        return get_throwable()->create(STATUS_OK, NULL, "get_fd()");;
+    }
+}
+\end{lstlisting}
+
+Come vediamo la funzione si occupa dell'accesso all'array dei file descriptor che abbiamo inizializzato prima, facciamo notare che l'accesso all'array è gestito da un semaforo mutex, questo perché anche il main accede a questa struttura quando arrivano nuove conessioni, infatti se ricordiamo quanto detto nel paragrafo del processo principale quando un client si collega la funzione \emph{accept\_connection()} ritorna il file descriptor associato alla socket, questo viene poi messo all'interno dell'array dei file descriptor tramite la funzione \emph{add\_fd\_to\_array()}. Ora che abbiamo spiegato anche l'ultimo passaggio della funzione main capiamo che il thread pool è l'incaricato di verificare che ci siano nuovi file descriptor da servire. La funzione \emph{get\_fd()} è di facile lettura, viene semplicemente eseguito un for sull'array dei file descriptor e viene ritornato il primo file descriptor disponibile.\\\\ Una volta recuperato il file descriptor della connessione è necessario individuare un worker che la gestisca, questo compito è sempre svolto dalla funzione \emph{thread\_pool\_loop()} che esegue il seguente codice:
+
+\begin{lstlisting}
+	int i, min = -1, position = -1;
+	for (i = 0; i < n_prefork; ++i){
+		if (worker_pool->worker_busy[i] == 0){
+			if(min == -1){
+				min = worker_pool->worker_counter[i];
+              	position = i;
+           	}
+
+			if (worker_pool->worker_counter[i] <= min){
+				min = worker_pool->worker_counter[i];
+				position = i;
+			}
+		}
+	}
+\end{lstlisting}
+Qui incontriamo le strutture dati che abbiamo descritto nel paragrafo del processo principale, ossia le strutture dati che si trovano in memoria condivisa. L'accesso a questa zone di memoria è eseguito come anche nel main tramite l'utilizzo di semafori POSIX, nello specifico i \emph{named semaphore}. Prima di tutto viene individuato un worker libero, ricordiamo che l'array worker\_busy è un array di flag, lo 0 indica un worker libero. Una volta identificato un possibile worker viene valutato il suo stato di lavoro eseguendo il controllo sull'array worker\_counter, dal quale riusciamo a risalire al numero di connessioni che il worker ha gestito in totale. Tramite queste due ricerche identifichiamo il worker che ha lavorato meno e lo selezioniamo per la nuova connessione. Tutto questo viene fatto per distribuire il carico di lavoro in maniera equa su tutti i worker in modo tale da non avere dei processi annoiati e evitando così di sovraccaricarne altri.\\\\
+
+\begin{lstlisting}
+	        
+	        // Error no worker available
+            if(position == -1) {
+                
+                get_log()->i(TAG_THREAD_POOL, "No Worker available, wait for space.");
+
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                continue;
+            
+            }else{
+                
+                worker_pool->worker_busy[position] = 1;
+                worker_pid = worker_pool->worker_array[position];
+                worker_pool->worker_counter[position] = worker_pool->worker_counter[position] + 1;
+                
+                get_log()->i(TAG_THREAD_POOL, "Get Worker %ld", (long)worker_pid);
+
+                // Retrieving server from scheduler
+                ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
+                // Storing server in shared memory
+                worker_pool->worker_server[position] = *server;
+                
+                if(sem_post(sem) == -1){
+                    get_log()->e(TAG_THREAD_POOL, "Error in sem_wait - thread_pool_loop");
+                    exit(EXIT_FAILURE);
+                }
+
+                break;
+            }
+\end{lstlisting}
+All'interno della variabile \emph{position} viene salvato l'indice del worker selezionato, se questo è -1 vuol dire che tutti i worker sono occupati perché stanno gestendo altre connessioni, in questo caso il ciclo di schedulazione ricomincia e continua finche non ci sarà un worker pronto a gestire la connessione. In caso di successo le strutture dati in memoria condivisa vengono aggiornate, il flag all'interno del'array worker\_busy passa a 1 per indicare che il worker non è più disponibile, dal worker\_array viene recuperato il pid del processo, il contatore delle connessioni gestite dal worker viene aggiornato nell'array worker\_counter e infine come ultimo passaggio richiamiamo il thread Scheduler per richiedere di fornirci un server dove il worker andrà a eseguire le richieste del client, sblocchiamo il semaforo, visto che abbiamo terminato l'utilizzo della memoria condvisa, e ci avviamo ad eseguire le ultime linee di codice della funzione:
+
+\begin{lstlisting}
+		while (TRUE){
+		            
+			throwable = send_fd(fd, worker_pid);
+			if (throwable->is_an_error(throwable)) {
+				get_log()->e(TAG_THREAD_POOL, "Failed attempt %d to send file descriptor to %ld", attempt, (long) worker_pid);
+				throwable->destroy(throwable);
+				attempt++;
+			}else{
+				break;
+			}
+		}
+
+		// close fd from main side
+		throwable = close_connection(fd);
+        if (throwable->is_an_error(throwable)) {
+            get_log()->t(throwable);
+        }
+\end{lstlisting}
+Abbiamo quindi recuperato dall'array un file descriptor associato a una socket, abbiamo selezionato il worker per servire la connessione ci manca solamente di dire al worker quale sia questo file descriptor. Per fare questo viene utilizzato un altro componente di Heimdall, il \emph{message controller}.\\\\ Il message controller non è altro che una serie di funzioni che utilizzano le socket locali AF\_UNIX per lo scambio di file descriptor. Infatti la funzione \emph{send\_fd()} che è definita all'interno del file \emph{message\_controlller.c} e \emph{message\_controller.h} non fa altro che creare un socket AF\_UNIX per l'invio del file descriptor al worker. Vengono utilizzate le socket perché non è possibile scambiare il file descriptor senza scambiare anche i permessi di lettura di su quel file, infatti al di fuori del contesto di un processo un file descriptor non è altro che un semplice intero, facciamo notare anche che vengono eseguiti dei tentativi di invio perché nel momento dell'invio del file descriptor il worker, causa problemi di schedulazione da parte del sistema operativo, potrebbe non essere pronto a ricevere il dato. Una volta effettuato lo scambio il Pool Manger ha terminato la sua esecuzione e può tornare a schedulare altri worker, come ultima cosa non ci dimentichiamo di chiudere il file descriptor dal lato del processo padre infatti una volta inviato, un altro riferimento al file viene creato nella tabella dei file descriptor del worker e quindi quello presente nel processo principale non è più necessario.
 
 \subsection{Scheduler}
 \label{ssec: sched}
@@ -468,29 +909,28 @@ ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
 worker_pool->worker_server[position] = *server;
 	
 \end{lstlisting}
-Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} e non \emph{READY} è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il worker (che analizzeremo in \emph{\ref{sec:worker}}) non avvierà nessuna connessione di inoltro della richiesta. \\\\
-Dalla necessità progettuale di garantire uno \textbf{scheduling adattabile} a condizioni di stress da carico, quindi per soddisfare specifiche di \emph{state-awareness}, nascono i parametri relativi a status e peso nei nodi della pool di server e nasce un adattamento \emph{pesato} dell'algoritmo di Round Robin. \\
+Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} e non \emph{READY} è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il worker (che analizzeremo in \emph{\ref{sec:worker}}) non avvierà nessuna connessione di inoltro della richiesta. 
+\\
+\\
+Dalla necessità progettuale di garantire uno \textbf{scheduling adattabile} a condizioni di stress da carico, quindi per soddisfare specifiche di \emph{state-awareness}, nascono i parametri relativi a status e peso nei nodi della pool di server e nasce un adattamento \emph{pesato} dell'algoritmo di Round Robin. 
 
 \subsection{Worker}
 \label{sec:worker}
-Il \textbf{worker} è il componente principale di Heimdall e non a caso gli è stato assegnato questo nome poiché è lui che ``lavora'' andando a servire le richieste dei client tramite lo smistamento ai vari server presenti nel cluster e il successivo inoltro delle risposte.
+Il \textbf{worker} è il componente principale di Heimdall: serve le richieste dei client, smistandole ai vari server presenti nel cluster e inoltrandone le risposte.
 \\
-Nell'attuale implementazione il worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
+Nell'attuale implementazione, il worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
 \\
-Heimdall è configurato in modo tale da effettuare il \textbf{prefork} di un numero configurabile di processi (si veda \ref{sec:config}), questa scelta è stata fatta per evitare di aggiungere ritardo causato dal tempo di creazione di quest'ultimi.
+Heimdall è implementato in modo tale da effettuare il \textbf{prefork} di un numero configurabile di processi (si veda \ref{sec:config}). Ciò è utile per evitare di rallentare l'esecuzione a causa del ritardo dovuto al tempo di creazione dei processi.
 
 \subsubsection{Gestione delle richieste}
 \label{sec:requests_management}
-
-% TODO biblio to HTTP1.1 https://tools.ietf.org/html/rfc2616#page-44
-L'applicazione soddisfa le specifiche \textbf{HTTP 1.1} gestendo \textbf{connessioni persistenti} e supportando il \textbf{pipelining} delle richieste. Per ottenere il supporto alle connessioni persistenti Heimdall chiude la connessione con il client solo allo scadere di un timer, così facendo può ricevere più richieste tramite la stessa connessione. Queste non appena ricevute vengono inserite in una coda per essere poi servite nello stesso ordine con cui sono state ricevute.
-Il worker è un processo che viene creato tramite prefork al primo avvio del WebSwitch. Questo rimane in pausa finché non gli viene consegnata una connessione da cui poter ricevere le richieste. Tale passaggio è realizzato tramite il \hyperref[sec:pool]{\emph{pool manager}} e in particolare dal message controller. Non appena ricevuta una connessione da poter servire, inizierà a lavorare creando i vari thread necessari per: la ricezione, l'inoltro e la successiva risposta alla richiesta.
+L'applicazione soddisfa le specifiche \textbf{HTTP 1.1}\cite{http_1.1}, gestendo \textbf{connessioni persistenti}\cite{persistent_connections} e supportando il \textbf{pipelining}\cite{pipeling} delle richieste. Per ottenere il supporto alle connessioni persistenti, Heimdall chiude la connessione con il client allo scadere di un timer, al fine di ricevere più richieste tramite la stessa connessione. Ricevute, queste vengono inserite in una coda, per essere poi servite nello stesso ordine con cui sono state ricevute.
+\\
+All'avvio del WebSwitch, tramite prefork, vengono creati i vari worker, che rimangono in pausa finché non ricevono una connessione attraverso cui gestire le richieste. Tale passaggio è realizzato tramite il \hyperref[sec:pool]{\emph{pool manager}}, in particolare dal message controller. Ricevuta una connessione da poter servire, il worker crea i thread necessari per la ricezione, l'inoltro e la risposta alla richiesta.
 
 \subsubsection*{Coda delle richieste}
 \label{sec:requests_queue}
-
-Come detto pocanzi per poter supportare il pipeling è stato necessario creare una coda che contenesse tutte le richieste effettuate da un client tramite la stessa connessione HTTP. È stata implementata una coda poiché è necessario rispettare l'ordine delle richieste all'atto della risposta.
-% A server MUST send its responses to those requests in the same order that the requests were received. https://tools.ietf.org/html/rfc2616#section-8.1.2.2
+Per poter supportare il pipeling, è stato quindi necessario creare una coda, che contenesse, in ordine, tutte le richieste effettuate da un client tramite la stessa connessione HTTP, come specificato dalla RFC: ``A server MUST send its responses to those requests in the same order that the requests were received.''\cite{pipeling}
 
 La coda è molto semplice ed espone le seguenti operazioni:
 \begin{lstlisting}
@@ -503,7 +943,7 @@ La coda è molto semplice ed espone le seguenti operazioni:
     void (*destroy)(struct request_queue *self);
 \end{lstlisting}
 
-Questa contiene elementi di tipo RequestNode, struttura dati che incapsula: la richiesta, la risposta, un riferimento al nodo precedente, al nodo successivo e, oltre altre variabili di supporto per il multithreading e per il watchdog, un'ulteriore struttura, il chunk.
+La coda contiene elementi di tipo RequestNode, cioè la struttura dati che incapsula la richiesta, la risposta, un riferimento al nodo precedente, un riferimento al nodo successivo, una struttura (il chunk) e altre variabili di supporto per il multithreading e per il watchdog.
 
 \begin{lstlisting}
     pthread_t thread_id;
@@ -520,17 +960,20 @@ Questa contiene elementi di tipo RequestNode, struttura dati che incapsula: la r
 
 \subsubsection*{Chunk di dati}
 \label{sec:chunk}
-Un chunk è un ``pezzo'' che contiene parte della risposta. Questa scelta è stata adottata poiché si è preferito rispondere il più presto possibile al client senza dover attendere necessariamente di aver ottenuto la risposta completa poiché questa potrebbe essere corposa e quindi, oltre occupare ``molto'' spazio, potrebbe richiedere molto tempo per essere completamente ricevuta da Heimdall e aggiungerebbe solo ritardo per il seguente inoltro.
+Un chunk è un'ulteriore struttura dati, introdotta al fine di rispondere in modo più efficiente e veloce possibile al client: non è necessario ricevere la risposta completa, poiché questa potrebbe essere corposa e, quindi, occupare ``molto'' spazio e richiedere molto tempo per essere completamente ricevuta, aggiungendo ritardo per il seguente inoltro.
 \\
-La struttura è molto semplice e contiene un'area di memoria fissa allocata alla creazione del chunk di dimensione pari a 4096 byte.
+La struttura è molto semplice e contiene un'area di memoria fissa, di dimensione pari a 4096 byte, che viene allocata al momento della creazione della struttura stessa.
 \\
-È stata fatta questa scelta per alleggerire al massimo il carico su Heimdall, in questo modo, non dovrà avere in memoria risposte complete ma facendo da ``passa carta'' tra server e client avrà in memoria in ogni istante il minor quantitativo di risorsa possibile. Questa implementazione è stata possibile grazie alla natura delle connessioni TCP, cioè quello di essere full duplex
-% A connection can be used to carry data in both directions, that is, it is "full duplex".  https://tools.ietf.org/html/rfc793#section-2.7
+Questa scelta è finalizzata all'alleggerimento massimo del carico su Heimdall: facendo da ``passa carta'' tra server e client, la memoria avrà il minor quantitativo di risorsa possibile, in ogni istante. 
 
 % disegnino socket con tubicini che non venivano usati contemporaneamente se non fosse stato usato il chunk -  utilizzo socket con chunck
 \subsubsection{Gestione delle connessioni}
 \subsubsection*{Connessione}
-Il sistema è stato concepito per essere il più modulare possibile con valori di ritorno il più possibile uniformi. La gestione delle connessioni ne è un esempio lampante. Abbiamo realizzato un wrapping delle API Socket di Berkley in modo tale da gestire tutti gli errori allo stesso modo, tramite l'utilizzo dei Throwable (si veda \ref{sec:errors}). Oltre a questo abbiamo, fin dove possible, cercato di rendere più snella l'implementazione delle chiamate in modo tale da poterci preoccupare solo della logica dell'applicazione e non dalla sua effettiva implementazione. Sono esplicative le funzioni per creare una nuova connessione di tipo server:
+Il sistema è stato concepito per essere il più modulare possibile con valori di ritorno il più possibile uniformi. La gestione delle connessioni ne è un esempio: è stato realizzato un wrapping delle API Socket di Berkley in modo tale da gestire tutti gli errori allo stesso modo, tramite l'utilizzo dei Throwable (si veda \ref{sec:errors}). L'implementazione delle chiamate è stata resa minimale, in modo tale da concentrarsi solo sulla logica dell'applicazione e non sulla sua effettiva implementazione.
+\\
+Le funzioni per creare una nuova connessione di tipo server e di tipo client sono esplicative.
+\\
+Tipo server:
 \begin{lstlisting}
 /*
  * Function    : create_server_socket
@@ -566,8 +1009,7 @@ ThrowablePtr create_server_socket(const int type, const int port, int *sockfd) {
     return get_throwable()->create(STATUS_OK, NULL, "create_server_socket");
 }
 \end{lstlisting}
-
-e di tipo client:
+Tipo client:
 \begin{lstlisting}
 /*
  * Function    : create_client_socket
@@ -607,7 +1049,7 @@ ThrowablePtr create_client_socket(const int type, const char *ip, const int port
     return get_throwable()->create(STATUS_OK, NULL, "create_client_socket");
 }
 \end{lstlisting}
-Questo approccio ci ha permesso per esempio di modificare più volte il codice che permetteva l'invio delle richieste e la ricezione delle risposte, senza andare a stravolgere, per quanto possibile, la logica del sistema.
+Questo espediente ha dato la possibilità, per esempio, di modificare più volte il codice che permette l'invio delle richieste e la successiva ricezione delle risposte, senza stravolgere, per quanto possibile, la logica del sistema.
 % TODO RFC reference in (**)
 \subsubsection*{Richieste HTTP}
 Alla base della capacità del web switch di inoltrare ad una macchina del cluster la richiesta che gli viene effettuata dal client, vi è la capacità di poter analizzare tale richiesta e poterne trarre le corrette informazioni. \\
@@ -674,7 +1116,7 @@ L'unica differenza con l'implementazione già descritta è il mantenimento in un
 
 \subsubsection{Thread di lettura}
 \label{sec:reader}
-Il thread di lettura ha il compito di leggere le richieste dalla socket tramite una read bloccate una volta che il worker ha ricevuto una connessione da gestire. Quindi accoda le richieste del client, per un massimo numero di richieste configurabile (si veda \ref{sec:config}) andando a creare per ogni richiesta un thread di richiesta che, dialogando con un server nella pool, si occuperà di gestirla. Il thread di lettura quindi è bloccato costantemente in attesa di nuove richieste e, ogni qual volta riceve una nuova connessione, aggiorna un timer adibito alla verifica dello stato di vita della connessione (si veda il paragrafo \ref{sec:watchdog}).
+Appena il worker riceve una nuova connesione da gestire, il thread di lettura ha il compito di leggere le richieste dalla socket, tramite una read bloccante. Successivamente, il thread accoda le richieste del client, per un numero massimo di richieste configurabile (si veda \ref{sec:config}), creando, per ogni richiesta, un thread di richiesta che, dialogando con un server nella pool, si occuperà di gestirla. Il thread di lettura sarà bloccato costantemente in attesa di nuove richieste, aggiornando il timer adibito alla verifica dello stato di vita del worker (si veda il paragrafo \ref{sec:watchdog}), alla ricezione di ogni nuova richiesta. 
 \begin{lstlisting}
 // Gets queue
 RequestQueuePtr queue = worker->requests_queue;
@@ -744,10 +1186,155 @@ while (TRUE) {
     }
 }
 \end{lstlisting}
+Il thread eseguirà questo compito fino alla morte del worker.
+\subsubsection{Thread di richiesta}
+\label{sec:request}
+Il thread di richiesta è adibito all'invio ad un server della richiesta ricevuta dal \hyperref[sec:request]{\emph{thread di lettura}} e alla successiva ricezione della risposta. Il thread ottiene il server a cui deve inoltrare la richiesta, accedendo ad uno spazio di memoria condiviso con tutti i worker, tramite un semaforo:
+\begin{lstlisting}
+// Asks which host use
+ServerPtr remote = NULL;
 
+// retrieving remote host from the shared memory
+
+if(sem_wait(sem) == -1){
+  get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+  exit(EXIT_FAILURE);
+}
+
+int i;
+for (i = 0; i < number_of_worker; ++i){
+  if (worker_pool->worker_array[i] == (long)getpid()){
+    remote = &(worker_pool->worker_server[i]);
+    break;
+  }
+}
+
+if(sem_post(sem) == -1){
+  get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
+  exit(EXIT_FAILURE);
+}
+
+// checking for remote host status
+if (remote->status == SERVER_STATUS_BROKEN) {
+  *node->worker_status = STATUS_ERROR;
+
+  // if we get the server status as broken
+  if (pthread_mutex_unlock(&node->mutex) != 0) {
+    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+    *node->worker_status = STATUS_ERROR;
+    exit(EXIT_FAILURE);
+  }
+
+  return NULL;
+
+}
+\end{lstlisting}
+Successivamente, apre una nuova connessione verso il server, riceve la risposta nel chunck e si pone in attesa della liberazione di questo da parte del \hyperref[sec:writer]{\emph{thread di scrittura}}, per poi rieseguire questa serie di operazioni, fino alla completa ricezione della risposta:
+\begin{lstlisting}
+// Creates a new client
+int sockfd;
+throwable = create_client_socket(TCP, host, 80, &sockfd);
+if (throwable->is_an_error(throwable)) {
+  get_log()->t(throwable);
+  *node->worker_status = STATUS_ERROR;
+      
+  // Releases mutex
+  if (pthread_mutex_unlock(&node->mutex) != 0) {
+    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+    *node->worker_status = STATUS_ERROR;
+    exit(EXIT_FAILURE);
+  }
+
+  return NULL;
+}
+
+// Logging - request
+HTTPRequestPtr request = node->request;
+get_log()->r(RQST, (void *)request, host, sockfd);
+
+get_log()->d(TAG_WORKER, "io Dott. %ld del %ld Faccio richiesta a %s su socket: %d", (long) pthread_self(), (long) getpid(), node->request->req_host, sockfd);
+
+if (asprintf(&(node->request->req_host), "%s:80", host) < 0) {
+  get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+  *node->worker_status = STATUS_ERROR;
+  
+  // Releases mutex
+  if (pthread_mutex_unlock(&node->mutex) != 0) {
+      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+      *node->worker_status = STATUS_ERROR;
+  }
+
+  return NULL;
+}
+
+// Sends request
+throwable = send_http_request(sockfd, node->request);
+if (throwable->is_an_error(throwable)) {
+  get_log()->t(throwable);
+  *node->worker_status = STATUS_ERROR;
+
+  // Releases mutex
+  if (pthread_mutex_unlock(&node->mutex) != 0) {
+      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+      *node->worker_status = STATUS_ERROR;
+  }
+
+  return NULL;
+}
+
+// Receives header into http_response
+throwable = receive_http_response_header(sockfd, node->response);
+if (throwable->is_an_error(throwable)) {
+  get_log()->t(throwable);
+  *node->worker_status = STATUS_ERROR;
+  
+  // Releases mutex
+  if (pthread_mutex_unlock(&node->mutex) != 0) {
+      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+      *node->worker_status = STATUS_ERROR;
+  }
+
+  return NULL;
+}
+
+// Logging - response
+HTTPResponsePtr response = node->response;
+get_log()->r(RESP, (void *)response, host, sockfd);
+
+
+// Sends signal to condition
+if (pthread_cond_signal(&node->condition) != 0) {
+  get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+  *node->worker_status = STATUS_ERROR;
+  
+  // Releases mutex
+  if (pthread_mutex_unlock(&node->mutex) != 0) {
+      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+      *node->worker_status = STATUS_ERROR;
+  }
+
+  return NULL;
+}
+
+// Releases mutex
+if (pthread_mutex_unlock(&node->mutex) != 0) {
+  get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
+  *node->worker_status = STATUS_ERROR;
+  return NULL;
+}
+
+// Receives the response in chunks
+throwable = receive_http_chunks(sockfd, node->response, node->chunk);
+if (throwable->is_an_error(throwable)) {
+  get_log()->t(throwable);
+  *node->worker_status = STATUS_ERROR;
+  return NULL;
+}
+\end{lstlisting}
+Concluso il suo lavoro, il thread morirà, chiudendo la connessione verso il server.
 \subsubsection{Thread di scrittura}
 \label{sec:writer}
-Il thread di scrittura è adibito all'inoltro della risposta ottenuta tramite il \hyperref[sec:request]{\emph{thread di richiesta}}. Questi due thread cooperano per mezzo di una condition andando a scrivere e a leggere nella stessa area di memoria, il \hyperref[sec:chunk]{\emph{chunk}}. Dovendo rispondere in ordine il thread si trova in loop sulla coda delle richieste andando a richidere sempre il fronte di questa e, dopo aver inviato l'header di risposta (che non è gestito tramite chuck), inizia questo ``balletto'' con il \hyperref[sec:request]{\emph{thread di richiesta}}.
+Infine, il thread di scrittura è adibito all'inoltro della risposta ottenuta tramite il \hyperref[sec:request]{\emph{thread di richiesta}}. Dovendo rispondere in ordine, il thread si trova in loop sulla coda delle richieste, chiedendo costasntemente il suo primo elemento. Dopo aver inviato l'header di risposta, i due thread iniziano a cooperare per mezzo di una condition, andando a scrivere e a leggere nella stessa area di memoria, il \hyperref[sec:chunk]{\emph{chunk}}.
 \begin{lstlisting}
 // Gets queue
 RequestQueuePtr queue = worker->requests_queue;
@@ -812,10 +1399,6 @@ while(TRUE) {
     }
 }
 \end{lstlisting}
-
-\subsubsection{Thread di richiesta}
-\label{sec:request}
-Il thread di richiesta è adibito infine all'invio della richiesta ad un server nel cluster e alla successiva 
 \subsubsection{Thread di watchdog}
 \label{sec:watchdog}
 \begin{figure}[h]
@@ -1029,8 +1612,20 @@ La ricerca di una soluzione modulare che possa essere presa poi in esame da futu
 
 \subsubsection{Modulo Apache Status}
 \label{sssec:apachestatus}
-Il modulo Apache Status (modstatus) è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nient altro, per utilizzarlo è necessario solo attivarlo nella configurazione del sito. Il modulo formatta tramite una pagina HTML tutta una serie statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readble che in questa applicazione usiamo). I dettagli che fornisce sono il numero di worker che servono richieste, il numero di worker che sono in pausa, lo stato di ognuno di questi worker, il numero di accessi e byte serviti, il numero di richieste per secondo e la percentuale di CPU usata da ogni worker e in totale da Apache.
-Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato di una macchina senza la necessità di installare nessun componente aggiuntivo.
+Il modulo Apache Status (mod\_status)\cite{mod_status} è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nessun altro componente aggiuntivo. Per utilizzarlo è necessario solo attivarlo nella configurazione del host. Il modulo formatta in una pagina HTML tutta una serie di statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readble, versione che usiamo in questa applicazione).
+\\
+I dettagli che fornisce sono:
+
+\begin{itemize}
+  \item Il numero di worker che stanno servendo delle richieste
+  \item Il numero totale di worker in pausa
+  \item Lo stato di ciascun worker, il numero di richieste che tale worker ha eseguito e il numero totale di byte serviti dal worker
+  \item Il tempo da quando il server è stato avviato/riavviato
+  \item Il numero medio di richieste per secondo, il numero di bytes serviti per secondo e il numero medio di bytes per richiesta
+\end{itemize}
+
+Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato di una macchina (di un server Apache) senza la necessità di installare nessun componente aggiuntivo o di valutare empiricamente il carico del server tramite per esempio il tempo di risposta di quest'ultimo.
+
 \subsubsection{Performance della politica state aware}
 E' interessante osservare l'effettivo lavoro dello scheduler e della politica di \emph{state awareness} già commentata, in una condizione di forte stress delle macchine, nell'estratto del file di log che segue. La situazione proposta è stata ottenuta sovraccaricando una delle macchina del cluster e lasciando che il web switch si accorgesse di tale sovraccarico per bilanciare le richieste in arrivo.
 
@@ -1135,7 +1730,26 @@ Non è difficile immaginare che, in una futura implementazione, l'applicazione n
   Addison Wesley, Massachusetts,
   2nd edition,
   1994.
-  
+\bibitem{apache_server}
+  Apache HTTP Server Project, \url{https://httpd.apache.org/}
+\bibitem{throwable_java}
+  Throwable (Java Platform SE 8), \url{https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html}
+\bibitem{http_1.1}
+  RFC: 2616: Hypertext Transfer Protocol - HTTP/1.1, \url{https://tools.ietf.org/html/rfc2616}
+\bibitem{persistent_connections}
+  RFC: 2616: Persistent Connections, \url{https://tools.ietf.org/html/rfc2616#section-8.1}
+\bibitem{pipeling}
+  RFC: 2616: Pipeling, \url{https://tools.ietf.org/html/rfc2616#section-8.1.2.2}7
+\bibitem{full_duplex}
+  RFC: 793: Connection Establishment and Clearing, \url{https://tools.ietf.org/html/rfc793#section-2.7}
+\bibitem{mod_status}
+  Apache Module: mod\_status, \url{http://httpd.apache.org/docs/2.2/mod/mod_status.html}
+\bibitem{gdb}
+  GDB: The GNU Project Debugger, \url{https://www.gnu.org/software/gdb/}
+\bibitem{htop}
+  htop: an interactive process viewer for Unix, \url{http://hisham.hm/htop/}
+\bibitem{valgrind}
+  Valgrind, \url{http://valgrind.org/}
 \end{thebibliography}
 
 % --- Appendices --- 
@@ -1238,7 +1852,17 @@ legate alla portabilità del codice che stavamo scrivendo, errori di inclusione 
 \newpage
 \section{Tool per i debug}
 \subsection{GDB}
+GNU debugger (chiamato semplicemente GDB)\cite{gdb} è il potente debbugger del progetto GNU capace di analizzare numerosi linguaggi di programmazione tra cui C.
+\\
+Il suo utilizzo è stato di fondamentale importanza per poter scovare errori difficilmente individuabili a causa dell'architettura multiprocesso di Heimdall.
+
+\subsection{htop}
+Htop\cite{htop} è un visualizzatore interattivo di processi per i sistemi Unix. Anche se non è un tool di debug ha contribuito al ``debug'' di Heimdall permettendoci di controllare lo stato dei processi, dei threads e della memoria in tempo reale.
+
 \subsection{Valgrind}
+Valgrind\cite{valgrind} è un potente strumento di debug che nello specifico scova memory leaks e allocazioni improprie.
+\\
+Anche questo tool è stato di fondamentale importanza dato che ci ha permesso di scovare leak causati dall'errata gestione della memoria, in particolar modo dai \hyperref[sec:errors]{\emph{Throwable}}.
 
 \newpage
 % TODO check for download links
@@ -1294,11 +1918,7 @@ Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6882 - GE
 \end{lstlisting}
 
 \newpage
-\begin{figure}[c]
-\centering
-\includegraphics[width=\textwidth]{images/team}
-\caption{Il team di sviluppo del Progetto Heimdall durante i test del web switch a pieno regime (\emph{febbraio 2016, Laboratori di Tor Vergata})}
-\end{figure}
+
 
 
 \end{document}

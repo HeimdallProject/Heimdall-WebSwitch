@@ -1762,7 +1762,7 @@ E' possibile accertarlo sia dall'estratto del file di log riportato che alla \em
 \section{Performance}
 Abbiamo visto più volte durante questa trattazione che è stato necessario sottoporre a \emph{tuning} l'effettiva implementazione del server o che si consiglia di modellare quanti più aspetti possibili del web switch secondo la rete e le capacità della macchina. Riportiamo qui alcuni test che sono stati utilizzati in fase di progettazione per modellare la risposta del programma. I test sono stati condotti su:
 	\begin{itemize}
-		\item Macchina virtuale con Ubuntu Server 15.10 - 512 MB di RAM 
+		\item Macchina virtuale con Ubuntu Server 14.04 - 512 MB di RAM 
 		\item Macchina con Ubuntu Desktop 15.10 - 6 GB di RAM, processore Intel i3 (1,9 GHz) 	
 	\end{itemize}
 Nel primo caso durante tutta la fase di sviluppo, nel secondo caso durante i test di carico per dare possibilità al web switch di non dover dipendere dall'hardware virtualizzato. Consideremo in tutti i casi la rete non saturata, in particolare non consideriamo la possibilità di influenze da parte di traffico generato da altre fonti essendo i test, per necessità, condotti o con una rete locale fra macchine collegate da uno switch di rete, oppure in locale su diverse macchine virtuali. \\\\ 
@@ -1785,19 +1785,13 @@ Questa osservazione è suffragata dall'analisi del grafico in \emph{figura \ref{
 \end{figure}
 \subsection{Valutazione delle performance}
 In questo caso abbiamo deciso di testare il programma in un possibile scenario applicativo vicino a quello di uno sviluppatore indipendente o di uno studente. Valutando le dimensioni tipiche di un \emph{Virtual Private Server} di fascia \emph{entry level}, abbiamo utilizzato una macchina virtuale con 512 MB di RAM con sistema operativo Ubuntu Server. Le condizioni del test includevano un numero di richieste fisso pari a 10000 richieste in arrivo, facendo variare la frequenza con cui queste giungevano. Si è deciso di prendere in considerazione sia il tempo di risposta che la frequenza con cui queste risposte giungevano al client che generava il carico di lavoro. \\\\ 
-Quello che si è potuto constatare, relativamente alla \emph{figura \ref{fig: reply_times}}, è il crescere dei tempi di risposta linearmente, con un andamento paragonabile a quello osservato ma in questo caso riconducibile ad un carico di richieste al secondo, piuttosto che all'aumentare delle connessioni. E' significativo osservare la diminuzione della pendenza per alte frequenze di richieste, riconducibile al raggiungimento della saturazione delle risorse del web switch che lavora ora ad un regime massimo.\\\\
-In \emph{figura \ref{fig: reply_freq}}, invece, è possibile osservare come, ad un aumento dei tempi di risposta corrisponde, all'aumentare della frequenza di invio delle richieste, un aumento della frequenza di ricezione delle risposte fino un livello di assestamento. Difatti si ha, mantenendo le connessioni costanti, il raggiungimento di un livello medio attorno al quale rimane, a meno di oscillazioni, una apprezzabile frequenza di risposta. Si può dedurre l'esistenza di un livello di saturazione che non può essere ne abbattuto, a causa della frequenza elevata, ne innalzato a causa della frequenza fissa con il quale i worker si liberano e vengono rioccupati da nuove connessioni. Tale frequenza di lavoro è dovuta sia alla presenza di una coda delle richieste che garantisce una certa inerzia, sia al raggiunto limite delle capacità della macchina di operare il context switching e nel ricreare i thread.. Il che ci porta a concludere che a pieno regime il web switch riesce ad adeguarsi alla velocità con cui sono in arrivo le richieste e soddisfare la domanda, seppure con un ritardo lineare nei tempi di risposta.
+Quello che si è potuto constatare, relativamente alla \emph{figura \ref{fig: repvsfreq}}, è il crescere dei tempi di risposta linearmente, con un andamento paragonabile a quello osservato ma in questo caso riconducibile ad un carico di richieste al secondo, piuttosto che all'aumentare delle connessioni. E' significativo osservare la diminuzione della pendenza per alte frequenze di richieste, riconducibile al raggiungimento della saturazione delle risorse del web switch che lavora ora ad un regime massimo.\\\\
+Sempre dallo stesso grafico, analogamente, è possibile osservare come, ad un aumento dei tempi di risposta corrisponde, all'aumentare della frequenza di invio delle richieste, un aumento della frequenza di ricezione delle risposte fino un livello di assestamento. Difatti si ha, mantenendo le connessioni costanti, il raggiungimento di un livello medio attorno al quale rimane, a meno di oscillazioni, una apprezzabile frequenza di risposta. Si può dedurre l'esistenza di un livello di saturazione che non può essere ne abbattuto, a causa della frequenza elevata, ne innalzato a causa della frequenza fissa con il quale i worker si liberano e vengono rioccupati da nuove connessioni. Tale frequenza di lavoro è dovuta sia alla presenza di una coda delle richieste che garantisce una certa inerzia, sia al raggiunto limite delle capacità della macchina di operare il context switching e nel ricreare i thread.. Il che ci porta a concludere che a pieno regime il web switch riesce ad adeguarsi alla velocità con cui sono in arrivo le richieste e soddisfare la domanda, seppure con un ritardo lineare nei tempi di risposta.
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{images/reply_times}
-\caption{Analisi dei tempi di risposta all'aumentare del numero di richieste per secondo.\label{fig: reply_times}}
-\end{figure}
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{images/reply_freq}
-\caption{Analisi della frequenza di risposta.\label{fig: reply_freq}}
-\end{figure}
-\subsection{Comparazione con Apache}
+\includegraphics[width=\textwidth]{images/repvsfreq}
+\caption{Analisi delle performance confrontando i tempi di risposta e la frequenza con cui la risposta viene fornita.\label{fig: repvsfreq}}
+\end{figure}\subsection{Comparazione con Apache}
 Con le caratteristiche della macchina di test già riportate nella sezione precedente, si è proceduto a verificare, una volta valutate le performance a regime, quale fosse l'overhead aggiunto dal nostro programma ad una delle macchine del cluster montante un web server Apache. \\
 Possiamo verificare le statistiche di questo test alla \emph{figure \ref{fig: apachevsheimdall}}. Si osserva come, malgrado i tempi di risposta siano inferiori, tale differenza diventa poco apprezzabile nel momento in cui si ha una maggiore frequenza nelle risposte da parte del web server Apache. In conclusione si osserva come la durata del test è, in entrambi i casi, irrisoria e confrontabile. Per cui l'overhead aggiunto, per quanto non possa essere eccessivamente abbattuto, risulta essere accettabile per un'applicazione effettiva del web switch.
 \begin{figure}[H]
@@ -1878,6 +1872,87 @@ Abbiamo visto nel paragrafo dedicato che il Worker nel contesto attuale è un pr
 \appendix
 \newpage
 \section{Manuale per l'uso}
+L'installazione e l'utilizzo del web switch Heimdall sono progettati per essere il più immediati possibile. Vediamo nel dettaglio quale è la procedura per installare e compilare per la prima volta l'intero progetto. \\\\
+\textbf{Nota:} nel caso in cui si voglia procedere direttamente all'esecuzione del programma, il cui file binario è allegato a questa relazione, è necessario procedere dalla \ref{ssec: configuration} per modificare alcuni file di configurazione e creare alcune cartelle necessarie all'esecuzione.
+\subsection{Download}
+Il progetto può essere recuperat dalla repository pubblica ospitata su GitHub all'indirizzo:\\
+\url{https://github.com/HeimdallProject} \\
+La repository scaricata conterrà:
+\begin{itemize}
+	\item codice sorgente
+	\item script di installazione e compilazione
+	\item File necessari alla compilazione del progetto
+\end{itemize}
+\subsection{Dipendenze}
+E' incluso il \emph{binary} del progetto all'interno del file allegato alla relazione, tuttavia in caso di download del progetto dalla repository su GitHub, per procedere alla compilazione che vedremo al punto successivo, è necessario installare \textbf{CMake}.\\
+CMake è una famiglia di tool \textbf{open-source} e \textbf{cross-platform}, disegnati per poter controllare il processo di compilazione attraverso una piattaforma indipendente sia dall'architettura che dall'ambiente di compilazione prescelto sulla propria macchina. Tale obiettivo viene raggiunto tramite un file di configurazione che possiamo trovare nella cartella del progetto sotto il nome \textbf{CMakeLists.txt}. Nel nostro caso è stato utilizzato per poter far fronte, utilizzando un tool professionale, al grande numero di dipendenze e poter gestire sia la ricerca di \textbf{package e librerie} particolari sia l'utilizzo di particolari \textbf{direttive di precompilazione}, il tutto mantenendo un file di configurazione compatto e facilmente leggibile. Maggior informazioni sul software utilizzato sono reperibili a: \url{http://cmake.org}. \\\\
+La versione di minima di CMake necessaria è la 3.2 e può essere scaricata sia dal sito sopra indicato che, procedendo da linea di comando. Vediamo brevemente come fare, tenendo conto che, per l'installazione di software, è necessario possedere i privilegi dell'utente \emph{root}.
+\begin{lstlisting}
+$ sudo apt-get install software-properties-common
+$ sudo add-apt-repository ppa:george-edison55/cmake-3.x
+$ sudo apt-get update
+$ sudo apt-get install cmake
+	
+	
+\end{lstlisting}
+Altrimenti si può procedere alla compilazione di \textbf{cmake} stesso. Anche in questo caso è necessario disporre dei privilegi di \emph{root} (cambiare il numero della versione per scaricare la versione desiderata).
+\begin{lstlisting}
+$ sudo apt-get install build-essential
+$ wget http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz
+$ tar xf cmake-3.2.2.tar.gz
+$ cd cmake-3.2.2
+$ ./configure
+$ make
+$ sudo make install
+	
+\end{lstlisting}
+\subsection{Compilazione}
+Una volta installato il programma utilizzato per la compilazione del progetto, si può procedere alla fase finale di preparazione per l'esecuzione del programma eseguendo lo script \textbf{install.sh} presente all'interno della cartella di installazione.
+\begin{lstlisting}
+$ cd <installation folder>
+$ sh install.sh 
+	
+\end{lstlisting}
+A questo punto si può procedere direttamente al passo di esecuzione illustrato in \ref{ssec: execution}. \\\\
+In alternativa è possibile procedere alla sola compilazione del progetto, con il suggerimento di creare una cartella separata in cui salvare i file relativi alla compilazione.
+\begin{lstlisting}
+$ cd <installation folder>
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make WebSwitch
+	
+\end{lstlisting}
+\subsection{Modifica file di configurazione} \label{ssec: configuration}
+Nel caso si disponesse già di una copia dei file binary o si avesse compilato il programma indipendentemente dallo script illustrato al punto precedente, è possibile procedere alla configurazione delle cartelle necessarie all'esecuzione del programma, in particolare le cartelle \emph{log} e \emph{sockets}, eseguendo lo script \textbf{config.sh} fornito.
+\begin{lstlisting}
+$ cd <installation folder>
+$ sh config.sh 
+	
+\end{lstlisting}
+Per ulteriori necessità e in particolare per il tuning del web switch, si può fare riferimento ai file presenti nell cartella \emph{<installation folder>/code/config}. \\
+Per modificare la posizione delle cartelle contenenti i file di log e le socket, necessari all'esecuzione del programma, è possibile modificare, all'interno di \emph{code/config/heimdall\_config.conf} le linee seguenti:
+\begin{lstlisting}
+# File for request logging
+log_file_req <absolute req log path>/heimdall_req.log
+
+# File for response logging
+log_file_resp <absolute resp log path>/heimdall_resp.log
+
+# Unix sockets path
+sockets_path <absolute socket path>/sockets/	
+
+\end{lstlisting}
+Per modificare la \textbf{configurazione del cluster}, si possono specificare le diverse macchine all'interno del file \emph{code/config/server\_config.conf}, scrivendo per ognuna indirizzo ip ed il nome del server.\\
+\subsection{Esecuzione} \label{ssec: execution}
+A questo punto si può supporre creata una cartella \emph{build} in cui sono sono presenti i file binari del progetto. Supponiamo di aver configurato il nostro web switch adeguatamente, possiamo procedere ad avviare l'applicazione da linea di comando.
+\begin{lstlisting}
+$ cd build
+$ ./WebSwitch	
+
+\end{lstlisting}
+Nota che il web switch è di default configurato per essere in ascolto sulla porta 8080. Per metterlo in ascolto sulla porta 80 è necessario possedere i privilegi di root. \\\\
+Buon lavoro!
 \newpage
 \section{Vagrant}
 

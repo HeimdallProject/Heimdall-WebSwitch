@@ -299,10 +299,8 @@ Questo è il file di configurazione generale di Heimdall. Al suo interno possiam
 
 \begin{itemize}
 	
-	% TODO modificare quelle macro con descrizioni decenti e mettere ref
-	\item \emph{algorithm\_selection}: specifica il tipo di algoritmo che si vuole usare per Heimdall, con il valore 0 si sceglie di usare l'algoritmo STATELESSRR, con il valore 1 si sceglie di usare l'algoritmo STATEFUL.
-	
-	% TODO ref a worker per i processi figli
+	\item \emph{algorithm\_selection}: specifica il tipo di algoritmo che si vuole usare per Heimdall, con il valore 0 si sceglie di usare l'algoritmo \emph{state-less}, con il valore 1 si sceglie di usare l'algoritmo \emph{state-aware}.
+
 	\item \emph{pre\_fork}: specifica il numero di proessi figli che verranno creati all'avvio di Heimdall, i processi figli ricordiamo sono i processi che gestiranno le connessioni HTTP. Se il valore di questo parametro viene impostato a 0 Heimdall creerà automaticamente 1 processo figlio per gestire le richieste.
 	
 	\item \emph{print\_enable}: abilita le stampe a video se impostato a 1, altrimenti le disabilita.
@@ -315,9 +313,11 @@ Questo è il file di configurazione generale di Heimdall. Al suo interno possiam
 		
 	\item \emph{log\_file\_resp}: specifica il percorso del file di log per le risposte fatte alle connessioni.
 		
-	% TODO spiegato meglio nella sezione del watchdog?
-	\item \emph{timeout\_worker}: specifica il	
-	\item \emph{update\_time}: questo parametro indica il
+	\item \emph{timeout\_worker}: il massimo tempo di attesa del thread di controllo (\emph{watchdog}), dopo il quale il worker viene ritenuto bloccato oppure si è verificata un'interruzione della connessione.
+	
+	\item \emph{killer\_time}: il tempo che indica la durata di un ciclo di controllo che il thread incaricato di verificare la corretta esecuzione del worker esegue.
+	
+	\item \emph{update\_time}: in riferimento al thread di scheduling, definisce il tempo di aggiornamento dello stato dei server del cluster, nel caso di utilizzo dell'algoritmo state-aware. 
 	
 	\item \emph{server\_config} specifica il percorso del file di configurazione dovengono specificati i server del cluster collegati a Heimdall.
 	
@@ -1011,15 +1011,15 @@ typedef struct server_node {
 } ServerNode, *ServerNodePtr;
 
 \end{lstlisting}
-mentre le strutture dati che vengono elaborate ed utilizzate come valore di ritorno della schedulazione e che sono alla base della costituzione del buffer su cui opera Round Robin, non sono altro che una versione semplificata e costituita dalle sole informazioni di base per la connessione. \\\\
-Nella \textbf{fase di inizializzazione} viene quindi popolata la pool recuperando gli indirizzi delle macchine del cluster, che vengono settate come disponibili e con peso minimo. Quindi a seconda che si sia configurato il web switch in modalità \emph{state-aware} o \emph{state-less}, rispettivamente viene o non viene istanziato un thread che si occuperà di aggiornare periodicamente, con gestione degli accessi concorrenti al buffer del Round Robin, lo stato delle macchine. Ogni volta che una connessione viene accettata viene recuperato un server valido da passare al processo che gestirà la connessione tramite memoria condivisa. Lo scheduler è recuperabile tramite un \emph{singleton}.
+mentre le strutture dati che vengono elaborate ed utilizzate come valore di ritorno della schedulazione e che sono alla base della costituzione del buffer su cui opera Round Robin, non sono altro che una versione semplificata e costituita dalletramite prefork sole informazioni di base per la connessione. \\\\
+Nella \textbf{fase di inizializzazione} viene quindi popolata la pool recuperando gli indirizzi delle macchine del cluster, che vengono settate come disponibili e con peso minimo. Quindi a seconda che si sia configurato il web switch in modalità \emph{state-aware} o \emph{state-less}, rispettivamente viene o non viene istanziato un thread che si occuperà di aggiornare periodicamente, con gestione degli accessi concorrenti al buffer del Round Robin, lo stato delle macchine. Ogni volta che una connessione viene accettata viene recuperato un server valido da passare al processo che gestirà la connessione tramite memoria condivisa.\\\\ Lo scheduler è recuperabile tramite la chiamata \emph{get\_scheduler()}.
+
 \begin{lstlisting}
 \* inside thread_pool.c ... *\
 // Retrieving server from scheduler
 ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
 // Storing server in shared memory
 worker_pool->worker_server[position] = *server;
-	
 \end{lstlisting}
 Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} e non \emph{READY} è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il worker (che analizzeremo in \emph{\ref{sec:worker}}) non avvierà nessuna connessione di inoltro della richiesta. 
 \\
@@ -1038,13 +1038,13 @@ Heimdall è implementato in modo tale da effettuare il \textbf{prefork} di un nu
 \label{sec:requests_management}
 L'applicazione soddisfa le specifiche \textbf{HTTP 1.1}\cite{http_1.1}, gestendo \textbf{connessioni persistenti}\cite{persistent_connections} e supportando il \textbf{pipelining}\cite{pipeling} delle richieste. Per ottenere il supporto alle connessioni persistenti, Heimdall chiude la connessione con il client allo scadere di un timer, al fine di ricevere più richieste tramite la stessa connessione. Ricevute, queste vengono inserite in una coda, per essere poi servite nello stesso ordine con cui sono state ricevute.
 \\
-All'avvio del WebSwitch, tramite prefork, vengono creati i vari worker, che rimangono in pausa finché non ricevono una connessione attraverso cui gestire le richieste. Tale passaggio è realizzato tramite il \hyperref[sec:pool]{\emph{pool manager}}, in particolare dal message controller. Ricevuta una connessione da poter servire, il worker crea i thread necessari per la ricezione, l'inoltro e la risposta alla richiesta.
+All'avvio di Heimdall, tramite prefork, vengono creati i vari worker che restano in attesa di essere schedulati. Ricevuta una connessione da poter servire, il worker crea i thread necessari per la ricezione, l'inoltro e la risposta alla richiesta.
 
 \subsubsection*{Coda delle richieste}
 \label{sec:requests_queue}
 Per poter supportare il pipeling, è stato quindi necessario creare una coda, che contenesse, in ordine, tutte le richieste effettuate da un client tramite la stessa connessione HTTP, come specificato dalla RFC: ``A server MUST send its responses to those requests in the same order that the requests were received.''\cite{pipeling}
 
-La coda è molto semplice ed espone le seguenti operazioni:
+La coda è molto semplice e implementa le seguenti operazioni:
 \begin{lstlisting}
     void (*enqueue)(struct request_queue *self, RequestNodePtr node);
     struct request_node*(*dequeue)(struct request_queue *self);
@@ -1518,7 +1518,7 @@ while(TRUE) {
 \includegraphics[width=\textwidth]{images/watchdog}
 \caption{Schema della procedura di controllo sul tempo di esecuzione \label{fig: watchdog}}
 \end{figure}
-Il thread di \emph{watchdog}, letteralmente di sorveglianza, è adibito al controllo della \textbf{corretta esecuzione del worker},in particolare al controllo che tale esecuzione, nell'occupare per eccessivo tempo le risorse del sistema, non vado a creare un collo di bottiglia che via via porta al collasso del programma. Per far questo esso viene eseguito in modalità \emph{detached} dal thread principale del worker ed è legato dalle operazioni che vengono eseguite dal processo da una serie di variabili: 
+Il thread di \emph{watchdog}, letteralmente di sorveglianza, è adibito al controllo della \textbf{corretta esecuzione del worker}, in particolare al controllo che tale esecuzione, nell'occupare per eccessivo tempo le risorse del sistema, non vada a creare un collo di bottiglia che via via porta al collasso del programma. Per far questo esso viene eseguito in modalità \emph{detached} dal thread principale del worker ed è legato dalle operazioni che vengono eseguite dal processo da una serie di variabili: 
 \begin{itemize}
 	\item \emph{pthread\_condition} su cui è in attesa il thread principale del worker
 	\item \emph{flag} legata alla condition di cui sopra
@@ -1623,7 +1623,6 @@ typedef struct circular_buffer {
 } Circular, *CircularPtr;
 
 \end{lstlisting}
-\break
 È necessario quindi specificare tre passi per il corretto funzionamento, dopo aver dato un rapido sguardo alla struttura che lo rappresenta nella nostra implementazione. \\\\
 \textbf{Inizializzazione del buffer} in questa fase la struttura dati che rappresenta il buffer circolare, che abbiamo visto mantenere due puntatori di \emph{testa} e \emph{coda}, viene inizializzata associandovi un array di puntatori di strutture di tipo \emph{Server}, precedentemente allocata ed il cui pattern è stato fissato, e viene eseguita la funzione di allocazione del buffer: 
 \begin{lstlisting}

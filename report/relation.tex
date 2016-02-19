@@ -583,7 +583,119 @@ void *singleton_config = NULL;
 Un semplice controllo viene comunque eseguito ed è lo stesso controllo che avvia l'esecuzione del parser la prima volta, se la variabile è NULL viene eseguita la lettura del file ed inizializzata la relativa struttura. Grazie poi alla chiamata fork() che viene eseguita qualche momento dopo tutti i figli riceveranno "gratuitamente" in eredità la struttura Config.
 
 \subsection{Logging}
-\label{sec:logging}
+\label{ssec:logging}
+Per poter gestire meglio l'output su console e su file abbiamo deciso di implementare una nostra "classe" di log. Prima di descrivere il codice vogliamo far notare che abbiamo sviluppato il \emph{logger} seguendo un approccio orientato agli oggetti e seguendo il design pattern \emph{Singleton}. Infatti questo è uno dei componenti che viene inizializzato nel processo principale all'avvio del programma, nello specifico tramite la chiamata \emph{get\_log()} eseguita nel \emph{main()}:
+
+\begin{lstlisting}
+	Log *new_log() {
+
+    ConfigPtr config = get_config();
+
+    Log *log = malloc(sizeof(Log));
+    if (log == NULL) {
+        fprintf(stderr, "Memory allocation error in new_log!");
+        exit(EXIT_FAILURE);
+    }
+    
+    // retrieving log file pointer or allocating it
+    req_log = fopen(config->log_file_req, "a+");
+    if (req_log == NULL) {
+        fprintf(stderr, "Error in log file opening!\n");
+    }
+
+    // retrieving log file pointer or allocating it
+    resp_log = fopen(config->log_file_resp, "a+");
+    if (resp_log == NULL) {
+        fprintf(stderr, "Error in log file opening!\n");
+    }
+
+    // Set "methods"
+    log->d = d;
+    log->i = i;
+    log->e = e;
+    log->r = r;
+    log->t = t;
+
+    return log;
+}
+
+Log *get_log() {
+
+    if (singleton_log == NULL) {
+        singleton_log = new_log();
+    }
+
+    // return singleton
+    return singleton_log;
+}
+\end{lstlisting}
+Abbiamo già incontrato una simile struttura, infatti ricordiamo che anche il parser del file di configurazione segue lo stesso approccio. Tornando al codice vediamo che la funzione \emph{get\_log()} non fa altro che richiamare la funzione \emph{new\_log()} nel caso in cui il riferimento al singleton sia NULL, e questo in generale avviene soltanto all'avivo del programma. La funzione \emph{new\_log()} è quella che si occupa dell'inizializzazione vera e propria dell'oggetto \emph{Log}, viene infatti eseguita una \emph{malloc()} per allocare una struttura di tipo Log, e vengono inizializzati i puntatori ai file di logging e alle funzioni. In questo modo abbiamo organizzato tutti i "metodi" all'interno di un unico oggetto Log:
+
+\begin{lstlisting}
+	typedef struct log {
+    int (*d)(const char* tag, const char *format, ...);
+    int (*i)(const char* tag, const char *format, ...);
+    int (*e)(const char* tag, const char *format, ...);
+    int (*r)(int type, void *arg, char *host, int pid);
+    void (*t)(ThrowablePtr throwable);
+} Log, *LogPtr;
+\end{lstlisting}
+
+In questo modo per poter stampare a video sarà sufficiente richiamare la funzione:
+
+\begin{lstlisting}
+	get_log()->i(TAG, "Hello World!");
+\end{lstlisting}
+
+Le funzioni \emph{d()} (debug), \emph{e()} (error) e \emph{i()} (informazioni) sono state implementate per organizzare le stampe a video. Infatti nel file di configurazione è possibile impostare il livello di stampe che si desidera vedere tramite il parametro \emph{log\_level}. Le funzioni per la loro implementazione si equivalgono a meno del livello di log che trattano, ne riportiamo per questo solamente una:
+
+\begin{lstlisting}
+	static int i(const char* tag, const char *format, ...) {
+
+    ConfigPtr config = get_config();
+
+    int byte_read = 0;
+
+    int level = 0;
+    ThrowablePtr throwable = str_to_int(config->log_level, &level);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
+
+    int print_enable = 0;
+    throwable = str_to_int(config->print_enable, &print_enable);
+    if (throwable->is_an_error(throwable)) {
+        t(throwable);
+    }
+
+    if (INFO_LEVEL >= level && print_enable == 1) {
+
+        char *formatted_str;
+
+        va_list arg;
+        va_start (arg, format);
+        byte_read = vasprintf(&formatted_str, format, arg);
+        va_end (arg);
+
+        char *output;
+        byte_read = asprintf(&output, "%s: I/%s: %s", timestamp(), tag, formatted_str);
+
+        free(formatted_str);
+
+        printf("%s \n", output);
+        fflush(stdout);
+        free(output);
+    }
+
+    return byte_read;
+}
+\end{lstlisting}
+
+Come vediamo viene dapprima recuperato dal file di configurazione il livello impostato per il log, inoltre viene anche recuperato il valore del parametro \emph{print\_enable} (ricordiamo che è possibile disabilitare completamente le stampe), eseguito un semplice controllo il codice all'interno del terzo if non è altro che una copia della funzione \emph{printf()}, l'unica modifica che viene fatta è solo quella di formattare l'output in modo che possa essere facilmente leggibile. Infatti l'aggiunta del parametro tag e del timestamp è stato di fondamentale importanza per identificare nella console quale componente stava effettivamente stampando.\\\\ Per concludere descriviamo la funzione \emph{r()} (response) è quella utilizzata per scrivere sui file di logging, in questo modo abbiamo raccolto da una parte il codice di formattazione del file di log. Invece la funzione \emph{t()} (throwable) non è altro che un'estensione della funzione \emph{e()}, questa viene utilizzata per stampare a schermo gli oggetti Throwable.
+
+\begin{lstlisting}
+	
+\end{lstlisting}
 
 \subsection{Gestione degli errori}
 \label{sec:errors}
@@ -1438,9 +1550,6 @@ In particolare quando vengono distaccati i thread ausiliari, il thread principal
 Contemporaneamente il watchdog rimane in \emph{nanosleep} per un lasso di tempo pari a quello configurato, a meno dell'arrivo di segnali che vengono gestiti e dopo i quali il watchdog ritorna in attesa, scaduto il quale la variabile di timestamp viene controllata. Se risulta \emph{scaduta} viene aggiornato il flag di attesa del worker e gli viene segnalato di riattivarsi e di mettere in pratica le procedure di \emph{clean up} per scollegarsi dal client e dal server assegnato. \\\\
 Osserviamo come questo controllo viene fatto su una variabile settata dal thread di lettura, permettendoci con semplicità di valutare eventuali problemi sia sulla linea fra web switch e macchina del cluster che fra web switch e client, evitando lo stato di \emph{hanging} che porterebbe ad uno stallo del programma.
 \newpage
-\section{Ulteriori proposte}
-
-\newpage
 \section{Politiche di scheduling}
  \label{sec: sched_p}
 La schedulazione permette la selezione della macchina predisposta a rispondere alla richiesta HTTP appena arrivata da parte del client, si basa su una tecnica nota come \textbf{bilanciamento del carico}, ovvero la distribuzione del carico, solitamente di elaborazione o di erogazione di uno specifico servizio, tra più server. Questo permette di poter \textbf{scalare} sulla potenza di calcolo del cluster dietro al web switch, lasciando che siano diverse macchine a rispondere a seconda di quella che è più veloce, più performante, oppure monitorando costantemente lo stato dei server e scegliendo quello meno sottoposto ad una pressione del carico di lavoro. Le macchine, specificando hostname ed indirizzi IP, sono date in un apposito file di configurazione.
@@ -1708,11 +1817,17 @@ E' possibile apprezzare in \emph{figura \ref{fig: fd_memory}} l'occupazione di m
 \subsection{Conclusioni}
 \newpage
 \section{Future implementazioni}
+In questo capitolo vogliamo parlare di alcune ulteriori proposte che ci sono venute in mente per poter migliorare Heimdall. Si tratta quindi di sviluppi futuri che abbiamo elaborato nel corso dello sviluppo del progetto e a seguito di alcune limitazioni che abbiamo identificato nei componenti da noi sviluppati.
 \subsection{Analisi della richiesta}
 Come abbiamo già visto nei paragrafi dedicati al \emph{parsing} delle richieste e delle risposte HTTP, è stato possibile, in fase progettuale, scegliere su quali \emph{header} basare il funzionamento elementare del web switch. Abbiamo visto anche come i file di configurazione garantiscono veramente molta flessibilità al sistemista in sede di installazione. \\
 Non è difficile immaginare che, in una futura implementazione, l'applicazione non possa basarsi su file di configurazione più dettagliati e quindi possibilità di utilizzare tutti i parametri a disposizione per l'analisi di richiesta e risposta. Per cui si aprono scenari in cui si possono, ad esempio, configurare server di \emph{cache di immagini} in particolari posizioni del cluster, oppure utilizzare un algoritmo di schedulazione \emph{state-aware} che si basi anche sulla grandezza dei file richiesti e che quindi, a monte, eviti il carico di macchine sensibili.
 \subsection{Webserver performante}
 
+\subsection{Worker come thread}
+Abbiamo visto nel paragrafo dedicato che il Worker nel contesto attuale è un processo figlio del processo principale. Questa è stata una scelta progettuale dettata da alcune caratteristiche che ritenevamo opportune per il WebSwitch, ad esempio l'isolamento della connessione HTTP. Infatti nella nostra architettura ogni Worker lavora in un contesto indipendente dagli altri quindi un eventuale problema con una connessione non danneggia le altre. L'utilizzo però di processi ci ha portato a dover gestire alcuni piccoli problemi, infatti ci siamo resi conto degli "elevati" tempi di fork() e anche dei tempi che occorrono ad eseguire un cambio di contesto. Inoltre ci siamo dovuti equipaggiare di memoria condivisa per poter scambiare dati con i Worker e adottare un meccanismo di messaggi per l'invio di file descriptor. Pensiamo quindi che utilizzare un approccio a Thread ci permetta di essere più performanti in quanto si sa che la creazione e la schedulazione di un thread è più veloce rispetto a quella di un processo, inoltre come sappiamo i thread condividono lo stesso spazio di memoria e questo evita i problemi di memoria condivisa e invio file descriptor.
+
+% \subsection{Pool Manager come processo}
+% Come abbiamo spiegato nel paragrafo del Pool Manager, questo è un thread del processo principale. Il suo compito ricordiamo è quello di gestire i file descriptor delle connessioni accettate dal main thread. Abbiamo scelto di avere un thread dedicato per questo compito perché volevamo lasciare il più possibile il main thread del processo principale libero da compiti che potevano rallentare l'accettazione delle nuove connessioni. In effetti siamo riusciti ad ottenere questo ma...
 
 % --- References ---  
 %

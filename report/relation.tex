@@ -88,13 +88,13 @@ Ci piace pensare che questo sia un po' il ruolo del software nato dal nostro pro
 \subsection{Web switch di livello 7}
 Nella terminologia delle reti informatiche uno \textbf{switch} è un commutatore a livello datalink, ovvero un dispositivo che si occupa di instradare opportunamente, attraverso le reti LAN, selezionando i frame ricevuti e reindirizzandoli verso la macchina appropriata a seconda di una propria tabella di inoltro. Un \textbf{web switch}, a livello applicativo, è capace di reindirizzare i dati in funzione dei pacchetti che riceve, analizzandone il contenuto e decidendo opportunamente la destinazione, occupandosi allo stesso tempo di reinoltrare anche l'eventuale risposta della macchina selezionata verso il client che l'ha generata.
 \\
-Le applicazioni sono molteplici per l'implementazione a livello applicativo: può essere considerato un \textbf{proxy}, oppure, selezionando opportunamente la macchina con più velocità di risposta o con minore pressione, può agire come \textbf{bilanciatore di carico}. Infatti ognuno dei client che fa richiesta, ad esempio, per uno specifico sito web, invia un pacchetto ad un indirizzo IP pubblico che corrisponde a quello del nostro switch applicativo. Questi, dopo aver correttamente letto il pacchetto, si occupa di consultare una tabella di inoltro generata con una determinata \textbf{politica di scheduling} e quindi gestire l'inoltro della richiesta ed il reinoltro della risposta del webserver. Tutto questo in maniera totalmente trasparente al client, qualsiasi sia la macchina che ha effettivamente risposto, che sia un web server oppure un cluster di macchine associate ad un ulteriore switch.
+Le applicazioni sono molteplici per l'implementazione a livello applicativo: può essere considerato un \textbf{proxy}, oppure, selezionando opportunamente la macchina con più velocità di risposta o con minore pressione, può agire come \textbf{bilanciatore di carico}. Infatti ognuno dei client che fa richiesta, ad esempio, per uno specifico sito web, invia un pacchetto ad un indirizzo IP pubblico che corrisponde a quello del nostro switch applicativo. Questi, dopo aver correttamente letto il pacchetto, si occupa di consultare una tabella di inoltro generata con una determinata \textbf{politica di scheduling} e quindi gestire l'inoltro della richiesta ed il reinoltro della risposta del web server. Tutto questo in maniera totalmente trasparente al client.
 
 \subsection{Assunzioni progettuali sul cluster}
 Nella fase di progettazione e realizzazione sono state definite le seguenti assunzioni:
 \begin{itemize}
-  \item Ognuna delle macchine del cluster dispone di un web server Apache\cite{apache_server} in ascolto sulla porta 80
-  \item Ognuna delle macchine monta il modulo ApacheStatus come monitor di carico
+  \item Ognuna delle macchine del cluster dispone di un web server Apache\cite{apache_server} in ascolto sulla porta 80;
+  \item Ognuna delle macchine monta il modulo ApacheStatus (\ref{sssec:apachestatus}) come monitor di carico.
 \end{itemize}
 
 \begin{figure}
@@ -112,20 +112,22 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 
 \subsection{Il processo principale}
 \label{ssec:main_process}
-Il cuore di Heimdall sta ovviamente nel file principale del programma, il \emph{main.c}, una volta avviato il programma, il processo principale prenderà vita nel sistema ed eseguirà le inizializzazioni dei componenti principali, tra questi abbiamo:
+Il cuore di Heimdall è codificato nel \emph{main.c} da cui inizia l'esecuzione del processo principale.
+\\
+Il processo, una volta avviato, inizializzerà i componenti principali, tra questi abbiamo:
 
 \begin{itemize}
-  \item Config
-  \item Log
-  \item Scheduler
-  \item Pool Manager
+  \item Config (paragrafo \ref{sec:config});
+  \item Log (paragrafo \ref{ssec:logging});
+  \item Scheduler (paragrafo \ref{ssec: sched});
+  \item Pool Manager (paragrafo \ref{ssec:pool}).
 \end{itemize}
-Possiamo dividere questi 4 componenti in 2 categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché come sarà più chiaro nei relativi paragrafi, i due componenti sono progettati per svolgere alcuni compiti dedicati che altrimenti dovrebbero essere eseguiti dal programma principale, intaccando le prestazioni del sistema, che possono così avvalersi anche di un'opportuno utilizzo della concorrenza.
+Possiamo dividere questi quattro componenti in due categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché (come sarà più chiaro nei relativi paragrafi) svolgono alcuni compiti dedicati che altrimenti dovrebbero essere eseguiti dal processo principale.
 
 \subsubsection{I processi figli e la memoria condivisa}
 \label{ssec:child_process}
 
-Fatte le prime inizializzazioni il processo principale si predispone ad eseguire il suo compito ma prima di questo è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()} presente nel file \emph{main.c} il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa che verrà utilizzata appunto per garantire una struttura per l'\textbf{IPC} (\emph{Inter-Process Communication}). Per motivi che saranno più chiari in seguito chiameremo da adesso in poi i processi figli \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
+Fatte le prime inizializzazioni, il processo principale si predispone ad eseguire il suo compito. Prima di questo, è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()}, presente nel file \emph{main.c}, il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa, che verrà utilizzata per fornire l'\textbf{IPC} (\emph{Inter-Process Communication}). Per motivi che saranno più chiari in seguito, chiameremo da adesso in poi i processi figli \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
 \begin{lstlisting}
 ConfigPtr config = get_config();
 
@@ -135,15 +137,15 @@ if (throwable->is_an_error(throwable)) {
   get_log()->t(throwable);
 }
 \end{lstlisting}
-Dal Config viene recuperato il numero di processi figli da creare e, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro, oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()}, viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati 4 array che ora vedremo nel dettaglio:
+Dal Config viene recuperato il numero di processi figli da creare e, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro, oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()}, viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati quattro array che ora vedremo nel dettaglio:
 
 \begin{itemize}
-  \item \textbf{\emph{worker\_array}}: In questo array vengono memorizzati i \emph{pid\_t} dei processi figli creati.          
-  \item \textbf{\emph{worker\_busy}}: Questo è un array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un worker. Nello specifico alla posizione i-esima che viene identificata a partire dal primo array possiamo trovare due valori distinti, un 1 per indicare che il worker è occupato a gestire una connessione e uno 0 per indicare che il worker è libero e in attesa di nuove connessioni.
-  \item \textbf{\emph{worker\_counter}}: Questo array serve a contare quante connessioni sono state assegnate al worker, questo parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei worker.
-  \item \textbf{\emph{worker\_server}}: Questa è una struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdall, la sua funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
+  \item \textbf{\emph{worker\_array}}: Array in cui vengono memorizzati i \emph{pid\_t} dei Worker.          
+  \item \textbf{\emph{worker\_busy}}: Array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un Worker. Nello specifico alla posizione i-esima, che viene identificata a partire dal primo array, possiamo trovare due valori distinti, un 1 per indicare che il Worker è occupato a gestire una connessione e uno 0 per indicare che il Worker è libero in attesa di nuove connessioni.
+  \item \textbf{\emph{worker\_counter}}: Array che tiene traccia di quante connessioni sono state assegnate al Worker. Tale parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei Worker.
+  \item \textbf{\emph{worker\_server}}: Struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdall, la cui funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
 \end{itemize}
-Di seguito il codice che si occupa dell'inizializzazione della memoria condivisa:
+La seguente porzione di codice mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa.
 \begin{lstlisting}
 int total_size = 0;
 total_size += sizeof(THPSharedMem);
@@ -152,7 +154,7 @@ total_size += sizeof(int)*n_prefork;    // Array busy
 total_size += sizeof(int)*n_prefork;    // Array counter
 total_size += sizeof(Server)*n_prefork; // Array server
 
-// Initializes Shared memory
+// Initializes shared memory
 void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);
 if (start_mem == NULL)
   exit(EXIT_FAILURE);
@@ -171,10 +173,10 @@ for (i = 0; i < n_prefork; ++i) {
   worker_pool->worker_busy[i]     = 0;
 }
 \end{lstlisting}
-La porzione di codice qui sopra mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa. La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.
+La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.
 \\
 \\
-Fatto questo siamo finalmente giunti alla creazione dei processi figli, ancora una volta evidenziamo qui la porzione di codice interessata:
+Siamo finalmente giunti alla creazione dei processi figli, i cosidetti Worker, ancora una volta evidenziamo qui la porzione di codice interessata:
 
 \begin{lstlisting}
 int children;
@@ -215,7 +217,7 @@ for (children = 0; children < n_prefork; ++children) {
   }
 }
 \end{lstlisting}
-Come vediamo viene eseguito un ciclo \emph{n\_prefork} volte dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il processo figlio, una volta creato, si avvia con l'esecuzione della sua funzione "\emph{main}" e cioè la funzione \emph{start\_worker()}; il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato sopra. \\\\Facciamo notare che l'esecuzione della chiamata di sistema \emph{fork()} non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre nella memoria del figlio e grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
+Nel codice sopraesposto, viene eseguito un ciclo \emph{n\_prefork} volte, dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il Worker, una volta creato, si avvia eseguendo la funzione \emph{start\_worker()}; il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato sopra. \\\\Si noti, che l'esecuzione della chiamata di sistema \emph{fork()}, non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre nella memoria del figlio e grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
 
 \subsubsection{Server in ascolto}
 \label{sec:main_server}

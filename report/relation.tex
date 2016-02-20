@@ -1011,7 +1011,7 @@ ThrowablePtr create_client_socket(const int type, const char *ip, const int port
 Questo espediente ha dato la possibilità, per esempio, di modificare più volte il codice che permette l'invio delle richieste e la successiva ricezione delle risposte, senza stravolgere, per quanto possibile, la logica del sistema.
 \subsubsection*{Richieste HTTP}
 Alla base della capacità di Heimdall di inoltrare ad una macchina del cluster la richiesta che gli viene effettuata dal client, vi è la capacità di poter analizzare tale richiesta e poterne trarre le corrette informazioni. \\
-Per questo sono state definite macro degli \emph{header} più importanti come da protocollo\cite{http_1.1} per poter \emph{parsare} il pacchetto HTTP una volta che questo è correttamente giunto (completo) al web switch. E' stata quindi definita la struct seguente.
+Per questo sono state definite macro degli \emph{header} più importanti come da protocollo\cite{http_1.1} per poter \emph{parsare} il pacchetto HTTP una volta che questo è correttamente giunto (completo) al web switch. È stata quindi definita la struct seguente.
 \begin{lstlisting}
 typedef struct http_request {
   char *status;           // whether the request can be handled
@@ -1524,19 +1524,19 @@ La ricerca di una soluzione modulare che possa essere presa poi in esame da futu
 
 \subsubsection{Modulo Apache Status}
 \label{sssec:apachestatus}
-Il modulo Apache Status (mod\_status)\cite{mod_status} è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nessun altro componente aggiuntivo. Per utilizzarlo è necessario solo attivarlo nella configurazione del web server. Il modulo formatta in una pagina HTML tutta una serie di statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readble, versione che usiamo in questa applicazione).
+Il modulo Apache Status (mod\_status)\cite{mod_status} è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nessun altro componente aggiuntivo. Per utilizzarlo è necessario solo attivarlo nella configurazione del web server. Il modulo formatta in una pagina HTML tutta una serie di statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readable, versione utilizzata in questa applicazione).
 \\
 I dettagli che fornisce sono:
 
 \begin{itemize}
-  \item Il numero di worker che stanno servendo delle richieste
-  \item Il numero totale di worker in pausa
-  \item Lo stato di ciascun worker, il numero di richieste che tale worker ha eseguito e il numero totale di byte serviti dal worker
-  \item Il tempo da quando il server è stato avviato/riavviato
-  \item Il numero medio di richieste per secondo, il numero di bytes serviti per secondo e il numero medio di bytes per richiesta
+  \item Il numero di worker che servono le richieste;
+  \item Il numero totale di worker in pausa;
+  \item Lo stato di ciascun worker: il numero di richieste che il worker ha eseguito e il numero totale di bytes serviti;
+  \item Il tempo da quando il server è stato avviato/riavviato;
+  \item Il numero medio di richieste per secondo, il numero di bytes serviti per secondo e il numero medio di bytes per richiesta.
 \end{itemize}
 
-Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato di una macchina (di un server Apache) senza la necessità di installare nessun componente aggiuntivo o di valutare empiricamente il carico del server tramite per esempio il tempo di risposta di quest'ultimo.
+Quindi, tramite questo modulo, Heimdall è in grado di verificare lo stato di ciascuna macchina (con a bordo un server Apache), senza la necessità di installare alcun componente aggiuntivo o di valutare empiricamente il carico del server tramite, per esempio, il tempo di risposta di quest'ultimo.
 
 \subsubsection{Performance della politica state aware}
 È interessante osservare l'effettivo lavoro dello scheduler e della politica di \emph{state awareness} già commentata, in una condizione di forte stress delle macchine, nell'estratto del file di log che segue. La situazione proposta è stata ottenuta sovraccaricando una delle macchina del cluster e lasciando che il web switch si accorgesse di tale sovraccarico per bilanciare le richieste in arrivo.
@@ -1558,7 +1558,7 @@ Tramite questo modulo quindi siamo stati in grado di poter verificare lo stato d
 \caption{Ripartizione del carico di lavoro, \emph{confronto fra politica state-less e state-aware}\label{fig: rrobin_cfr}}
 \end{figure}
 In queste circostanze, considerato che secondo la nostra implementazione un server deve apparire almeno una volta nel buffer circolare, considerato che uno dei server era stato sottoposto a forte carico e che gli altri due server avevano un peso relativo superiore di tre unità, otteniamo che il server a venire meno sottoposto a connessioni in arrivo è proprio il server il cui carico di lavoro è già calcolato come particolarmente elevato. \\
-E' possibile accertarlo sia dall'estratto del file di log riportato che dalla figura \ref{fig: rrobin_cfr} che ne quantifica i risultati.
+È possibile accertarlo sia dall'estratto del file di log riportato che dalla figura \ref{fig: rrobin_cfr} che ne quantifica i risultati.
 \newpage
 \section{Performance}
 Abbiamo visto più volte durante questa trattazione che è stato necessario sottoporre a \emph{tuning} l'effettiva implementazione del server o che si consiglia di modellare quanti più aspetti possibili del web switch secondo la rete e le capacità della macchina. Riportiamo qui alcuni test che sono stati utilizzati in fase di progettazione per modellare la risposta del programma. I test sono stati condotti su:
@@ -1591,7 +1591,7 @@ Questa osservazione è suffragata dall'analisi del grafico in figura \ref{fig: c
 \end{figure}
 \subsection{Valutazione delle performance}
 In questo caso abbiamo deciso di testare il programma in un possibile scenario applicativo vicino a quello di uno sviluppatore indipendente o di uno studente. Valutando le dimensioni tipiche di un \emph{Virtual Private Server} di fascia \emph{entry level}, abbiamo utilizzato una macchina virtuale con 512 MB di RAM con sistema operativo Ubuntu Server. Le condizioni del test includevano un numero di richieste fisso pari a 10000 richieste in arrivo, facendo variare la frequenza con cui queste giungevano. Si è deciso di prendere in considerazione sia il tempo di risposta che la frequenza con cui queste risposte giungevano al client che generava il carico di lavoro. \\\\ 
-Quello che si è potuto constatare, relativamente alla figura \ref{fig: repvsfreq}, è il crescere dei tempi di risposta linearmente, con un andamento paragonabile a quello osservato ma in questo caso riconducibile ad un carico di richieste al secondo, piuttosto che all'aumentare delle connessioni. E' significativo osservare la diminuzione della pendenza per alte frequenze di richieste, riconducibile al raggiungimento della saturazione delle risorse del web switch che lavora ora ad un regime massimo.\\\\
+Quello che si è potuto constatare, relativamente alla figura \ref{fig: repvsfreq}, è il crescere dei tempi di risposta linearmente, con un andamento paragonabile a quello osservato ma in questo caso riconducibile ad un carico di richieste al secondo, piuttosto che all'aumentare delle connessioni. È significativo osservare la diminuzione della pendenza per alte frequenze di richieste, riconducibile al raggiungimento della saturazione delle risorse del web switch che lavora ora ad un regime massimo.\\\\
 Sempre dallo stesso grafico, analogamente, è possibile osservare come, ad un aumento dei tempi di risposta corrisponde, all'aumentare della frequenza di invio delle richieste, un aumento della frequenza di ricezione delle risposte fino un livello di assestamento. Difatti si ha, mantenendo le connessioni costanti, il raggiungimento di un livello medio attorno al quale rimane, a meno di oscillazioni, una apprezzabile frequenza di risposta. Si può dedurre l'esistenza di un livello di saturazione che non può essere ne abbattuto, a causa della frequenza elevata, ne innalzato a causa della frequenza fissa con il quale i worker si liberano e vengono rioccupati da nuove connessioni. Tale frequenza di lavoro è dovuta sia alla presenza di una coda delle richieste che garantisce una certa inerzia, sia al raggiunto limite delle capacità della macchina di operare il context switching e nel ricreare i thread.. Il che ci porta a concludere che a pieno regime il web switch riesce ad adeguarsi alla velocità con cui sono in arrivo le richieste e soddisfare la domanda, seppure con un ritardo lineare nei tempi di risposta.
 \begin{figure}[H]
 \centering
@@ -1608,7 +1608,7 @@ Possiamo verificare le statistiche di questo test con il grafico di figura \ref{
 \subsection{Limitazioni}
 Durante i test che sono appena stati descritti, in particolare quelli con macchina virtuale, monitorando anche le risorse della macchina, si è potuto constatare che era presente un'\textbf{occupazione della RAM} crescente e, in alcuni casi, eccessiva, al punto da non permettere alla macchina di proseguire ulteriormente nelle operazioni. Tale occorrenza, per quanto rara e verificabile solamente nel caso di un carico veramente elevato, è dovuta alla non corretta liberazione della memoria nei processi che agiscono da worker: un'analisi più accurata ha portato alla luce la presenza di una grande quantità di memoria virtuale allocata e liberata correttamente ma, con una frequenza elevata di richieste in arrivo, non viene liberata memoria con la stessa velocità con cui viene occupata, portando ad una situazione pericolosa di saturazione. \\
 Ben altra saturazione è stata evitata, invece, limitando il \textbf{numero di file descriptor} associabili ad una socket, imponendo alla macchina di rispettare un certo limite ed evitando, quindi, di portare il programma al blocco nel caso di termine delle risorse a disposizione del processo. \\\\
-E' possibile apprezzare in figura \ref{fig: fd_memory} l'occupazione di memoria e di file descriptor durante uno \emph{stress test} poco prima del raggiungimento del limite di memoria a disposizione. 
+È possibile apprezzare in figura \ref{fig: fd_memory} l'occupazione di memoria e di file descriptor durante uno \emph{stress test} poco prima del raggiungimento del limite di memoria a disposizione. 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/fd_memory}
@@ -1707,7 +1707,7 @@ La repository scaricata conterrà:
   \item File necessari alla compilazione del progetto
 \end{itemize}
 \subsection{Dipendenze}
-E' incluso il \emph{binary} del progetto all'interno del file allegato alla relazione, tuttavia in caso di download del progetto dalla repository su GitHub, per procedere alla compilazione che vedremo al punto successivo, è necessario installare \textbf{CMake}.\\
+È incluso il \emph{binary} del progetto all'interno del file allegato alla relazione, tuttavia in caso di download del progetto dalla repository su GitHub, per procedere alla compilazione che vedremo al punto successivo, è necessario installare \textbf{CMake}.\\
 CMake\cite{cmake} è una famiglia di tool \textbf{open-source} e \textbf{cross-platform}, disegnati per poter controllare il processo di compilazione attraverso una piattaforma indipendente sia dall'architettura che dall'ambiente di compilazione prescelto sulla propria macchina. Tale obiettivo viene raggiunto tramite un file di configurazione che possiamo trovare nella cartella del progetto sotto il nome \textbf{CMakeLists.txt}. Nel nostro caso è stato utilizzato per poter far fronte, utilizzando un tool professionale, al grande numero di dipendenze e poter gestire sia la ricerca di \textbf{package e librerie} particolari sia l'utilizzo di particolari \textbf{direttive di precompilazione}, il tutto mantenendo un file di configurazione compatto e facilmente leggibile. \\\\
 La versione di minima di CMake necessaria è la 3.2 e può essere scaricata sia dal sito sopra indicato che, procedendo da linea di comando. Vediamo brevemente come fare, tenendo conto che, per l'installazione di software, è necessario possedere i privilegi dell'utente \emph{root}.
 \begin{lstlisting}
@@ -1792,15 +1792,15 @@ Nel dettaglio è stata utilizzata l'opzione di \textbf{internal networking} disp
 \newpage
 \section{Tool per i debug}
 \subsection{GDB}
-GNU debugger (chiamato semplicemente GDB)\cite{gdb} è il potente debbugger del progetto GNU capace di analizzare numerosi linguaggi di programmazione tra cui C.
+GNU debugger (chiamato semplicemente GDB)\cite{gdb} è il potente debbugger del progetto GNU, capace di analizzare numerosi linguaggi di programmazione tra cui C.
 \\
 Il suo utilizzo è stato di fondamentale importanza per poter scovare errori difficilmente individuabili a causa dell'architettura multiprocesso di Heimdall.
 
 \subsection{htop}
-Htop\cite{htop} è un visualizzatore interattivo di processi per i sistemi Unix. Anche se non è un tool di debug ha contribuito al ``debug'' di Heimdall permettendoci di controllare lo stato dei processi, dei threads e della memoria in tempo reale.
+Htop\cite{htop} è un visualizzatore interattivo di processi per i sistemi Unix. APur non essendo un tool di debug, ha contribuito al ``debug'' di Heimdall, permettendo di controllare in tempo reale lo stato dei processi, dei threads e della memoria.
 
 \subsection{Valgrind}
-Valgrind\cite{valgrind} è un potente strumento di debug che nello specifico scova memory leaks e allocazioni improprie.
+Valgrind\cite{valgrind} è un potente strumento di debug, che scova memory leaks e allocazioni improprie.
 \\
 Anche questo tool è stato di fondamentale importanza dato che ci ha permesso di scovare leak causati dall'errata gestione della memoria, in particolar modo dai \hyperref[sec:errors]{\emph{Throwable}}.
 
@@ -1821,9 +1821,9 @@ GET / HTTP/1.1
 Host: 127.0.0.1
 \end{lstlisting}
 \subsection{PostMan}
-Postman\cite{postman} è una applicazione presente nel \emph{Chrome Web Store} e che gira come plug-in del famoso browser Google Chrome. E' concepita come tool per testare le API, in particolare permette di specificare una richiesta HTTP con focus su quelli che sono i parametri ed i metodi specifici del protocollo. Nel nostro caso ha permesso di costruire un pacchetto base HTTP e verificare la corretta risposta del web switch al variare dei parametri. Potendo, inoltre, concentrarci su un singolo file da richiedere al server remoto, si è potuto sfruttare PostMan per analizzare i tempi di risposta, soprattutto in condizioni di file di grandi dimensioni.
+Postman\cite{postman} è una applicazione presente nel \emph{Chrome Web Store} e che gira come plug-in del famoso browser Google Chrome. È concepita come tool per testare le API, in particolare permette di specificare una richiesta HTTP con focus su quelli che sono i parametri ed i metodi specifici del protocollo. Nel nostro caso ha permesso di costruire un pacchetto base HTTP e verificare la corretta risposta del web switch al variare dei parametri. Potendo, inoltre, concentrarci su un singolo file da richiedere al server remoto, si è potuto sfruttare PostMan per analizzare i tempi di risposta, soprattutto in condizioni di file di grandi dimensioni.
 \subsection{HttPerf} \label{ssec: httperf}
-E' un tool per misurare le performance di un server web, svilupatto dai laboratori della HP\cite{httperf}. E' stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il \emph{numero di connessioni}, il \emph{numero di richiesto}, il \emph{rate} con cui effettuare tali connessioni, la \emph{risorsa} da richiedere, nonchè la possibilità di aprire un numero necessario di porte TCP per verificare la risposta di un certo carico di lavoro durante una sessione.
+È un tool per misurare le performance di un server web, svilupatto dai laboratori della HP\cite{httperf}. È stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il \emph{numero di connessioni}, il \emph{numero di richiesto}, il \emph{rate} con cui effettuare tali connessioni, la \emph{risorsa} da richiedere, nonchè la possibilità di aprire un numero necessario di porte TCP per verificare la risposta di un certo carico di lavoro durante una sessione.
 \begin{lstlisting}
 $ httperf --server=localhost --uri=/index.html --port=8080 
           --num-conns=3000 --num-calls=2 --rate=500 --hog
@@ -1837,7 +1837,7 @@ $ httperf --server=localhost --uri=/index.html --port=8080
 \end{figure}
 Questo è il tool principe per quanto riguarda il test "finale" del web switch: ci permette di verificare che l'esperienza utente nell'utilizzo di Heimdall nell'inoltrare le richieste ad un cluster è confrontabile con una richiesta diretta ad una delle macchine del cluster stesso. Tuttavia in fase di sviluppo ci si è scontrati con le caratteristiche proprie di ciascun browser, per poterne valutare le performance. \\
 Ci si è imbattuti innanzitutto nella funzionalità di \emph{pipelining} disabilitata di default su \textbf{Firefox}\cite{firefox} ma che è possibile abilitare, oppure l'apertura di diverse connessioni con il server entro le quali vengono effettuate molteplici richieste come \emph{Chrome}\cite{chrome} o \emph{Safari}\cite{apple} o, generalmente, un qualsiasi browser moderno. \\\\
-E' possibile osservare tali peculiarità, durante la richiesta verso un sito mediamente complesso, come quello utilizzato durante i test, dal listato sottostante, preso dai \emph{file di log durante una navigazione verso l'homepage con Chrome Web Browser}.
+È possibile osservare tali peculiarità, durante la richiesta verso un sito mediamente complesso, come quello utilizzato durante i test, dal listato sottostante, preso dai \emph{file di log durante una navigazione verso l'homepage con Chrome Web Browser}.
 \begin{lstlisting}[basicstyle=\fontsize{4}{7}\selectfont\ttfamily]
 
 Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6882 - GET /font-awesome/css/font-awesome.min.css HTTP/1.1

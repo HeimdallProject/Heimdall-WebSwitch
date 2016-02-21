@@ -282,7 +282,7 @@ while(TRUE) {
 Questo è il vero cuore di Heimdall. Si noti che, da queste poche righe, il processo principale recupera dal config la porta dove mettersi in ascolto, crea un nuovo "\emph{server socket}" e si mette in attesa dell'arrivo di nuove connessioni in un loop infinito. Quando un nuovo client si collega la funzione \emph{accept\_connection()} ritorna e il processo principale prosegue la sua strada. Si noti che lo sviluppo della funzione \emph{main()} è stato pensato per poter eseguire il minor numero di linee di codice, per permettere al processo principale di tornare immediatamente in ascolto di nuove connessioni. Infatti, dopo aver salvato il file descriptor della socket in una apposita struttura dati (che sarà descritta nel paragrafo relativo al Pool Manager), il processo principale termina il primo ciclo del loop infinito e torna in ascolto di nuove connessioni. Come ultima cosa si sottolinea il fatto che l'esecuzione della chiamata \emph{fork()} viene eseguita prima dell'avvio del "server in ascolto", questo per evitare di dover attendere i lunghi tempi di fork.
 
 \subsection{File di configurazione}
-\label{sec:config}
+\label{ssec:config}
 I file di configurazione sono gli unici file accessibili all'utente che installa sulla propria macchina Heimdall WebSwitch. Tramite questi file è possibile impostare alcuni parametri per adattare il Web Switch alle proprie esigenze.
 \\
 \\
@@ -917,6 +917,8 @@ Il \emph{Worker} serve le richieste dei client, smistandole ai vari server prese
 Nell'attuale implementazione, il Worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
 \\
 Heimdall è implementato in modo tale da effettuare il \emph{prefork} di un numero configurabile di Worker (si veda \ref{sec:config}). Ciò è utile per evitare di rallentare l'esecuzione a causa del ritardo dovuto al tempo di creazione.
+\\\\
+Descriviamo ora il lavoro del worker, il codice dei seguenti paragrafi è presente nel file \emph{worker.c} e \emph{worker.h}.
 \subsubsection{Gestione delle richieste}
 \label{sec:requests_management}
 L'applicazione soddisfa le specifiche \emph{HTTP 1.1}\cite{http_1.1}, gestendo \textbf{connessioni persistenti}\cite{persistent_connections} e supportando il \textbf{pipelining}\cite{pipeling} delle richieste. Per ottenere il supporto alle connessioni persistenti, Heimdall chiude la connessione con il client allo scadere di un timer, al fine di ricevere più richieste tramite la stessa connessione. Ricevute, queste vengono inserite in una coda, per essere poi servite nello stesso ordine con cui sono state ricevute.
@@ -1064,224 +1066,124 @@ L'unica differenza con l'implementazione già descritta è il mantenimento, oltr
 
 \subsubsection{Thread di lettura}
 \label{sec:reader}
-Appena il worker riceve una nuova connesione da gestire, il thread di lettura ha il compito di leggere le richieste dalla socket, tramite una read bloccante. Successivamente, il thread accoda le richieste del client, per un numero massimo di richieste configurabile (si veda \ref{sec:config}), creando, per ogni richiesta, un thread di richiesta che, dialogando con un server nella pool, si occuperà di gestirla. Il thread di lettura sarà bloccato costantemente in attesa di nuove richieste, aggiornando il timer adibito alla verifica dello stato di vita del worker (si veda il paragrafo \ref{sec:watchdog}), alla ricezione di ogni nuova richiesta. 
+Appena il worker riceve una nuova connesione da gestire, il thread di lettura ha il compito di leggere le richieste dalla socket, tramite una \emph{read()} bloccante. Successivamente, il thread accoda le richieste del client, per un numero massimo di richieste configurabile (si veda \ref{sec:config}), creando, per ognuna di esse un thread di richiesta che, dialogando con il server schedulato, si occuperà di gestirla. Il thread di lettura sarà bloccato costantemente in attesa di nuove richieste, aggiornando la variabile adibita alla verifica dello stato di esecuzione del worker (si veda il paragrafo \ref{sec:watchdog}), alla ricezione di ogni nuova richiesta. 
 \begin{lstlisting}
 // Gets queue
 RequestQueuePtr queue = worker->requests_queue;
-
+ConfigPtr config = get_config();
+...
 while (TRUE) {
   // Waits
-  while (max_thr_request > 100) {
+  while (max_thr_request > max_thread_pchild) {
     if (pthread_cond_wait(&cond_thr_request, &mtx_thr_request) != 0) {
-      return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
+	// Handling error
     }
   }
-
   // Updates timer
   worker->watchdog->timestamp_worker = time(NULL);
 
   // Creates the node
   RequestNodePtr node = init_request_node();
-  if (node == NULL) {
-    get_log()->e(TAG_WORKER, "Malloc error in init_request_node");
-    worker->reader_thread_status = STATUS_ERROR;
-    return NULL;
-  }
-  node->worker_status = &worker->request_thread_status;
-
+  ...	
   // Enques the new node
   queue->enqueue(queue, node);
 
   // Receives request
   ThrowablePtr throwable = receive_http_request(worker->sockfd, node->request);
   if (throwable->is_an_error(throwable)) {
-
-    get_log()->t(throwable);
-    worker->reader_thread_status = STATUS_ERROR;
-
-    // if we get some error on cliebt socket
-    worker->worker_await_flag = WATCH_OVER;
-    pthread_cond_signal(&worker->await_cond);
-
-    pthread_exit(NULL);
+	// Handling error
+	...
   }
-
-  request_counter++;
 
   // Creates the request thread
   int request_creation = pthread_create(&(node->thread_id), NULL, request_work, (void *) node);
   if (request_creation != 0) {
-    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "read_work"));
-    worker->reader_thread_status = STATUS_ERROR;
-    return NULL;
+    // Handling error
+    ...
   }
-
-  // Gets mutex
-  if (pthread_mutex_lock(&mtx_thr_request) != 0) {
-    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-  }
-
-  max_thr_request++;
-
-  // Sends signal to condition
-  if (pthread_cond_signal(&cond_thr_request) != 0) {
-    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-  }
-
-  // Releases mutex
-  if (pthread_mutex_unlock(&mtx_thr_request) != 0) {
-    return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
-  }
+  ...
 }
 \end{lstlisting}
-Il thread eseguirà questo compito fino alla morte del worker.
+
 \subsubsection{Thread di richiesta}
 \label{sec:request}
 Il thread di richiesta è adibito all'invio ad un server della richiesta ricevuta dal \hyperref[sec:request]{\emph{thread di lettura}} e alla successiva ricezione della risposta. Il thread ottiene il server a cui deve inoltrare la richiesta, accedendo ad uno spazio di memoria condiviso con tutti i worker, tramite un semaforo:
 \begin{lstlisting}
-// Asks which host use
-ServerPtr remote = NULL;
 
 // retrieving remote host from the shared memory
-
 if(sem_wait(sem) == -1){
-  get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
-  exit(EXIT_FAILURE);
+  // Handling error
+  ...
 }
 
-int i;
-for (i = 0; i < number_of_worker; ++i){
-  if (worker_pool->worker_array[i] == (long)getpid()){
-    remote = &(worker_pool->worker_server[i]);
-    break;
-  }
-}
+// Get server from shared memory
+remote = &(worker_pool->worker_server[i]);
 
 if(sem_post(sem) == -1){
-  get_log()->e(TAG_WORKER, "Error in sem_wait - start_worker");
-  exit(EXIT_FAILURE);
+  // Handling error
+  ...
 }
 
 // checking for remote host status
 if (remote->status == SERVER_STATUS_BROKEN) {
-  *node->worker_status = STATUS_ERROR;
-
-  // if we get the server status as broken
-  if (pthread_mutex_unlock(&node->mutex) != 0) {
-    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-    *node->worker_status = STATUS_ERROR;
-    exit(EXIT_FAILURE);
-  }
-
-  return NULL;
+  // Server status error
+  // Handling error
+  ...
 }
 \end{lstlisting}
-Successivamente, apre una nuova connessione verso il server, riceve la risposta nel chunck e si pone in attesa della liberazione di questo da parte del \hyperref[sec:writer]{\emph{thread di scrittura}}, per poi rieseguire questa serie di operazioni, fino alla completa ricezione della risposta:
+Successivamente, apre una nuova connessione verso il server, riceve la risposta nel \emph{chunck} e si pone in attesa della liberazione di questo da parte del \hyperref[sec:writer]{\emph{thread di scrittura}}, per poi rieseguire questa serie di operazioni, fino alla completa ricezione della risposta:
 \begin{lstlisting}
 // Creates a new client
 int sockfd;
 throwable = create_client_socket(TCP, host, 80, &sockfd);
 if (throwable->is_an_error(throwable)) {
-  get_log()->t(throwable);
-  *node->worker_status = STATUS_ERROR;
-      
-  // Releases mutex
-  if (pthread_mutex_unlock(&node->mutex) != 0) {
-    get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-    *node->worker_status = STATUS_ERROR;
-    exit(EXIT_FAILURE);
-  }
-
-  return NULL;
+  // Handling error
+  ...
 }
 
 // Logging - request
 HTTPRequestPtr request = node->request;
-get_log()->r(RQST, (void *)request, host, sockfd);
-
-get_log()->d(TAG_WORKER, "io Dott. %ld del %ld Faccio richiesta a %s su socket: %d", (long) pthread_self(), (long) getpid(), node->request->req_host, sockfd);
-
-if (asprintf(&(node->request->req_host), "%s:80", host) < 0) {
-  get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-  *node->worker_status = STATUS_ERROR;
-  
-  // Releases mutex
-  if (pthread_mutex_unlock(&node->mutex) != 0) {
-      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-      *node->worker_status = STATUS_ERROR;
-  }
-
-  return NULL;
-}
 
 // Sends request
 throwable = send_http_request(sockfd, node->request);
 if (throwable->is_an_error(throwable)) {
-  get_log()->t(throwable);
-  *node->worker_status = STATUS_ERROR;
-
-  // Releases mutex
-  if (pthread_mutex_unlock(&node->mutex) != 0) {
-      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-      *node->worker_status = STATUS_ERROR;
-  }
-
-  return NULL;
+  // Handling error
+  ...
 }
 
 // Receives header into http_response
 throwable = receive_http_response_header(sockfd, node->response);
 if (throwable->is_an_error(throwable)) {
-  get_log()->t(throwable);
-  *node->worker_status = STATUS_ERROR;
-  
-  // Releases mutex
-  if (pthread_mutex_unlock(&node->mutex) != 0) {
-      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-      *node->worker_status = STATUS_ERROR;
-  }
-
-  return NULL;
+  // Handling error
+  ...
 }
 
 // Logging - response
 HTTPResponsePtr response = node->response;
-get_log()->r(RESP, (void *)response, host, sockfd);
-
 
 // Sends signal to condition
 if (pthread_cond_signal(&node->condition) != 0) {
-  get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-  *node->worker_status = STATUS_ERROR;
-  
-  // Releases mutex
-  if (pthread_mutex_unlock(&node->mutex) != 0) {
-      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-      *node->worker_status = STATUS_ERROR;
-  }
-
-  return NULL;
+  // Handling error
+  ...
 }
 
 // Releases mutex
 if (pthread_mutex_unlock(&node->mutex) != 0) {
-  get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "request_work"));
-  *node->worker_status = STATUS_ERROR;
-  return NULL;
+  // Handling error
+  ...
 }
 
 // Receives the response in chunks
 throwable = receive_http_chunks(sockfd, node->response, node->chunk);
 if (throwable->is_an_error(throwable)) {
-  get_log()->t(throwable);
-  *node->worker_status = STATUS_ERROR;
-  return NULL;
+  // Handling error
+  ...
 }
 \end{lstlisting}
-Concluso il suo lavoro, il thread morirà, chiudendo la connessione verso il server.
+Concluso il suo lavoro, il thread terminerà, chiudendo la connessione verso il server.
 \subsubsection{Thread di scrittura}
 \label{sec:writer}
-Infine, il thread di scrittura è adibito all'inoltro della risposta ottenuta tramite il \hyperref[sec:request]{\emph{thread di richiesta}}. Dovendo rispondere in ordine, il thread si trova in loop sulla coda delle richieste, chiedendo costasntemente il suo primo elemento. Dopo aver inviato l'header di risposta, i due thread iniziano a cooperare per mezzo di una condition, andando a scrivere e a leggere nella stessa area di memoria, il \hyperref[sec:chunk]{\emph{chunk}}.
+Infine, il thread di scrittura è adibito all'inoltro della risposta ottenuta tramite il \hyperref[sec:request]{\emph{thread di richiesta}}. Dovendo rispondere in ordine, il thread si trova in \emph{loop} sulla coda delle richieste, chiedendo costantemente il suo primo elemento. Dopo aver inviato l'header di risposta, i due thread iniziano a cooperare per mezzo di una \emph{condition} , andando a scrivere e a leggere nella stessa area di memoria, il \hyperref[sec:chunk]{\emph{chunk}}.
 \begin{lstlisting}
 // Gets queue
 RequestQueuePtr queue = worker->requests_queue;
@@ -1293,38 +1195,28 @@ while(TRUE) {
   if (node != NULL) {
     // Gets mutex
     if (pthread_mutex_lock(&node->mutex) != 0) {
-      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
-      worker->writer_thread_status = STATUS_ERROR;
-      return NULL;
+     // Handling error
+     ...
     }
 
     while (node->response->response->header == NULL) {
       if (pthread_cond_wait(&node->condition, &node->mutex) != 0) {
-          get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
-          worker->writer_thread_status = STATUS_ERROR;
-          return NULL;
+        // Handling error
+        ...
       }
     }
 
     // Sends the response header
     ThrowablePtr throwable = send_http_response_header(worker->sockfd, node->response);
     if (throwable->is_an_error(throwable)) {
-      get_log()->t(throwable);
-      worker->writer_thread_status = STATUS_ERROR;
-
-      // unlock if error
-      if (pthread_mutex_unlock(&node->mutex) != 0) {
-          get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
-      }
-
-      return NULL;
+        // Handling error
+        ...
     }
 
     // Releases mutex
     if (pthread_mutex_unlock(&node->mutex) != 0) {
-      get_log()->t(get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "write_work"));
-      worker->writer_thread_status = STATUS_ERROR;
-      return NULL;
+        // Handling error
+        ...
     }
 
     // Gets the chunk
@@ -1333,9 +1225,8 @@ while(TRUE) {
     // Sends the response chunks
     throwable = send_http_chunks(worker->sockfd, chunk, node->response->response->req_content_len);
     if (throwable->is_an_error(throwable)) {
-      get_log()->t(throwable);
-      worker->writer_thread_status = STATUS_ERROR;
-      return NULL;
+        // Handling error
+        ...
     }
 
     // Dequeues the request and it destroys that
@@ -1344,7 +1235,6 @@ while(TRUE) {
   }
 }
 \end{lstlisting}
-
 \subsubsection{Thread di watchdog}
 \label{sec:watchdog}
 \begin{figure}[h]
@@ -1352,40 +1242,39 @@ while(TRUE) {
 \includegraphics[width=\textwidth]{images/watchdog}
 \caption{Schema della procedura di controllo sul tempo di esecuzione \label{fig: watchdog}}
 \end{figure}
-Il thread di \emph{watchdog}, letteralmente di sorveglianza, è adibito al controllo della \textbf{corretta esecuzione del worker}, in particolare al controllo che tale esecuzione, nell'occupare per eccessivo tempo le risorse del sistema, non vada a creare un collo di bottiglia che via via porta al collasso del programma. Per far questo esso viene eseguito in modalità \emph{detached} dal thread principale del worker ed è legato dalle operazioni che vengono eseguite dal processo da una serie di variabili: 
+Il thread di \emph{watchdog}, letteralmente di sorveglianza, è adibito al controllo della \textbf{corretta esecuzione del worker}, in particolare al controllo che tale esecuzione, nell'occupare per eccessivo tempo le risorse del sistema, non vada a creare un collo di bottiglia che via via porti al collasso del programma. Per far questo esso viene eseguito in modalità \emph{detached} dal thread principale del worker restando però legato ad alcune variabili del processo: 
 \begin{itemize}
-	\item \textbf{\emph{pthread\_condition}}: condizione thread POSIX su cui è in attesa il thread principale del worker
-	\item \textbf{\emph{flag}}: variabile legata alla condition di cui sopra che viene utilizzata per ciclare in attesa dello sblocco della condizione.
-	\item \textbf{\emph{timestamp}}: valore temporale settato dal thread di lettura della richiesta / risposta in arrivo per confermare la lettura in corso di un pacchetto
+	\item \emph{worker\_await\_cond}: condizione thread POSIX su cui è in attesa il thread principale del worker;
+	\item \emph{worker\_await\_flag}: variabile legata alla condition di cui sopra, che viene utilizzata per ciclare in attesa dello sblocco della condizione;
+	\item \emph{timestamp\_worker}: valore temporale settato dal thread di lettura della richiesta (o risposta) in arrivo per confermare la lettura in corso di un pacchetto.
 \end{itemize}
 Come appare da una prima analisi della struct del watchdog.
 \begin{lstlisting}
 typedef struct watchdog_thread {
-  int status;                                     
+  ...                           
   pthread_cond_t *worker_await_cond;             
   int *worker_await_flag;
-
   time_t killer_time;       // to schedule the watchdog wakeup
   time_t timeout_worker;    // to abort a thread run
   time_t timestamp_worker;  // timestamp last worker operation
 } Watchdog, *WatchdogPtr;
 \end{lstlisting}
-Dove il \emph{killer\_time} ed il \emph{timeout\_worker} sono definiti dal file di configurazione per dare modo all'operatore di modellare l'implementazione sulle caratteristiche della macchina su cui gira il web switch. \\\\
+Dove il \emph{killer\_time} ed il \emph{timeout\_worker} sono definiti dal file di configurazione (\ref{ssec:config}), per dare modo all'operatore di modellare l'implementazione sulle caratteristiche della macchina su cui gira il web switch. \\\\
 Una più schematica rappresentazione del flusso di esecuzione è possibile vederla in figura \ref{fig: watchdog}.
-In particolare quando vengono distaccati i thread ausiliari, il thread principale del worker si mette in attesa della fine di una delle condizioni di termine del servizio di cui si è già discusso sopra, fra cui anche lo scadere del massimo tempo di esecuzione disponibile. In particolare, ad ogni iterazione del thread di lettura, avremo un aggiornamento del timestamp del worker, per cui ogni volta che si ha l'arrivo di una risposta da reinoltrare o di una richiesta da soddisfare si assume il server come operativo od il client in ascolto. \\ 
-Contemporaneamente il watchdog rimane in \emph{nanosleep} per un lasso di tempo pari a quello configurato, a meno dell'arrivo di segnali che vengono gestiti e dopo i quali il watchdog ritorna in attesa, scaduto il quale la variabile di timestamp viene controllata. Se risulta \emph{scaduta} viene aggiornato il flag di attesa del worker e gli viene segnalato di riattivarsi e di mettere in pratica le procedure di \emph{clean up} per scollegarsi dal client e dal server assegnato. \\\\
-Osserviamo come questo controllo viene fatto su una variabile settata dal thread di lettura, permettendoci con semplicità di valutare eventuali problemi sia sulla linea fra web switch e macchina del cluster che fra web switch e client, evitando il pericoloso stato di attesa che porterebbe ad uno stallo del programma.
+In particolare quando vengono distaccati i thread ausiliari, il thread principale del worker si mette in attesa della fine di una delle condizioni di termine del servizio di cui si è già discusso sopra, fra cui anche lo scadere del massimo tempo di esecuzione disponibile. In particolare, ad ogni iterazione del thread di lettura, avremo un aggiornamento del timestamp del worker, per cui ogni volta che si ha l'arrivo di una risposta da reinoltrare o di una richiesta da soddisfare, si assume il server come operativo od il client in ascolto. \\ 
+Contemporaneamente il watchdog rimane in \emph{nanosleep} per un lasso di tempo pari a quello configurato, a meno dell'arrivo di segnali che vengono gestiti e dopo i quali il watchdog ritorna in attesa, scaduto il quale la variabile di timestamp viene controllata. Se risulta scaduta viene aggiornato il flag di attesa del worker e gli viene segnalato di riattivarsi e di mettere in pratica le procedure di \emph{clean up} per scollegarsi dal client e dal server assegnato. \\\\
+Osserviamo come questo controllo sui tempi di esecuzione viene iterato su una variabile settata dal thread di lettura, permettendoci con semplicità di valutare eventuali problemi sia sulla linea fra web switch e macchina del cluster che fra web switch e client, evitando il pericoloso stato di attesa che porterebbe ad uno stallo del programma.
 
 \newpage
 \section{Politiche di scheduling}
  \label{sec: sched_p}
-La schedulazione permette la selezione della macchina predisposta a rispondere alla richiesta HTTP appena arrivata da parte del client, si basa su una tecnica nota come \textbf{bilanciamento del carico}, ovvero la distribuzione del carico, solitamente di elaborazione o di erogazione di uno specifico servizio, tra più server. Questo permette di poter \textbf{scalare} sulla potenza di calcolo del cluster dietro al web switch, lasciando che siano diverse macchine a rispondere a seconda di quella che è più veloce, più performante, oppure monitorando costantemente lo stato dei server e scegliendo quello meno sottoposto ad una pressione del carico di lavoro. Le macchine, specificando hostname ed indirizzi IP, sono date in un apposito file di configurazione definito in \ref{ssec:config_server} .
+La schedulazione permette la selezione della macchina predisposta a rispondere alla richiesta HTTP appena arrivata da parte del client. Si basa su una tecnica nota come \textbf{bilanciamento del carico}, ovvero la distribuzione del carico, solitamente di elaborazione o di erogazione di uno specifico servizio, tra più server. Questo permette di poter \textbf{scalare} sulla potenza di calcolo del cluster dietro al web switch, lasciando che siano diverse macchine a rispondere a seconda di quella che è più veloce, più performante, oppure monitorando costantemente lo stato dei server e scegliendo quello meno sottoposto ad una pressione del carico di lavoro. Le macchine, specificando hostname ed indirizzi IP, sono date in un apposito file di configurazione definito in \ref{ssec:config_server} .
 \\
 \\
-Nella nostra implementazione \textbf{thread scheduler} si occupa di fornire,  ogni volta che viene invocato, una macchina selezionata secondo una delle due politiche che andremo ora a spiegare nel dettaglio.
+Nella nostra implementazione il thread scheduler si occupa di fornire,  ogni volta che viene invocato, una macchina selezionata secondo una delle due politiche che andremo ora a spiegare nel dettaglio. Le implementazioni di seguito descritte si trovano nei file \emph{round\_robin.c}, \emph{scheduler.c}, \emph{circular.c} e  \emph{server\_pool.c}. 
 
 \subsection{State-less: implementazione con Round-Robin}
-L'algoritmo di scheduling Round-Robin (da adesso RR, \emph{n.d.r.}) è un algoritmo che agisce con prelazione distribuendo in maniera equa il lavoro, secondo una metrica stabilita in partenza. Vediamo quindi la struttura che si occupa di gestire la schedulazione tramite RR e che contiene i puntatori alle funzioni \emph{wrapper} che garantiscono il suo corretto funzionamento.\\
+L'algoritmo di scheduling Round-Robin (da adesso RR, \emph{n.d.r.}) è un algoritmo che agisce con prelazione distribuendo in maniera equa il lavoro, secondo una metrica stabilita in partenza. Vediamo quindi la struttura che si occupa di gestire la schedulazione tramite RR e che contiene i puntatori alle funzioni \emph{wrapper} che garantiscono il suo corretto funzionamento.
 \begin{lstlisting}
 typedef struct round_robin_struct {
   CircularPtr circular;
@@ -1401,15 +1290,8 @@ typedef struct round_robin_struct {
 \includegraphics[width=\textwidth]{images/rrobin_stateless}
 \caption{Schema di funzionamento del buffer circolare \label{fig: rrobin_sl}}
 \end{figure}
-Possiamo osservare come siano mantenuti i puntatori alle funzioni necessarie al caso di politica di scheduling \emph{state-aware}, ma per ora l'unica vera funziona a cui si farà riferimento è quella per il recupero del server correntemente selezionato. \\\\
-L'algoritmo funziona utilizzando un \textbf{buffer circolare} come possiamo vedere in figura \ref{fig: rrobin_sl}: questo permette di iterare la selezione su una lista di elementi precedentemente caricata. Possiamo osservare che, oltre alle funzioni e le variabili necessarie a garantire l'accesso atomico all'area di memoria che contiene il buffer, necessario come vedremo nel caso \emph{state-aware} per evitare la concorrenza con il thread che si occupa dell'update dello stato, sono mantenuti:
-	\begin{itemize}
-  		\item Un puntatore all'array di server 
-  		\item La posizione attuale del puntatore di \emph{testa} 
-  		\item La lunghezza del buffer, necessaria anche per le operazioni di aggiornamento dei puntatori
-  		\item I puntatori di \emph{testa} e \emph{coda} per avanzamento e lettura dal buffer
-	\end{itemize}
-	Le funzioni restanti permettono di inizializzare il buffer (oltre che di liberare con sicurezza l'area di memoria occupata) e di aggiornare i puntatori sopra menzionati.\\\\
+Possiamo osservare come siano mantenuti i puntatori alle funzioni necessarie al caso di politica di scheduling \emph{state-aware}, ma per ora l'unica funzione a cui si farà riferimento è quella per il recupero del server correntemente selezionato. \\\\
+L'algoritmo funziona utilizzando un \emph{buffer circolare}, come possiamo vedere in figura \ref{fig: rrobin_sl}: questo permette di iterare la selezione su una lista di elementi precedentemente caricata. 
 \begin{lstlisting}
 typedef struct circular_buffer {
   Server *buffer;
@@ -1428,10 +1310,17 @@ typedef struct circular_buffer {
   void (*destroy_buffer)(struct circular_buffer *circular);
 } Circular, *CircularPtr;
 \end{lstlisting}
-È necessario quindi specificare tre passi per il corretto funzionamento, dopo aver dato un rapido sguardo alla struttura che lo rappresenta nella nostra implementazione. 
+Possiamo osservare che, oltre alle funzioni e le variabili necessarie a garantire l'accesso atomico all'area di memoria che contiene il buffer, condizione necessaria che vedremo nel caso \emph{state-aware} (per evitare la concorrenza con il thread che si occupa dell'update dello stato), sono mantenuti:
+	\begin{itemize}
+  		\item \emph{buffer}: un puntatore all'array di server;
+  		\item \emph{buffer\_position}: la posizione attuale del puntatore di testa;
+  		\item \emph{buffer\_len}: la lunghezza del buffer, necessaria anche per le operazioni di aggiornamento dei puntatori;
+  		\item \emph{head, tail}: i puntatori di \emph{testa} e \emph{coda} per avanzamento e lettura dal buffer.
+	\end{itemize}
+	Le funzioni restanti permettono di inizializzare il buffer (oltre che di liberare con sicurezza l'area di memoria occupata) e di aggiornare i puntatori sopra menzionati. È necessario quindi specificare tre passi per il corretto funzionamento. 
 \\
 \\
-\textbf{Inizializzazione del buffer} in questa fase la struttura dati che rappresenta il buffer circolare, che abbiamo visto mantenere due puntatori di \emph{testa} e \emph{coda}, viene inizializzata associandovi un array di puntatori di strutture di tipo \emph{Server}, precedentemente allocata ed il cui pattern è stato fissato, e viene eseguita la funzione di allocazione del buffer: 
+\textbf{Inizializzazione del buffer}: in questa fase la struttura dati che rappresenta il buffer circolare, che abbiamo visto mantenere due puntatori di testa e coda, viene inizializzata associandovi un array di puntatori di strutture di tipo \emph{Server}, precedentemente allocata ed il cui pattern è stato fissato, e viene eseguita la funzione di allocazione del buffer: 
 \begin{lstlisting}
 /* inside allocate_buffer ... */
 // allocating the buffer
@@ -1441,12 +1330,12 @@ circular->buffer_len = len;
 circular->head = circular->buffer;
 circular->tail = circular->buffer + (len - 1);
 \end{lstlisting}
-In un'ottica di \emph{produttore vs consumatore}, chiaramente visibile nella figura precedente, è necessario che testa e coda non coincidano mai per evitare concorrenza. In questa implementazione si è deciso di separare l'accesso concorrente alla struttura, per il suo aggiornamento, e la lettura dei dati in essa contenuti. Quindi la \emph{testa} conterrà il puntatore al prossimo server da selezionare per schedulare la richiesta, mentre la \emph{coda} punterà all'area di memoria contenente il server attualmente selezione per la schedulazione. 
+In un'ottica di \emph{produttore vs consumatore}, chiaramente visibile nella figura precedente, è necessario che testa e coda non coincidano mai per evitare concorrenza. In questa implementazione si è deciso di separare l'accesso concorrente alla struttura, per il suo aggiornamento, e la lettura dei dati in essa contenuti. Quindi la testa conterrà il puntatore al prossimo server da selezionare per schedulare la richiesta, mentre la coda punterà all'area di memoria contenente il server attualmente selezionato per la schedulazione. 
 \\
 \\
-\textbf{Aggiornamento dei puntatori} per poter sfruttare le peculiarità di questa struttura dati è necessario che i due puntatori vengano aggiornati secondo l'aritmetica del buffer circolare per cui, una volta raggiunta l'estremità dell'array, il valore successivo della posizione corrente ritorna ad essere quello del primo valore dello stesso array. 
+\textbf{Aggiornamento dei puntatori}: per poter sfruttare le peculiarità di questa struttura dati è necessario che i due puntatori vengano aggiornati secondo l'aritmetica del buffer circolare. Per cui, una volta raggiunta l'estremità dell'array, il valore successivo della posizione corrente ritorna ad essere quello del primo valore dello stesso array. 
 \\
-Nel dettaglio viene eseguito, secondo le specifiche sopra riportate, nella nostra implementazione, la seguente funzione:
+Nel dettaglio viene eseguito, secondo le specifiche sopra riportate nella nostra implementazione, la seguente funzione:
 \begin{lstlisting}
 void progress(CircularPtr circular) {
   // recomputing tail, head and buffer position
@@ -1455,14 +1344,12 @@ void progress(CircularPtr circular) {
   circular->head = circular->buffer + circular->buffer_position;
 }
 \end{lstlisting}
-\textbf{Selezione del server} a questo punto, una volta che il thread chiamante invoca lo scheduler per recuperare il server che è stato selezionato dall'algoritmo, lo scheduler a sua volta invoca la funzione wrapper dalla struttura che gestisce la politica RR e questa esegue il codice ora riportato.
+\textbf{Selezione del server}: a questo punto, una volta che il thread chiamante invoca lo scheduler per recuperare il server che è stato selezionato dall'algoritmo, lo scheduler a sua volta invoca la funzione wrapper dalla struttura che gestisce la politica RR e questa esegue il codice ora riportato.
 \begin{lstlisting}
 /* inside get_server ... */
 // allocating server ready struct
 ServerPtr server_ready = malloc(sizeof(Server));
-
-/* ... */
-
+...
 // stepping the circular buffer
 circular->progress(circular),
 // retrieving server from tail 
@@ -1479,16 +1366,24 @@ In conclusione quello che stiamo attuando è un \textbf{bilanciamento del carico
 \caption{Schema della procedura di aggiornamento dello stato dei server
 \label{fig:rrobin_sa}}
 \end{figure}
-Un algoritmo di schedulazione cosiddetto \emph{state-aware} si occupa di selezionare la macchina a cui inoltrare la connessione basandosi non solo sulla conoscenza delle macchine presenti nel cluster ma anche sul loro status. In particolare, in questa implementazione, si è deciso di ricorrere all'analisi dei risultati di un \textbf{monitor di carico} presente su ciascuna delle macchine del cluster (in riferimento alle assunzioni progettuali, questi è i modulo \emph{ApacheStatus} di cui si parlerà più avanti in \ref{sssec:apachestatus}). Tale monitor, che ritorna una serie di parametri indici dell'attuale impiego di risorse della macchina, permette di definire un \textbf{algoritmo pesato} per la selezione del server che risponderà alla connessione in arrivo al web switch. \\
-Anche in questo caso andremo a determinare una serie di passi che vengono seguiti, tenendo conto che in fase progettuale \emph{si è deciso di sfruttare lo stesso algoritmo RR} già utilizzato nel caso \emph{state-less}, ma che ricordiamo essere stato predisposto per una ulteriore versione pesata. Per far questo si lavora sulla struttura Server \\\\
-\textbf{Detachment del thread di update} nei file di configurazione dell'applicazione è possibile definire due livelli di lavoro:
+Un algoritmo di schedulazione cosiddetto \emph{state-aware}, si occupa di selezionare la macchina a cui inoltrare la connessione, basandosi non solo sulla conoscenza delle macchine presenti nel cluster ma anche sul loro status. In particolare, in questa implementazione, si è deciso di ricorrere all'analisi dei risultati di un \textbf{monitor di carico} presente su ciascuna delle macchine del cluster (in riferimento alle assunzioni progettuali, questo è il modulo \emph{ApacheStatus} di cui si parlerà più avanti in \ref{sssec:apachestatus}). Tale monitor, che ritorna una serie di parametri indici dell'attuale impiego di risorse della macchina, permette di definire un \textbf{algoritmo pesato} per la selezione del server che risponderà alla connessione in arrivo al web switch. \\
+Anche in questo caso andremo a determinare una serie di passi che vengono seguiti, tenendo conto che in fase progettuale si è deciso di sfruttare lo stesso algoritmo RR già utilizzato nel caso \emph{state-less}, ma che ricordiamo essere stato predisposto per una ulteriore versione pesata. Per far questo si lavora sulla struttura Server:
+\begin{lstlisting}
+typedef struct server {
+    char *address;
+    char *ip;
+    int  weight;
+    int  status;
+} Server, *ServerPtr;
+\end{lstlisting}
+\textbf{Detachment del thread di update}: nei file di configurazione dell'applicazione è possibile definire due livelli di lavoro:
 	\begin{itemize}
-		\item \textbf{AWARENESS\_LEVEL\_LOW} che corrisponde ad una versione state-less dell'algoritmo RR e si riporta al caso precedente
-		\item \textbf{AWARENESS\_LEVEL\_HIGH} che corrisponde all'algoritmo state-aware e che necessiterà di una routine di aggiornamento dello stato delle macchine del cluster
+		\item \emph{AWARENESS\_LEVEL\_LOW}: che corrisponde ad una versione state-less dell'algoritmo RR e si riporta al caso precedente;
+		\item \emph{AWARENESS\_LEVEL\_HIGH}: che corrisponde all'algoritmo state-aware e che necessiterà di una routine di aggiornamento dello stato delle macchine del cluster.
 	\end{itemize}
-	Il secondo caso è proprio quello qui descritto e corrisponde a lavorare utilizzando, oltre al thread principale che si occupa di accettare le connessioni in arrivo, un \textbf{thread predisposto alla sola verifica dello stato dei server}. Tale thread viene istanziato nel momento in cui viene inizializzato lo scheduler e vengono allocate le strutture dati alla base di RR. \\
+	Il secondo caso è proprio quello qui descritto e corrisponde a lavorare utilizzando, oltre al thread principale che si occupa di accettare le connessioni in arrivo, un thread predisposto alla sola verifica dello stato dei server. Tale thread viene istanziato nel momento in cui viene inizializzato lo scheduler e vengono allocate le strutture dati alla base di RR. \\
 	Il lavoro di tale thread, che ora vedremo nel dettaglio, è quello deducibile da figura \ref{fig:rrobin_sa}.\\\\
-\textbf{Routine di score} all'interno di questa routine, che viene eseguita da un thread distaccato e che viene eseguita una volta ogni \emph{up\_time} secondi, tempo di update in secondi definito dall'utente nei file di configurazione, viene richiamata più volte la funzione che si occupa di recuperare e parsare l'interrogazione del modulo \emph{ApacheStatus} e recupare da questa i \textbf{worker in \emph{idle state} ed i worker in \emph{busy state}}. A questo punto si va a modificare il nodo della pool dei server precedentemente allocata (di cui si è già parlato in \ref{ssec: sched}). Viene quindi eseguita la sequente routine. \\
+\textbf{Routine di score}: all'interno di questa routine, che viene eseguita da un thread distaccato e che viene eseguita una volta ogni \emph{up\_time} secondi, tempo di update in secondi definito dall'utente nei file di configurazione, viene richiamata più volte la funzione che si occupa di recuperare e parsare l'interrogazione del modulo \emph{ApacheStatus}, e recupare da questa i Worker in \emph{idle state} ed i Worker in \emph{busy state}. A questo punto si va a modificare il nodo della pool dei server precedentemente allocata (di cui si è già parlato in \ref{ssec: sched}). Viene quindi eseguita la sequente routine. \\
 \begin{lstlisting}
 /* inside apache_score ... */
 // retrieving status from remote Apache machine
@@ -1501,8 +1396,7 @@ if (throwable->is_an_error(throwable)) {
 } else {
   server->status = SERVER_STATUS_READY;
 }
-
-/* ... */
+...
 int score;
 int IDLE_WORKERS  = apache_status->idle_workers;
 int TOTAL_WORKERS = apache_status->busy_workers + IDLE_WORKERS;
@@ -1513,19 +1407,22 @@ score = (IDLE_WORKERS   - WEIGHT_DEFAULT)   *
         (TOTAL_WORKERS  - WEIGHT_DEFAULT)   +   WEIGHT_DEFAULT;
 server->weight = score;
 \end{lstlisting}
-Alla fine quello che ottengo è uno \textbf{score} che vado a settare nel nodo contenuto nella \textbf{pool dei server} che viene definito dalla relazione matematica che è così esplicitata:
+Alla fine quello che si ottiene è uno \emph{score} che viene settato nel nodo contenuto nella \emph{pool dei server} che viene definito dalla relazione matematica che è così esplicitata:
 \begin{align*}
   score\Big(\frac{IDLE\_WORKERS}{TOTAL\_WORKERS}\Big) ~ \in ~ [w, W]
 \end{align*}
-ottenendo quello che un \emph{mapping} del rapporto fra i worker occupati nella macchina ed i worker totali a disposizione di Apache per rispondere ad una richiesta in arriva. Tale indice viene memorizzato come \emph{peso del server nel cluster}.\\
-Notiamo che nel caso ci siano problemi nel recuperare l'indice di score si supporrà che il server non è momentaneamente disponibile ed il suo status verrà segnalato come BROKEN, fino al prossimo aggiornamento.\\\\
-\textbf{RR pesato} dai nodi della pool dei server aggiornati con il loro peso viene costruito, secondo lo schema in figura \ref{fig:rrobin_sa}, un pattern dei server secondo il loro peso, di modo da distribuire il carico secondo sempre un algoritmo RR, ma in cui per ogni sequenza il server viene selezionato un numero di volte pari al suo peso. Dunque una macchina comparirà massimo \emph{W} volte in caso di basso carico di lavoro ed al minimo \emph{w} volte in condizioni di forte stress. I due parametri sono, in questa implementazione, macro che possono essere modificate a seconda dei limiti delle macchine del proprio cluster, di default \emph{w = 1} e \emph{W = 5}, soggetti al tuning del web switch in fase di installazione ed ottimizzazione. Alla prima iterazione tutte le macchine sono di default settate con peso minimo (pari a \emph{w})\\\\
-In conclusione, con questa opzione abilitata, si ha la possibilità di ridistribuire equamente il lavoro, permettendo ah Heimdall di adattare la distribuzione del carico a secondo dello stato attuale, evitando di sovraccaricare nodi sensibili allo stress in determinate condizioni o che sono stati sottoposti già ad uno stress eccessivo. Si è scelto di riadattare RR per ottenere una soluzione modulare e che fosse facile riadattare ed ottimizzare a seconda di entrambe le condizioni operative, sia senza che con conoscenza dello stato delle macchine. Osserviamo infatti che in entrambi i casi RR risulta pesato, nel secondo caso preso in esame tale peso non è più fisso e minimo ma variabile dipendentemente dalle condizioni delle macchine.\\\\
-La ricerca di una soluzione modulare che possa essere presa poi in esame da futuri sviluppatore e possa essere oggetto di un \emph{tuning} più approfondito, è stata intrapresa perseguendo il principio per cui \emph{simplicity favours regularity}.
+ottenendo quello che un \emph{mapping} del rapporto fra i worker occupati nella macchina ed i worker totali a disposizione di Apache, per rispondere ad una richiesta in arrivo. Tale indice viene memorizzato come peso del server nel cluster.
+\\
+Notiamo che nel caso ci siano problemi nel recuperare l'indice di score, si supporrà che il server non è momentaneamente disponibile ed il suo status verrà segnalato come inattivo (\emph{BROKEN}), fino al prossimo aggiornamento.
+\\\\
+\textbf{RR pesato}: dai nodi della pool dei server aggiornati con il loro peso viene costruito, secondo lo schema in figura \ref{fig:rrobin_sa}, un pattern dei server, di modo da distribuire il carico secondo sempre un algoritmo RR, ma in cui per ogni sequenza il server viene selezionato un numero di volte pari al suo peso. Dunque una macchina comparirà massimo \emph{W} volte in caso di basso carico di lavoro ed al minimo \emph{w} volte in condizioni di forte stress. I due parametri sono, in questa implementazione, di default \emph{w = 1} e \emph{W = 5}, stabiliti in seguito alla fase di test di cui parleremo dopo. Alla prima iterazione tutte le macchine sono settate con peso minimo (pari a \emph{w}).
+\\\\
+In conclusione, con questa opzione abilitata, si ha la possibilità di ridistribuire equamente il lavoro, permettendo a Heimdall di adattare la distribuzione del carico a seconda dello stato delle macchine, evitando di sovraccaricare nodi sensibili allo stress in determinate condizioni o che sono stati sottoposti già ad uno stress eccessivo. Si è scelto di riadattare RR per ottenere una soluzione modulare. Osserviamo infatti che in entrambi i casi RR risulta pesato, nel secondo caso preso in esame tale peso non è più fisso e minimo ma variabile dipendentemente dalle condizioni delle macchine.\\\\
+La ricerca di una soluzione modulare, che possa essere presa poi in esame da futuri sviluppatori, e possa essere oggetto di un \emph{tuning} più approfondito, è stata intrapresa perseguendo il principio per cui \emph{simplicity favours regularity}.
 
 \subsubsection{Modulo Apache Status}
 \label{sssec:apachestatus}
-Il modulo Apache Status (mod\_status)\cite{mod_status} è un modulo che fornisce informazioni sull'attività e le prestazioni del server in cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nessun altro componente aggiuntivo. Per utilizzarlo è necessario solo attivarlo nella configurazione del web server. Il modulo formatta in una pagina HTML tutta una serie di statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante machine readable, versione utilizzata in questa applicazione).
+Il modulo Apache Status (mod\_status)\cite{mod_status} è un modulo che fornisce informazioni sull'attività e le prestazioni del server su cui è installato. Questo modulo è disponibile nella versione base di Apache senza il bisogno di dover scaricare nessun altro componente aggiuntivo. Per utilizzarlo è necessario solo attivarlo nella configurazione del web server. Il modulo formatta in una pagina HTML tutta una serie di statistiche e dati facilmente leggibili da un essere umano (oppure nella sua variante \emph{machine readable}, versione utilizzata in questa applicazione).
 \\
 I dettagli che fornisce sono:
 
@@ -1536,8 +1433,7 @@ I dettagli che fornisce sono:
   \item Il tempo da quando il server è stato avviato/riavviato;
   \item Il numero medio di richieste per secondo, il numero di bytes serviti per secondo e il numero medio di bytes per richiesta.
 \end{itemize}
-
-Quindi, tramite questo modulo, Heimdall è in grado di verificare lo stato di ciascuna macchina (con a bordo un server Apache), senza la necessità di installare alcun componente aggiuntivo o di valutare empiricamente il carico del server tramite, per esempio, il tempo di risposta di quest'ultimo.
+Quindi, tramite questo modulo, Heimdall è in grado di verificare lo stato di ciascuna macchina, senza la necessità di installare alcun componente aggiuntivo o di valutare empiricamente il carico del server tramite, per esempio, il tempo di risposta di quest'ultimo. Infatti Heimdall è in grado di recuperare direttamente informazioni riguardanti l'effettiva occupazione dei Worker in esecuzione sulla macchina remota.
 
 \subsubsection{Performance della politica state aware}
 È interessante osservare l'effettivo lavoro dello scheduler e della politica di \emph{state awareness} già commentata, in una condizione di forte stress delle macchine, nell'estratto del file di log che segue. La situazione proposta è stata ottenuta sovraccaricando una delle macchina del cluster e lasciando che il web switch si accorgesse di tale sovraccarico per bilanciare le richieste in arrivo.
@@ -1567,20 +1463,20 @@ Abbiamo visto più volte durante questa trattazione che è stato necessario sott
     \item Macchina virtuale con Ubuntu Server 14.04 - 512 MB di RAM 
     \item Macchina con Ubuntu Desktop 15.10 - 6 GB di RAM, processore Intel i3 (1,9 GHz)   
   \end{itemize}
-Nel primo caso durante tutta la fase di sviluppo, nel secondo caso durante i test di carico per dare possibilità al web switch di non dover dipendere dall'hardware virtualizzato. Consideremo in tutti i casi la rete non saturata, in particolare non consideriamo la possibilità di influenze da parte di traffico generato da altre fonti essendo i test, per necessità, condotti o con una rete locale fra macchine collegate da uno switch di rete, oppure in locale su diverse macchine virtuali. 
+Nel primo caso durante tutta la fase di sviluppo, nel secondo caso durante i test di carico per dare possibilità al web switch di non dover dipendere dall'hardware virtualizzato. Considereremo in tutti i casi la rete non saturata, in particolare non consideriamo la possibilità di influenze da parte di traffico generato da altre fonti essendo i test, per necessità, condotti o con una rete locale fra macchine collegate da uno switch di rete, oppure in locale su diverse macchine virtuali. 
 \\
 \\ 
-\textbf{Numero di processi e limite dei file descriptor} durante i test che seguono il numero di worker, variabile nelle configurazioni, è fissato a 10 come di default. Questo è stato giustificato da un'osservazione in fase sperimentale: non esiste una vera e propria variazione apprezzabile delle performance all'aumentare del numero di worker sopra i 10-15. Il valore di 10 unità è stato proposto per evitare sia un eccessivo utilizzo della memoria, sia per limitare il lavoro complessivo durante la creazione dei thread, sia per evitare ulteriore \emph{overhead} dovuto al cambio di contesto. 
+\textbf{Numero di processi e limite dei file descriptor}: durante i test che seguono il numero di worker, variabile nelle configurazioni, è fissato a 10 come di default. Questo è stato giustificato da un'osservazione in fase sperimentale: non esiste una vera e propria variazione apprezzabile delle performance all'aumentare del numero di worker sopra i 10-15. Il valore di 10 unità è stato proposto per evitare sia un eccessivo utilizzo della memoria, sia per limitare il lavoro complessivo durante la creazione dei thread, sia per evitare ulteriore \emph{overhead} dovuto al cambio di contesto. 
 \\
 Inoltre il numero di file descriptor utilizzabili per l'apertura delle socket è fissato, come da default nei file di configurazione, a 4096.
 \\
 \\
-\textbf{Numero di connessioni e di richieste} per poter simulare l'approccio più "aggressivo" di un browser moderno, si è pensato di testare il programma permettendo a \emph{httperf} di inviare 10 richieste per ogni connessione instaurata. Quindi ogni worker avrà una coda di 10 richieste da smaltire.
+\textbf{Numero di connessioni e di richieste}: per poter simulare l'approccio più "aggressivo" di un browser moderno, si è pensato di testare il programma permettendo a \emph{httperf} (\ref{ssec: httperf}) di inviare 10 richieste per ogni connessione instaurata. Quindi ogni worker avrà una coda di 10 richieste da smaltire.
  
 \subsection{Test di carico}
-Il \textbf{confronto dei tempi di risposta} è stato condotto unendo ad uno switch di rete tre macchine, una su cui girava il web switch sull'ambiente desktop di cui sopra, una da cui veniva condotti i \emph{benchmark} sia via browser che sia attraverso il tool da linea di comando \emph{httperf} di cui parleremo nell'appendice \ref{ssec: httperf}. \\\\
-Mantenendo \emph{frequenza di richieste per secondo} costante, osserviamo due situazioni diverse, riscontrate con l'aumentare di tale frequenza. In figura \ref{fig: cfr_reply_time1} possiamo vedere come ci sia un valore intorno al quale è possibile registrare oscillazioni, di decimi di millesimi di secondo, dovute probabilmente allo stato della macchina ospitante il web switch. Tuttavia è significativo come all'aumentare del rate (per esempio a \emph{50 req/s}) cominciamo ad osservare un nuovo livellamento di dei tempi di risposta, maggiormente significativo. Questo a causa del carico di lavoro che comincia a giungere alla macchina e che porta ad una situazione stabile di occupazione dei worker. \\ 
-Questa osservazione è suffragata dall'analisi del grafico in figura \ref{fig: cfr_reply_time2}. dove possiamo vedere come, con una frequenza di 100 req/s, si ha un aumento ripido dei tempi di risposta, dovuto al fatto che vengono fatte sempre più richieste, con un tempo almeno doppio di quanto occorre al web switch per liberare i propri worker per poter rispondere alle nuove connessioni. Andremo ora a vedere più nel dettaglio, nello \emph{stress test}, questa peculiarità del nostro programma.
+Il confronto dei tempi di risposta è stato condotto unendo ad uno switch di rete tre macchine, una su cui girava il web switch sull'ambiente desktop di cui sopra, una da cui venivano condotti i \emph{benchmark} sia via browser che sia attraverso il tool da linea di comando \emph{httperf}. \\\\
+Mantenendo \emph{frequenza di richieste per secondo} costante, osserviamo due situazioni diverse, riscontrate con l'aumentare di tale frequenza. In figura \ref{fig: cfr_reply_time1} possiamo vedere come ci sia un valore intorno al quale è possibile registrare oscillazioni, di decimi di millesimi di secondo, dovute probabilmente allo stato della macchina ospitante il web switch. Tuttavia è significativo come all'aumentare del rate (per esempio a \emph{50 req/s}) cominciamo ad osservare un nuovo livellamento dei tempi di risposta, maggiormente significativo. Questo a causa del carico di lavoro che comincia a giungere alla macchina e che porta ad una situazione stabile di occupazione dei worker. \\ 
+Questa osservazione è suffragata dall'analisi del grafico in figura \ref{fig: cfr_reply_time2}. dove possiamo vedere come, con una frequenza di 100 req/s, si ha un aumento ripido dei tempi di risposta, dovuto al fatto che vengono fatte sempre più richieste, con un tempo almeno doppio di quanto occorre al web switch per liberare i propri worker. Andremo ora a vedere più nel dettaglio, nello \emph{stress test}, questa peculiarità del nostro programma.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/cfr_reply_time1}
@@ -1591,24 +1487,24 @@ Questa osservazione è suffragata dall'analisi del grafico in figura \ref{fig: c
 \caption{Crescita dei tempi di risposta all'aumentare del numero di richiesta, si osserva come il lavoro dei worker non è sufficiente è compensare la frequenza delle richieste. \label{fig: cfr_reply_time2}}
 \end{figure}
 \subsection{Valutazione delle performance}
-In questo caso abbiamo deciso di testare il programma in un possibile scenario applicativo vicino a quello di uno sviluppatore indipendente o di uno studente. Valutando le dimensioni tipiche di un \emph{Virtual Private Server} di fascia \emph{entry level}, abbiamo utilizzato una macchina virtuale con 512 MB di RAM con sistema operativo Ubuntu Server. Le condizioni del test includevano un numero di richieste fisso pari a 10000 richieste in arrivo, facendo variare la frequenza con cui queste giungevano. Si è deciso di prendere in considerazione sia il tempo di risposta che la frequenza con cui queste risposte giungevano al client che generava il carico di lavoro. \\\\ 
-Quello che si è potuto constatare, relativamente alla figura \ref{fig: repvsfreq}, è il crescere dei tempi di risposta linearmente, con un andamento paragonabile a quello osservato ma in questo caso riconducibile ad un carico di richieste al secondo, piuttosto che all'aumentare delle connessioni. È significativo osservare la diminuzione della pendenza per alte frequenze di richieste, riconducibile al raggiungimento della saturazione delle risorse del web switch che lavora ora ad un regime massimo.\\\\
-Sempre dallo stesso grafico, analogamente, è possibile osservare come, ad un aumento dei tempi di risposta corrisponde, all'aumentare della frequenza di invio delle richieste, un aumento della frequenza di ricezione delle risposte fino un livello di assestamento. Difatti si ha, mantenendo le connessioni costanti, il raggiungimento di un livello medio attorno al quale rimane, a meno di oscillazioni, una apprezzabile frequenza di risposta. Si può dedurre l'esistenza di un livello di saturazione che non può essere ne abbattuto, a causa della frequenza elevata, ne innalzato a causa della frequenza fissa con il quale i worker si liberano e vengono rioccupati da nuove connessioni. Tale frequenza di lavoro è dovuta sia alla presenza di una coda delle richieste che garantisce una certa inerzia, sia al raggiunto limite delle capacità della macchina di operare il context switching e nel ricreare i thread.. Il che ci porta a concludere che a pieno regime il web switch riesce ad adeguarsi alla velocità con cui sono in arrivo le richieste e soddisfare la domanda, seppure con un ritardo lineare nei tempi di risposta.
+In questo caso abbiamo deciso di testare il programma in un possibile scenario applicativo vicino a quello di uno sviluppatore indipendente o di uno studente. Valutando le dimensioni tipiche di un \emph{Virtual Private Server} di fascia \emph{entry level}, abbiamo utilizzato una macchina virtuale con 512 MB di RAM e sistema operativo Ubuntu Server. Le condizioni del test includevano un numero di richieste fisso pari a 10000 richieste in arrivo, facendo variare la frequenza con cui queste giungevano. Si è deciso di prendere in considerazione sia il tempo di risposta che la frequenza con cui queste risposte giungevano al client che generava il carico di lavoro. \\\\ 
+Quello che si è potuto constatare, relativamente alla figura \ref{fig: repvsfreq}, è il crescere dei tempi di risposta (grafico arancione) linearmente, con un andamento paragonabile a quello osservato ma in questo caso riconducibile ad un carico di richieste al secondo, piuttosto che all'aumentare delle connessioni. È significativo osservare la diminuzione della pendenza per alte frequenze di richieste, riconducibile al raggiungimento della saturazione delle risorse del web switch che lavora ora ad un regime massimo.\\\\
+Sempre dallo stesso grafico, analogamente, è possibile osservare come, ad un aumento dei tempi di risposta corrisponde, all'aumentare della frequenza di invio delle richieste, un aumento della frequenza di risposta (grafico blu) fino un livello di assestamento. Difatti si ha, mantenendo le connessioni costanti, il raggiungimento di un livello medio attorno al quale rimane, a meno di oscillazioni, una apprezzabile frequenza di risposta. Si può dedurre l'esistenza di un livello di saturazione che non può essere ne abbattuto, a causa della frequenza elevata, ne innalzato a causa della frequenza fissa con il quale i Worker si liberano e vengono rioccupati da nuove connessioni. Tale frequenza di lavoro è dovuta sia alla presenza di una coda delle richieste che garantisce una certa inerzia, sia al raggiunto limite delle capacità della macchina di operare il context switching e nel ricreare i thread. Il che ci porta a concludere che, a pieno regime, il web switch riesce ad adeguarsi alla velocità con cui sono in arrivo le richieste e soddisfare la domanda, seppure con un ritardo lineare nei tempi di risposta.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/repvsfreq}
 \caption{Analisi delle performance confrontando i tempi di risposta e la frequenza con cui la risposta viene fornita.\label{fig: repvsfreq}}
 \end{figure}\subsection{Comparazione con Apache}
-Con le caratteristiche della macchina di test già riportate nella sezione precedente, si è proceduto a verificare, una volta valutate le performance a regime, quale fosse l'overhead aggiunto dal nostro programma ad una delle macchine del cluster montante un web server Apache. \\
-Possiamo verificare le statistiche di questo test con il grafico di figura \ref{fig: apachevsheimdall}. Si osserva come, malgrado i tempi di risposta siano inferiori, tale differenza diventa poco apprezzabile nel momento in cui si ha una maggiore frequenza nelle risposte da parte del web server Apache. In conclusione si osserva come la durata del test è, in entrambi i casi, irrisoria e confrontabile. Per cui l'overhead aggiunto, per quanto non possa essere eccessivamente abbattuto, risulta essere accettabile per un'applicazione effettiva del web switch.
+Con le caratteristiche della macchina di test già riportate nella sezione precedente, si è proceduto a verificare, una volta valutate le performance a regime, quale fosse l'\emph{overhead} aggiunto dal nostro programma ad una delle macchine del cluster montante un web server Apache. \\
+Possiamo verificare le statistiche di questo test con il grafico di figura \ref{fig: apachevsheimdall}. Si osserva come, malgrado i tempi di risposta siano inferiori, tale differenza diventa poco apprezzabile nel momento in cui si ha una maggiore frequenza nelle risposte da parte del web server Apache. In conclusione si osserva come la durata del test è, in entrambi i casi, irrisoria e confrontabile. Per cui l'\emph{overhead} aggiunto, per quanto non possa essere eccessivamente abbattuto, risulta essere accettabile per un'applicazione effettiva del web switch.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/apachevsheimdall}
-\caption{Confronto dei tempi di risposta di un web server Apache con il web switch Heimdall(10000 richieste per una frequenza di 100 req/s).\label{fig: apachevsheimdall}}
+\caption{Confronto dei tempi di risposta di un web server Apache con il web switch Heimdall (10000 richieste per una frequenza di 100 req/s).\label{fig: apachevsheimdall}}
 \end{figure}
 \subsection{Limitazioni}
-Durante i test che sono appena stati descritti, in particolare quelli con macchina virtuale, monitorando anche le risorse della macchina, si è potuto constatare che era presente un'\textbf{occupazione della RAM} crescente e, in alcuni casi, eccessiva, al punto da non permettere alla macchina di proseguire ulteriormente nelle operazioni. Tale occorrenza, per quanto rara e verificabile solamente nel caso di un carico veramente elevato, è dovuta alla non corretta liberazione della memoria nei processi che agiscono da worker: un'analisi più accurata ha portato alla luce la presenza di una grande quantità di memoria virtuale allocata e liberata correttamente ma, con una frequenza elevata di richieste in arrivo, non viene liberata memoria con la stessa velocità con cui viene occupata, portando ad una situazione pericolosa di saturazione. \\
-Ben altra saturazione è stata evitata, invece, limitando il \textbf{numero di file descriptor} associabili ad una socket, imponendo alla macchina di rispettare un certo limite ed evitando, quindi, di portare il programma al blocco nel caso di termine delle risorse a disposizione del processo. \\\\
+Durante i test che sono appena stati descritti, in particolare quelli con macchina virtuale, monitorando anche le risorse della macchina, si è potuto constatare che era presente un'occupazione della RAM crescente e, in alcuni casi, eccessiva, al punto da non permettere alla macchina di proseguire ulteriormente nelle operazioni. Tale occorrenza, per quanto rara e verificabile solamente nel caso di un carico veramente elevato, è dovuta alla non corretta liberazione della memoria nei processi che agiscono da worker: un'analisi più accurata ha portato alla luce la presenza di una grande quantità di memoria virtuale allocata e liberata correttamente ma, con una frequenza elevata di richieste in arrivo, non viene liberata memoria con la stessa velocità con cui viene occupata, portando ad una situazione pericolosa di saturazione. \\
+Ben altra saturazione è stata evitata, invece, limitando il numero di \emph{file descriptor} associabili ad una socket, imponendo alla macchina di rispettare un certo limite ed evitando, quindi, di portare il programma al blocco nel caso di termine delle risorse a disposizione del processo. \\\\
 È possibile apprezzare in figura \ref{fig: fd_memory} l'occupazione di memoria e di file descriptor durante uno \emph{stress test} poco prima del raggiungimento del limite di memoria a disposizione. 
 \begin{figure}[H]
 \centering
@@ -1616,22 +1512,18 @@ Ben altra saturazione è stata evitata, invece, limitando il \textbf{numero di f
 \caption{Visualizzazione dell'occupazione di memoria e fd durante uno stress test.\label{fig: fd_memory}}
 \end{figure}
 \subsection{Conclusioni}
+Heimdall è un Web Switch di livello 7 concorrente, state-less, state-aware e dalle buone performance. È altamente configurabile e permette di essere adattato ad un gran numero di scenari applicativi. Dai vari test eseguiti è risultato che le performance di Heimdall sono sufficienti a garantire trasparenza all'utente nella comunicazione verso le macchine del cluster. Siamo soddisfatti dell'attuale implementazione, ma nella sezione future implementazioni (\ref{sec:future_decoded}) abbiamo descritto alcune modifiche che siamo fiduciosi possano migliorare ancora di più le performance di Heimdall.
 \newpage
 \section{Future implementazioni}
+\label{sec:future_decoded}
 In questo capitolo vogliamo parlare di alcune ulteriori proposte che ci sono venute in mente per poter migliorare Heimdall. Si tratta quindi di sviluppi futuri che abbiamo elaborato nel corso dello sviluppo del progetto e a seguito di alcune limitazioni che abbiamo identificato nei componenti da noi sviluppati.
 \subsection{Analisi della richiesta}
 Come abbiamo già visto nei paragrafi dedicati al \emph{parsing} delle richieste e delle risposte HTTP, è stato possibile, in fase progettuale, scegliere su quali \emph{header} basare il funzionamento elementare del web switch. Abbiamo visto anche come i file di configurazione garantiscono veramente molta flessibilità al sistemista in sede di installazione.
 \\
-Non è difficile immaginare che, in una futura implementazione, l'applicazione non possa basarsi su file di configurazione più dettagliati e quindi possibilità di utilizzare tutti i parametri a disposizione per l'analisi di richiesta e risposta. Per cui si aprono scenari in cui si possono, ad esempio, configurare server di \emph{cache di immagini} in particolari posizioni del cluster, oppure utilizzare un algoritmo di schedulazione \emph{state-aware} che si basi anche sulla grandezza dei file richiesti e che quindi, a monte, eviti il carico di macchine sensibili.
-\subsection{Webserver performante}
-
-\newpage
-\section{Ulteriori proposte}
+Non è difficile immaginare che, in una futura implementazione, l'applicazione non possa basarsi su file di configurazione più dettagliati e quindi dare possibilità di utilizzare tutti i parametri a disposizione per l'analisi di richiesta e risposta. Per cui si aprono scenari in cui si possono, ad esempio, configurare server di \emph{cache di immagini} in particolari posizioni del cluster, oppure utilizzare un algoritmo di schedulazione \emph{state-aware} che si basi anche sulla grandezza dei file richiesti e che quindi, a monte, eviti il carico di macchine sensibili.
 
 \subsection{Worker come thread}
-Abbiamo visto nel paragrafo dedicato che il Worker nel contesto attuale è un processo figlio del processo principale. Questa è stata una scelta progettuale dettata da alcune caratteristiche che ritenevamo opportune per il WebSwitch, ad esempio l'isolamento della connessione HTTP. Infatti nella nostra architettura ogni Worker lavora in un contesto indipendente dagli altri quindi un eventuale problema con una connessione non danneggia le altre. L'utilizzo però di processi ci ha portato a dover gestire alcuni piccoli problemi, infatti ci siamo resi conto degli "elevati" tempi di fork() e anche dei tempi che occorrono ad eseguire un cambio di contesto. Inoltre ci siamo dovuti equipaggiare di memoria condivisa per poter scambiare dati con i Worker e adottare un meccanismo di messaggi per l'invio di file descriptor. Pensiamo quindi che utilizzare un approccio a Thread ci permetta di essere più performanti in quanto si sa che la creazione e la schedulazione di un thread è più veloce rispetto a quella di un processo, inoltre come sappiamo i thread condividono lo stesso spazio di memoria e questo evita i problemi di memoria condivisa e invio file descriptor.
-
-% \subsection{Pool Manager come processo}
+Abbiamo visto nel paragrafo dedicato che il Worker nel contesto attuale è un processo figlio del processo principale. Questa è stata una scelta progettuale dettata da alcune caratteristiche che ritenevamo opportune per il web switch, ad esempio l'isolamento delle connessione HTTP. Infatti nella nostra architettura ogni Worker lavora in un contesto indipendente dagli altri quindi, un eventuale problema con una connessione non danneggia le altre. L'utilizzo però di processi ci ha portati a dover gestire alcuni piccoli problemi: ci siamo resi conto degli "elevati" tempi di \emph{fork()} e anche dei tempi che occorrono ad eseguire un cambio di contesto. Inoltre ci siamo dovuti equipaggiare di memoria condivisa per poter scambiare dati con i Worker e adottare un meccanismo di messaggi per l'invio di file descriptor. Pensiamo quindi che utilizzare un approccio a Thread ci permetta di essere più performanti in quanto è noto che la creazione e la schedulazione di un thread è più veloce rispetto a quella di un processo. Ulteriore vantaggio è dato dal fatto che i thread condividono lo stesso spazio di memoria e questo evita i problemi di memoria condivisa e invio dei file descriptor.
 
 % --- References ---  
 %

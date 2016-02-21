@@ -220,14 +220,14 @@ ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total) {
     ssize_t total_sent = 0; // Total size sent
 
     while (TRUE) {
-        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d WHILE", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d while", (long) getpid(), sockfd);
 
         // Gets mutex
         if (pthread_mutex_lock(&chunk->mutex) != 0) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
         }
 
-        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d PRESO MUTEX", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d lock mutex", (long) getpid(), sockfd);
 
         // Waits until wrote is FALSE with condition
         while (chunk->wrote == TRUE) { 
@@ -236,7 +236,7 @@ ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total) {
             }
         }
 
-        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d TUTTO MIO", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d work", (long) getpid(), sockfd);
 
         ThrowablePtr throwable = send_http(sockfd, chunk->data, (size_t) chunk->dimen);
         if (throwable->is_an_error(throwable)) {
@@ -255,7 +255,7 @@ ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "send_http_chunks");
         }
 
-        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d MANDO SEGNALE", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d send signal", (long) getpid(), sockfd);
 
         // Releases mutex
         if (pthread_mutex_unlock(&chunk->mutex) != 0) {
@@ -270,7 +270,7 @@ ThrowablePtr send_http_chunks(int sockfd, ChunkPtr chunk, int total) {
         }
     }
 
-    get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d STO FUORI", (long) getpid(), sockfd);
+    get_log()->d(TAG_CONNECTION, "%ld - send_http_chunks socket %d out", (long) getpid(), sockfd);
 
     return get_throwable()->create(STATUS_OK, NULL, "send_http_chunks");
 }
@@ -559,14 +559,14 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
     //(chunk->data)[http_response->response->req_content_len] = '\0';
 
     while (TRUE) {
-        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d WHILE", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d while", (long) getpid(), sockfd);
 
         // Gets mutex
         if (pthread_mutex_lock(&chunk->mutex) != 0) {
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
         }
 
-        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d PRENDO MUTEX", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d lock mutex, (long) getpid(), sockfd);
 
         // Waits until wrote is TRUE with condition
         while (chunk->wrote == FALSE) { 
@@ -576,7 +576,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
             }
         }
 
-        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d TUTTO MIO", (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d work", (long) getpid(), sockfd);
 
         // Calculates the size to read
         ssize_t size = (http_response->response->req_content_len - total_received >= MAX_CHUNK_SIZE) ? MAX_CHUNK_SIZE : http_response->response->req_content_len - total_received;
@@ -602,14 +602,14 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
                 return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
             }
 
-            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d MANDO SEGNALE", (long) getpid(), sockfd);
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d send signal", (long) getpid(), sockfd);
 
             // Releases mutex
             if (pthread_mutex_unlock(&chunk->mutex) != 0) {
                 return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
             }
 
-            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d LASCIO MUTEX1", (long) getpid(), sockfd);
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d unlock mutex1", (long) getpid(), sockfd);
 
             break;
 
@@ -639,7 +639,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
                 return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
             }
 
-            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d LASCIO MUTEX2 total_received %d req_content_len %d", (long) getpid(), sockfd, total_received, http_response->response->req_content_len);
+            get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d unlock mutex2 total_received %d req_content_len %d", (long) getpid(), sockfd, total_received, http_response->response->req_content_len);
 
             // Breaks if all is read
             get_log()->d(TAG_CONNECTION, "%ld total_received %d req_content_len %d", (long)getpid(), total_received, http_response->response->req_content_len);
@@ -654,7 +654,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
         return get_throwable()->create(STATUS_ERROR, "pthread_mutex_unlock", "receive_http_chunks");
     }
 
-    get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d STO FUORI", (long) getpid(), sockfd);
+    get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d out", (long) getpid(), sockfd);
 
     return get_throwable()->create(STATUS_OK, NULL, "receive_http_chunks");
 }

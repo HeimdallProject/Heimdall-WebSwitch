@@ -110,6 +110,14 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 \subsection{Overview}
 \label{ssec:overview}
 
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{images/overview}
+\caption{Overview sul funzionamento di Heimdall \label{fig: overview}}\end{figure}
+Nella figura \ref{fig: overview} è possibile vedere uno schema di funzionamento di Heimdall (o più in generale di un Web Switch).
+\\
+Un client effettua una richiesta verso Heimdall (punto \textbf{0} - \textbf{1}), che, una volta ricevuta, la inoltra verso un Web Server presente nel cluster (punto \textbf{2} - \textbf{3}). Una volta pronta la risposta (punto \textbf{4} - \textbf{5}) il server risponderà ad Heimdall (punto \textbf{6} - \textbf{7}), che, a sua volta, la inoltrerà al client (punto \textbf{8} - \textbf{9}).
+
 \subsection{Il processo principale}
 \label{ssec:main_process}
 Il cuore di Heimdall è codificato nel \emph{main.c} da cui inizia l'esecuzione del processo principale.
@@ -1623,11 +1631,12 @@ In questo capitolo vogliamo parlare di alcune ulteriori proposte che ci sono ven
 Come abbiamo già visto nei paragrafi dedicati al \emph{parsing} delle richieste e delle risposte HTTP, è stato possibile, in fase progettuale, scegliere su quali \emph{header} basare il funzionamento elementare del web switch. Abbiamo visto anche come i file di configurazione garantiscono veramente molta flessibilità al sistemista in sede di installazione.
 \\
 Non è difficile immaginare che, in una futura implementazione, l'applicazione non possa basarsi su file di configurazione più dettagliati e quindi possibilità di utilizzare tutti i parametri a disposizione per l'analisi di richiesta e risposta. Per cui si aprono scenari in cui si possono, ad esempio, configurare server di \emph{cache di immagini} in particolari posizioni del cluster, oppure utilizzare un algoritmo di schedulazione \emph{state-aware} che si basi anche sulla grandezza dei file richiesti e che quindi, a monte, eviti il carico di macchine sensibili.
-\subsection{Webserver performante}
-
 \newpage
 \section{Ulteriori proposte}
-
+\subsection{Chiamate non bloccanti}
+L'attuale implementazione si basa sulle chiamate di tipo bloccanti delle API di Berkley. Una ulteriore proposta potrebbe essere quella di ripensare l'intero sistema sfruttando la modalità non bloccante nella gestione dell'I/O.
+\\
+Attualmente ogni Worker gestisce una e una sola connessione. Tale sistema limita Heimdall poiché gestisce un numero definito di connessioni, pari al numero di Worker massimo configurato. L'utilizzo delle chiamate non bloccanti potrebbe permetterci quindi di aumentare il throughoutput del sistema permettendo ai Worker di servire più di una connessione contemporaneamente. 
 \subsection{Worker come thread}
 Abbiamo visto nel paragrafo dedicato che il Worker nel contesto attuale è un processo figlio del processo principale. Questa è stata una scelta progettuale dettata da alcune caratteristiche che ritenevamo opportune per il WebSwitch, ad esempio l'isolamento della connessione HTTP. Infatti nella nostra architettura ogni Worker lavora in un contesto indipendente dagli altri quindi un eventuale problema con una connessione non danneggia le altre. L'utilizzo però di processi ci ha portato a dover gestire alcuni piccoli problemi, infatti ci siamo resi conto degli "elevati" tempi di fork() e anche dei tempi che occorrono ad eseguire un cambio di contesto. Inoltre ci siamo dovuti equipaggiare di memoria condivisa per poter scambiare dati con i Worker e adottare un meccanismo di messaggi per l'invio di file descriptor. Pensiamo quindi che utilizzare un approccio a Thread ci permetta di essere più performanti in quanto si sa che la creazione e la schedulazione di un thread è più veloce rispetto a quella di un processo, inoltre come sappiamo i thread condividono lo stesso spazio di memoria e questo evita i problemi di memoria condivisa e invio file descriptor.
 

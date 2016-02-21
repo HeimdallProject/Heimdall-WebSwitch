@@ -88,13 +88,13 @@ Ci piace pensare che questo sia un po' il ruolo del software nato dal nostro pro
 \subsection{Web switch di livello 7}
 Nella terminologia delle reti informatiche uno \textbf{switch} è un commutatore a livello datalink, ovvero un dispositivo che si occupa di instradare opportunamente, attraverso le reti LAN, selezionando i frame ricevuti e reindirizzandoli verso la macchina appropriata a seconda di una propria tabella di inoltro. Un \textbf{web switch}, a livello applicativo, è capace di reindirizzare i dati in funzione dei pacchetti che riceve, analizzandone il contenuto e decidendo opportunamente la destinazione, occupandosi allo stesso tempo di reinoltrare anche l'eventuale risposta della macchina selezionata verso il client che l'ha generata.
 \\
-Le applicazioni sono molteplici per l'implementazione a livello applicativo: può essere considerato un \textbf{proxy}, oppure, selezionando opportunamente la macchina con più velocità di risposta o con minore pressione, può agire come \textbf{bilanciatore di carico}. Infatti ognuno dei client che fa richiesta, ad esempio, per uno specifico sito web, invia un pacchetto ad un indirizzo IP pubblico che corrisponde a quello del nostro switch applicativo. Questi, dopo aver correttamente letto il pacchetto, si occupa di consultare una tabella di inoltro generata con una determinata \textbf{politica di scheduling} e quindi gestire l'inoltro della richiesta ed il reinoltro della risposta del webserver. Tutto questo in maniera totalmente trasparente al client, qualsiasi sia la macchina che ha effettivamente risposto, che sia un web server oppure un cluster di macchine associate ad un ulteriore switch.
+Le applicazioni sono molteplici per l'implementazione a livello applicativo: può essere considerato un \textbf{proxy}, oppure, selezionando opportunamente la macchina con più velocità di risposta o con minore pressione, può agire come \textbf{bilanciatore di carico}. Infatti ognuno dei client che fa richiesta, ad esempio, per uno specifico sito web, invia un pacchetto ad un indirizzo IP pubblico che corrisponde a quello del nostro switch applicativo. Questi, dopo aver correttamente letto il pacchetto, si occupa di consultare una tabella di inoltro generata con una determinata \textbf{politica di scheduling} e quindi gestire l'inoltro della richiesta ed il reinoltro della risposta del web server. Tutto questo in maniera totalmente trasparente al client.
 
 \subsection{Assunzioni progettuali sul cluster}
 Nella fase di progettazione e realizzazione sono state definite le seguenti assunzioni:
 \begin{itemize}
-  \item Ognuna delle macchine del cluster dispone di un web server Apache\cite{apache_server} in ascolto sulla porta 80
-  \item Ognuna delle macchine monta il modulo ApacheStatus come monitor di carico
+  \item Ognuna delle macchine del cluster dispone di un web server Apache\cite{apache_server} in ascolto sulla porta 80;
+  \item Ognuna delle macchine monta il modulo ApacheStatus (\ref{sssec:apachestatus}) come monitor di carico.
 \end{itemize}
 
 \begin{figure}
@@ -112,20 +112,22 @@ Nella fase di progettazione e realizzazione sono state definite le seguenti assu
 
 \subsection{Il processo principale}
 \label{ssec:main_process}
-Il cuore di Heimdall sta ovviamente nel file principale del programma, il \emph{main.c}, una volta avviato il programma, il processo principale prenderà vita nel sistema ed eseguirà le inizializzazioni dei componenti principali, tra questi abbiamo:
+Il cuore di Heimdall è codificato nel \emph{main.c} da cui inizia l'esecuzione del processo principale.
+\\
+Il processo, una volta avviato, inizializzerà i componenti principali, tra questi abbiamo:
 
 \begin{itemize}
-  \item Config
-  \item Log
-  \item Scheduler
-  \item Pool Manager
+  \item Config (paragrafo \ref{sec:config});
+  \item Log (paragrafo \ref{ssec:logging});
+  \item Scheduler (paragrafo \ref{ssec: sched});
+  \item Pool Manager (paragrafo \ref{ssec:pool}).
 \end{itemize}
-Possiamo dividere questi 4 componenti in 2 categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché come sarà più chiaro nei relativi paragrafi, i due componenti sono progettati per svolgere alcuni compiti dedicati che altrimenti dovrebbero essere eseguiti dal programma principale, intaccando le prestazioni del sistema, che possono così avvalersi anche di un'opportuno utilizzo della concorrenza.
+Possiamo dividere questi quattro componenti in due categorie, i primi due infatti sono semplici strutture statiche all'interno del programma, sviluppate utilizzando il design pattern \emph{Singleton}. Questo per garantire che questi due componenti vengano inizializzati una sola volta all'avvio del programma. I successivi due componenti, lo \emph{Scheduler} e il \emph{Pool Manager} sono invece thread del processo principale, questo perché (come sarà più chiaro nei relativi paragrafi) svolgono alcuni compiti dedicati che altrimenti dovrebbero essere eseguiti dal processo principale.
 
 \subsubsection{I processi figli e la memoria condivisa}
 \label{ssec:child_process}
 
-Fatte le prime inizializzazioni il processo principale si predispone ad eseguire il suo compito ma prima di questo è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()} presente nel file \emph{main.c} il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa che verrà utilizzata appunto per garantire una struttura per l'\textbf{IPC} (\emph{Inter-Process Communication}). Per motivi che saranno più chiari in seguito chiameremo da adesso in poi i processi figli \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
+Fatte le prime inizializzazioni, il processo principale si predispone ad eseguire il suo compito. Prima di questo, è necessario creare i processi figli che saranno incaricati di servire le connessioni HTTP. Tramite la funzione \emph{do\_prefork()}, presente nel file \emph{main.c}, il processo principale esegue una serie di operazioni per creare i processi figli e inizializzare una memoria condivisa, che verrà utilizzata per fornire l'\textbf{IPC} (\emph{Inter-Process Communication}). Per motivi che saranno più chiari in seguito, chiameremo da adesso in poi i processi figli \emph{Worker}. \\\\Evidenziamo qui i tratti principali della funzione:
 \begin{lstlisting}
 ConfigPtr config = get_config();
 
@@ -135,15 +137,15 @@ if (throwable->is_an_error(throwable)) {
   get_log()->t(throwable);
 }
 \end{lstlisting}
-Dal Config viene recuperato il numero di processi figli da creare e, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro, oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()}, viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati 4 array che ora vedremo nel dettaglio:
+Dal Config viene recuperato il numero di processi figli da creare e, come verrà spiegato nel paragrafo relativo, questo valore potrà essere specificato dall'utente all'interno del file di configurazione. Con questo parametro, oltre ad eseguire un numero finito di volte la chiamata di sistema \emph{fork()}, viene inizializzato un blocco di memoria condivisa di grandezza fissa, all'interno del quale vengono salvati quattro array che ora vedremo nel dettaglio:
 
 \begin{itemize}
-  \item \textbf{\emph{worker\_array}}: In questo array vengono memorizzati i \emph{pid\_t} dei processi figli creati.          
-  \item \textbf{\emph{worker\_busy}}: Questo è un array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un worker. Nello specifico alla posizione i-esima che viene identificata a partire dal primo array possiamo trovare due valori distinti, un 1 per indicare che il worker è occupato a gestire una connessione e uno 0 per indicare che il worker è libero e in attesa di nuove connessioni.
-  \item \textbf{\emph{worker\_counter}}: Questo array serve a contare quante connessioni sono state assegnate al worker, questo parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei worker.
-  \item \textbf{\emph{worker\_server}}: Questa è una struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdall, la sua funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
+  \item \textbf{\emph{worker\_array}}: Array in cui vengono memorizzati i \emph{pid\_t} dei Worker.          
+  \item \textbf{\emph{worker\_busy}}: Array di flag e viene utilizzato per tenere traccia dello stato del lavoro di un Worker. Nello specifico alla posizione i-esima, che viene identificata a partire dal primo array, possiamo trovare due valori distinti, un 1 per indicare che il Worker è occupato a gestire una connessione e uno 0 per indicare che il Worker è libero in attesa di nuove connessioni.
+  \item \textbf{\emph{worker\_counter}}: Array che tiene traccia di quante connessioni sono state assegnate al Worker. Tale parametro sarà chiarito nel paragrafo del Pool Manager e servirà alla schedulazione dei Worker.
+  \item \textbf{\emph{worker\_server}} \label{ssec:shm_server} : Struttura di passaggio utilizzata dal thread Scheduler, che ricordiamo essere uno dei componenti inizializzati all'avvio di Heimdall, la cui funzionalità sarà descritta in maniera più adeguata nel relativo paragrafo.
 \end{itemize}
-Di seguito il codice che si occupa dell'inizializzazione della memoria condivisa:
+La seguente porzione di codice mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa.
 \begin{lstlisting}
 int total_size = 0;
 total_size += sizeof(THPSharedMem);
@@ -152,7 +154,7 @@ total_size += sizeof(int)*n_prefork;    // Array busy
 total_size += sizeof(int)*n_prefork;    // Array counter
 total_size += sizeof(Server)*n_prefork; // Array server
 
-// Initializes Shared memory
+// Initializes shared memory
 void *start_mem = init_shm(WRK_SHM_PATH, total_size, WRK_SEM_PATH);
 if (start_mem == NULL)
   exit(EXIT_FAILURE);
@@ -171,10 +173,10 @@ for (i = 0; i < n_prefork; ++i) {
   worker_pool->worker_busy[i]     = 0;
 }
 \end{lstlisting}
-La porzione di codice qui sopra mette in evidenza le righe che si occupano della creazione, della mappatura e dell'inizializzazione della memoria condivisa. La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.
+La memoria condivisa utilizzata è quella appartenente allo standard POSIX, l'implementazione della wrapper proprietaria \emph{init\_shm()} è presente all'interno dei file \emph{shared\_mem.c} e \emph{shared\_mem.h}.
 \\
 \\
-Fatto questo siamo finalmente giunti alla creazione dei processi figli, ancora una volta evidenziamo qui la porzione di codice interessata:
+Siamo finalmente giunti alla creazione dei processi figli, i cosidetti Worker, ancora una volta evidenziamo qui la porzione di codice interessata:
 
 \begin{lstlisting}
 int children;
@@ -215,11 +217,11 @@ for (children = 0; children < n_prefork; ++children) {
   }
 }
 \end{lstlisting}
-Come vediamo viene eseguito un ciclo \emph{n\_prefork} volte dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il processo figlio, una volta creato, si avvia con l'esecuzione della sua funzione "\emph{main}" e cioè la funzione \emph{start\_worker()}; il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato sopra. \\\\Facciamo notare che l'esecuzione della chiamata di sistema \emph{fork()} non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre nella memoria del figlio e grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
+Nel codice sopraesposto, viene eseguito un ciclo \emph{n\_prefork} volte, dove \emph{n\_prefork} è il numero di processi che si vuole creare. Il Worker, una volta creato, si avvia eseguendo la funzione \emph{start\_worker()}; il processo padre invece si occupa di accedere in memoria condivisa per aggiornare le strutture dati che abbiamo spiegato sopra. \\\\Si noti, che l'esecuzione della chiamata di sistema \emph{fork()}, non viene casualmente eseguita in questo momento, bensì si sfrutta il fatto che la \emph{fork()} copia l'intera memoria del processo padre nella memoria del figlio e, grazie a questo il figlio si ritroverà i componenti come \emph{Config}, \emph{Log} e \emph{Memoria Condivisa} già inizializzati e referenziati.
 
 \subsubsection{Server in ascolto}
 \label{sec:main_server}
-Una volta completata l'inizializzazione dei componenti di base di Heimdall il processo principale si avvia a svolgere il suo incarico cioè quello di mettersi in ascolto su una porta (configurabile nel file di configurazione) in attesa di nuove connessioni.
+Una volta completata l'inizializzazione dei componenti di base di Heimdall, il processo principale si avvia a svolgere il suo incarico cioè quello di mettersi in ascolto su una porta (configurabile nel file di configurazione) in attesa di nuove connessioni.
 \begin{lstlisting}
 int port = 0;
 throwable = str_to_int(config->server_main_port, &port);
@@ -277,11 +279,11 @@ while(TRUE) {
   log->i(TAG_MAIN, "New connection accepted on socket number %d - total %d", new_sockfd, count);
 }
 \end{lstlisting}
-Come abbiamo già detto, questo è il vero cuore di Heimdall. Come possiamo notare da queste poche righe il processo principale recupera dal config la porta dove mettersi in ascolto, crea un nuovo "\emph{server socket}" e si mette in attesa dell'arrivo di nuove connessioni in un loop infinito. Quando un nuovo client si collega la funzione accept\_connection ritorna e il processo principale prosegue la sua strada. Qui vogliamo far notare che lo sviluppo della funzione main è stato pensato per poter eseguire il minor numero di linee di codice, per permettere al processo principale di tornare immediatamente in ascolto di nuove connessioni. Infatti dopo aver salvato il file descriptor della socket in una apposita struttura dati (che sarà descritta nel paragrafo relativo al worker pool), il processo principale termina il primo ciclo del loop infinito e torna in ascolto di nuove connessioni.
+Questo è il vero cuore di Heimdall. Si noti che, da queste poche righe, il processo principale recupera dal config la porta dove mettersi in ascolto, crea un nuovo "\emph{server socket}" e si mette in attesa dell'arrivo di nuove connessioni in un loop infinito. Quando un nuovo client si collega la funzione \emph{accept\_connection()} ritorna e il processo principale prosegue la sua strada. Si noti che lo sviluppo della funzione \emph{main()} è stato pensato per poter eseguire il minor numero di linee di codice, per permettere al processo principale di tornare immediatamente in ascolto di nuove connessioni. Infatti, dopo aver salvato il file descriptor della socket in una apposita struttura dati (che sarà descritta nel paragrafo relativo al Pool Manager), il processo principale termina il primo ciclo del loop infinito e torna in ascolto di nuove connessioni. Come ultima cosa si sottolinea il fatto che l'esecuzione della chiamata \emph{fork()} viene eseguita prima dell'avvio del "server in ascolto", questo per evitare di dover attendere i lunghi tempi di fork.
 
 \subsection{File di configurazione}
 \label{sec:config}
-I file di configurazione sono gli unici file accessibili all'utente che installa sulla propria macchina Heimdall WebSwitch. Tramite questi file è possibile impostare alcuni parametri per adattare il WebSwitch alle proprie esigenze.
+I file di configurazione sono gli unici file accessibili all'utente che installa sulla propria macchina Heimdall WebSwitch. Tramite questi file è possibile impostare alcuni parametri per adattare il Web Switch alle proprie esigenze.
 \\
 \\
 I file di cui stiamo parlando sono due e adesso ne illustreremo i dettagli.
@@ -292,15 +294,15 @@ Questo è il file di configurazione generale di Heimdall. Al suo interno possiam
 \begin{itemize}
 	\item \emph{algorithm\_selection}: specifica il tipo di algoritmo che si vuole usare per Heimdall, con il valore 0 si sceglie di usare l'algoritmo \emph{state-less}, con il valore 1 si sceglie di usare l'algoritmo \emph{state-aware}.
 
-	\item \emph{pre\_fork}: specifica il numero di proessi figli che verranno creati all'avvio di Heimdall, i processi figli ricordiamo sono i processi che gestiranno le connessioni HTTP. Se il valore di questo parametro viene impostato a 0 Heimdall creerà automaticamente 1 processo figlio per gestire le richieste.
+	\item \emph{pre\_fork}: specifica il numero di proessi figli che verranno creati all'avvio di Heimdall, i processi figli ricordiamo sono i processi che gestiranno le connessioni HTTP. Se il valore di questo parametro viene impostato a 0 Heimdall creerà automaticamente un processo figlio per gestire le richieste.
 	
 	\item \emph{print\_enable}: abilita le stampe a video se impostato a 1, altrimenti le disabilita.
 		
-	\item \emph{log\_level}: specifica il livello di stampe che si vogliono avere sul terminale, i livelli di log saranno spiegati bene nella sezione dedicata.
+	\item \emph{log\_level}: specifica il livello di stampe che si vogliono avere sul terminale, i livelli di log saranno spiegati nella sezione dedicata (\ref{ssec:logging}).
 	
 	\item \emph{write\_enable}: abilita la scrittura dei file di log.
  	
-	\item \emph{log\_file\_req}: specifica il percorso del file di log per le connessioni richieste a heimdall.
+	\item \emph{log\_file\_req}: specifica il percorso del file di log per le connessioni richieste a Heimdall.
 		
 	\item \emph{log\_file\_resp}: specifica il percorso del file di log per le risposte fatte alle connessioni.
 		
@@ -310,7 +312,7 @@ Questo è il file di configurazione generale di Heimdall. Al suo interno possiam
 	
 	\item \emph{update\_time}: in riferimento al thread di scheduling, definisce il tempo di aggiornamento dello stato dei server del cluster, nel caso di utilizzo dell'algoritmo state-aware. 
 	
-	\item \emph{server\_config} specifica il percorso del file di configurazione dovengono specificati i server del cluster collegati a Heimdall.
+	\item \emph{server\_config}: specifica il percorso del file di configurazione dove vengono specificati i server del cluster collegati a Heimdall.
 	
 	\item \emph{server\_main\_port}: specifica la porta di ascolto del processo padre di Heimdall per accettare nuove connessioni.
 			
@@ -320,7 +322,7 @@ Questo è il file di configurazione generale di Heimdall. Al suo interno possiam
 	
 	\item \emph{sockets\_path}: specifica una directory del sistema dove Heimdall potrà creare socket AF\_UNIX, necessarie per permettere la comunicazione tra il processo padre e i suoi figli. Heimdall dovrà avere permessi di lettura e scrittura su questa directory.
 	
-	\item \emph{max\_thread\_pchild}: specifica il numero massimo di thread\_request che ogni Worker può creare, e cioè il massimo numero di richieste che possono essere accettate contemporaneamente su una singola connessione persistente.
+	\item \emph{max\_thread\_pchild}: specifica il numero massimo di thread di richiesta che ogni Worker può creare, e cioè il massimo numero di richieste che possono essere accettate contemporaneamente su una singola connessione persistente.
 \end{itemize}
 Rappresentiamo qui con un esempio un file dei parametri:
 
@@ -394,7 +396,7 @@ typedef struct config {
 
 
 \end{itemize}
-Come possiamo notare i campi della struttura sono esattamente le chiavi che abbiamo elencato precedentemente nel paragrafo relativo al file dei parametri. Come si vede dall'esempio i campi all'interno del file sono disposti in un ordine preciso, dettato da una regola ti tipo \emph{chiave:valore}. Il parser esegue la lettura del file una riga per volta, estrae la chiave, il suo valore e passa il tutto ad una funzione di callback.
+Si noti che i campi della struttura sono esattamente le chiavi che abbiamo elencato precedentemente nel paragrafo relativo al file dei parametri. Come si vede dall'esempio i campi all'interno del file sono disposti in un ordine preciso, dettato da una regola ti tipo \emph{chiave:valore}. Il parser esegue la lettura del file una riga per volta, estrae la chiave, il suo valore e passa il tutto ad una funzione di callback.
 
 \begin{lstlisting}
 char *_get(char array[], int from, char escape) {
@@ -474,7 +476,7 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
   return 0;
 }
 \end{lstlisting}
-La funzione config\_handler riceve la chiave e il valore estratto, ed effettuando un semplice confronto con la chiave esegue l'inserimento del valore all'interno della struct.
+La funzione \emph{config\_handler()} riceve la chiave e il valore estratto, ed effettuando un semplice confronto con la chiave esegue l'inserimento del valore all'interno della struct.
 
 \begin{lstlisting}
 int config_handler(char *key, char *value, void *p_config) {
@@ -517,7 +519,7 @@ Un semplice controllo viene comunque eseguito ed è lo stesso controllo che avvi
 
 \subsection{Logging}
 \label{ssec:logging}
-Per poter gestire meglio l'output su console e su file abbiamo deciso di implementare una nostra "classe" di log. Prima di descrivere il codice vogliamo far notare che abbiamo sviluppato il \emph{logger} seguendo un approccio orientato agli oggetti e seguendo il design pattern \emph{Singleton}. Infatti questo è uno dei componenti che viene inizializzato nel processo principale all'avvio del programma, nello specifico tramite la chiamata \emph{get\_log()} eseguita nel \emph{main()}:
+Per poter gestire meglio l'output su console e su file abbiamo deciso di implementare una nostra "classe" di log. Prima di descrivere il codice si noti che abbiamo sviluppato il \emph{logger} seguendo un approccio orientato agli oggetti e seguendo il design pattern \emph{Singleton}. Infatti questo è uno dei componenti che viene inizializzato nel processo principale all'avvio del programma, nello specifico tramite la chiamata \emph{get\_log()} eseguita nel \emph{main()}:
 \begin{lstlisting}
 Log *new_log() {
   ConfigPtr config = get_config();
@@ -569,11 +571,13 @@ typedef struct log {
   void (*t)(ThrowablePtr throwable);
 } Log, *LogPtr;
 \end{lstlisting}
+Questo sarà lo stesso approccio applicato a tutti i componenti sviluppati di Heimdall, che incontreremo più avanti nella trattazione.
+\\\\
 In questo modo per poter stampare a video sarà sufficiente richiamare la funzione:
 \begin{lstlisting}
 get_log()->i(TAG, "Hello World!");
 \end{lstlisting}
-Le funzioni \emph{d()} (debug), \emph{e()} (error) e \emph{i()} (informazioni) sono state implementate per organizzare le stampe a video. Infatti nel file di configurazione è possibile impostare il livello di stampe che si desidera vedere tramite il parametro \emph{log\_level}. Le funzioni per la loro implementazione si equivalgono a meno del livello di log che trattano, ne riportiamo per questo solamente una:
+Le funzioni \emph{d()} (debug), \emph{e()} (error) e \emph{i()} (informazioni) sono state implementate per organizzare le stampe a video. Infatti, nel file di configurazione, è possibile impostare il livello di stampe che si desidera vedere tramite il parametro \emph{log\_level}. Le funzioni per la loro implementazione si equivalgono a meno del livello di log che trattano, ne riportiamo per questo solamente una:
 \begin{lstlisting}
 static int i(const char* tag, const char *format, ...) {
   ConfigPtr config = get_config();
@@ -614,15 +618,15 @@ static int i(const char* tag, const char *format, ...) {
   return byte_read;
 }
 \end{lstlisting}
-Come vediamo viene dapprima recuperato dal file di configurazione il livello impostato per il log, inoltre viene anche recuperato il valore del parametro \emph{print\_enable} (ricordiamo che è possibile disabilitare completamente le stampe), eseguito un semplice controllo il codice all'interno del terzo if non è altro che una copia della funzione \emph{printf()}, l'unica modifica che viene fatta è solo quella di formattare l'output in modo che possa essere facilmente leggibile. Infatti l'aggiunta del parametro tag e del timestamp è stato di fondamentale importanza per identificare nella console quale componente stava effettivamente stampando.
+Si osserva che viene dapprima recuperato dal file di configurazione il livello impostato per il log, inoltre viene anche recuperato il valore del parametro \emph{print\_enable} (ricordiamo che è possibile disabilitare completamente le stampe). Eseguito un semplice controllo, il codice all'interno del terzo if non è altro che una copia della funzione \emph{printf()}. L'unica modifica che viene fatta è quella di formattare l'output in modo che possa essere facilmente leggibile. Infatti l'aggiunta del parametro \emph{tag} e del \emph{timestamp} è stato di fondamentale importanza per identificare nella console quale componente stava effettivamente stampando.
 \\
 \\
-Per concludere descriviamo la funzione \emph{r()} (response) è quella utilizzata per scrivere sui file di logging, in questo modo abbiamo raccolto da una parte il codice di formattazione del file di log. Invece la funzione \emph{t()} (throwable) non è altro che un'estensione della funzione \emph{e()}, questa viene utilizzata per stampare a schermo gli oggetti Throwable.
+Per concludere, con una simile implementazione, la funzione \emph{r()} (response) è quella utilizzata per scrivere sui file di logging delle richieste e delle risposte. Invece la funzione \emph{t()} (throwable) non è altro che un'estensione della funzione \emph{e()}, questa viene utilizzata per stampare a schermo gli oggetti Throwable, dei quali parleremo nel paragrafo successivo.
 
 \subsection{Gestione degli errori}
 \label{sec:errors}
-Come detto in precedenza, Heimdall, pur essendo scritto in C (linguaggio per definizione e per storia di tipo procedurale), è stato concepito avendo in mente la programmazione orientata agli oggetti e sopratutto al linguaggio Java. Questo ci ha portato alla creazione della struttura dati Throwable, che ricorda molto la class omonima di Java\cite{throwable_java}.
-Questa struttura rappresenta il valore di ritorno di ogni funzione del sistema, in modo tale che essa sia l'unico modo per poter gestire gli errori.
+Per gestire facilmente gli errori di Heimdall è stata sviluppata la "classe" Throwable.
+Questo oggetto rappresenta il valore di ritorno di ogni funzione del sistema, uniformando i valori di ritorno delle funzioni.
 \begin{lstlisting}
 typedef struct throwable {
   int status;
@@ -636,20 +640,22 @@ typedef struct throwable {
   void (*destroy)(struct throwable *self);
 } Throwable, *ThrowablePtr;
 \end{lstlisting} 
-Il \emph{Throwable} è definito tramite le variabili \textbf{status}, \textbf{message} e \textbf{stack\_trace}.
+Il Throwable è definito tramite le variabili \emph{status}, \emph{message} e \emph{stack\_trace}.
 \\
-La variabile \textbf{status} può assumere uno dei seguenti valori:
+La variabile \emph{status} può assumere uno dei seguenti valori:
 \begin{itemize}
-  \item \emph{STATUS\_OK}, se non ci sono errori;
-  \item \emph{STATUS\_ERROR}, se si è verificato qualche errore.
+  \item \emph{STATUS\_OK}: se non ci sono errori;
+  \item \emph{STATUS\_ERROR}: se si è verificato qualche errore.
 \end{itemize}
-La variabile \textbf{message} contiene la descrizione del problema (che può derivare da una chiamata di sistema e quindi è utile la funzione \emph{get\_error\_by\_errno()}).
+La variabile \emph{message} contiene la descrizione del problema.
 \\
-La variabile \textbf{stack\_trace} contiene la lista delle funzioni che il Throwable ha attraversato ed è di fondamentale importanza per comprendere la dinamica dell'errore.
-\\
-Il Throwable è istanziabile tramite la chiamata \emph{get\_throwable().create()}, a cui vengono passati i parametri sopra descritti. In particolar modo, stack\_trace conterrà solamente il nome della funzione che sta invocando la chiamata.
-\\
-Avendo reso omogenee tutte le chiamate a funzioni, risulta semplificato il controllo, l'inoltro o la stampa degli errori.
+La variabile \emph{stack\_trace} contiene la lista delle funzioni che il Throwable ha attraversato ed è di fondamentale importanza per comprendere la dinamica dell'errore.
+\\\\
+Riportiamo qui un esempio di stampa:
+% TODO ESEMPIO di stampa
+/* ESEMPIO */
+\\\\
+Avendo reso omogenee il valore di ritorno di tutte le funzioni, risulta semplificato il controllo, l'inoltro o la stampa degli errori.
 \\
 Per esempio, all'interno della funzione \emph{get\_data()}, utile per il parsing delle risposte ricevute dal modulo di Apache Status (si veda \ref{sssec:apachestatus}), abbiamo:
 
@@ -663,13 +669,14 @@ if (strcmp(text, "idleworkers") == 0) {
 
 return get_throwable()->create(STATUS_OK, NULL, "get_data");
 \end{lstlisting}
-In questo caso viene chiamata la funzione \emph{str\_to\_int()}, che ritorna un throwable (tale funzione è una wrapper della funzione \emph{strotol()}, che effettua la conversione di una stringa in un intero). Il throwable viene quindi controllato tramite la chiamata \emph{is\_an\_error()}, che, verificandone lo status, ritorna un booleano. Nel caso il valore di ritorno sia positivo, viene eseguito il thrown dell'errore, specificando da dove lo si sta effettuando (in questo caso, nella funzione \emph{get\_data\_idle\_workers}).
+In questo caso viene chiamata la funzione \emph{str\_to\_int()}, che ritorna un throwable (tale funzione è una wrapper della funzione \emph{strotol()}, che effettua la conversione di una stringa in un intero). Il Throwable viene quindi controllato tramite la chiamata \emph{is\_an\_error()}, che, verificandone lo \emph{status}, ritorna un booleano. Nel caso il valore di ritorno sia positivo, viene eseguito il thrown dell'errore, tramite la funzione \emph{thrown\_throwable()}, specificando da dove lo si sta effettuando (in questo caso, nella funzione \emph{get\_data\_idle\_workers}).
 \\
-La struttura è allocata dinamicamente tramite la funzione \emph{create()} e, di conseguenza, è necessario liberare lo spazio utilizzato: se la funzione \emph{is\_an\_error()} non rileva alcun errore, provvederà essa stessa alla deallocazione; in caso contrario, lo sviluppatore o la chiamata a \emph{log->t()} libererà la memoria, dopo aver stampato un report dell'errore.
-
+Siccome l'oggetto Throwable viene allocato dinamicamente (tramite la funzione \emph{create()}) di conseguenza, è necessario liberare lo spazio utilizzato: se la funzione \emph{is\_an\_error()} non rileva alcun errore, provvederà essa stessa alla deallocazione; in caso contrario, lo sviluppatore o la chiamata a \emph{log->t()} libererà la memoria, dopo aver stampato un report dell'errore.
+\\\\
+I dettagli delle implementazioni delle suddette funzioni si trova all'interno dei file \emph{throwable.c} e \emph{throwable.h}.
 \subsection{Pool manager}
 \label{ssec:pool}
-Abbiamo già nominato questo componente nel paragrafo sul processo principale. Il \emph{Pool Manager} è un thread del processo principale creato all'avvio del programma. Il compito di questo thread è di gestire la schedulazione dei worker, vediamo in dettaglio questo come avviene.\\\\ Come già detto l'inizializzazione del Pool Manager viene eseguita dal main con queste righe di codice:
+Il \emph{Pool Manager} è un thread del processo principale creato all'avvio del programma. Il compito di questo thread è di gestire la schedulazione dei Worker, vediamo in dettaglio questo come avviene.\\\\ Come già detto l'inizializzazione del Pool Manager viene eseguita dal main con queste righe di codice:
 \begin{lstlisting}
 // Initializes Thread Pool
 ThreadPoolPtr th_pool = get_thread_pool();
@@ -715,7 +722,7 @@ static ThreadPoolPtr init_thread_pool() {
   return th_pool;
 }
 \end{lstlisting}
-Ancora una volta l'approccio utilizzato per la creazione del Pool Manager è il \emph{Singleton}, infatti esiste una sola istanza del Pool Manager all'interno di tutto il programma. La funzione \emph{init\_thread\_pool()} conferma quando detto fin ora, infatti questa funzione che viene eseguita dal main non fa altro che creare un thread e una struttura \emph{ThreadPoolPtr}.\\\\ La \emph{pthread\_create()} specifica come funzione di start per il thread la funzione \emph{init\_pool()} che riportiamo di seguito:
+Ancora una volta l'approccio utilizzato per la creazione del Pool Manager è il \emph{Singleton}, infatti esiste una sola istanza del Pool Manager all'interno di tutto il programma. La funzione \emph{init\_thread\_pool()} conferma quando detto fin ora, infatti questa funzione, che viene eseguita dal main, non fa altro che creare un thread e una struttura \emph{ThreadPool}.\\\\ La \emph{pthread\_create()} specifica come funzione di start per il thread la funzione \emph{init\_pool()} che riportiamo di seguito:
 \begin{lstlisting}
 static void *init_pool(void *arg) {
   // detach itself
@@ -749,8 +756,7 @@ static void *init_pool(void *arg) {
   return arg;
 }
 \end{lstlisting}
-Queste sono le prime linee di codice che vengono eseguite dal thread \emph{Pool Manager}. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione \ref{sec:config} questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.\\\\
-
+Queste sono le prime linee di codice che vengono eseguite dal thread \emph{Pool Manager}. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione \ref{sec:config} questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.
 \begin{lstlisting}
 for (;;) {
   int fd = 0;
@@ -763,7 +769,7 @@ for (;;) {
   ...
 }
 \end{lstlisting}
-All'interno della funzione \emph{thread\_pool\_loop()} è presente, come è di facile intuizione dato il nome, un loop infinito. Questo perché il thread eseguirà una costante verifica dell'esistenza di un file descriptor presente all'interno dell'array, infatti la funzione \emph{get\_fd()} è definita come segue:
+All'interno della funzione \emph{thread\_pool\_loop()} è presente un loop infinito. Questo perché il thread eseguirà una costante verifica dell'esistenza di un file descriptor presente all'interno dell'array. Infatti la funzione \emph{get\_fd()} è definita come segue:
 \begin{lstlisting}
 static ThrowablePtr get_fd(int *fd_ptr) {
   int s = 0;
@@ -794,10 +800,10 @@ static ThrowablePtr get_fd(int *fd_ptr) {
   }
 }
 \end{lstlisting}
-Come vediamo la funzione si occupa dell'accesso all'array dei file descriptor che abbiamo inizializzato prima, facciamo notare che l'accesso all'array è gestito da un semaforo mutex, questo perché anche il main accede a questa struttura quando arrivano nuove conessioni, infatti se ricordiamo quanto detto nel paragrafo del processo principale quando un client si collega la funzione \emph{accept\_connection()} ritorna il file descriptor associato alla socket, questo viene poi messo all'interno dell'array dei file descriptor tramite la funzione \emph{add\_fd\_to\_array()}. Ora che abbiamo spiegato anche l'ultimo passaggio della funzione main capiamo che il thread pool è l'incaricato di verificare che ci siano nuovi file descriptor da servire. La funzione \emph{get\_fd()} è di facile lettura, viene semplicemente eseguito un for sull'array dei file descriptor e viene ritornato il primo file descriptor disponibile.
+Come vediamo la funzione si occupa dell'accesso all'array dei file descriptor che abbiamo inizializzato prima, facciamo notare che l'accesso all'array è gestito da un semaforo \emph{mutex} , questo perché anche il main accede a questa struttura quando arrivano nuove conessioni. Infatti se ricordiamo quanto detto nel paragrafo del processo principale quando un client si collega la funzione \emph{accept\_connection()} ritorna il file descriptor associato alla socket, questo viene poi messo all'interno dell'array dei file descriptor tramite la funzione \emph{add\_fd\_to\_array()}. Ora che abbiamo spiegato anche l'ultimo passaggio della funzione main capiamo che il thread pool è l'incaricato di verificare che ci siano nuovi file descriptor da servire. La funzione \emph{get\_fd()} è di facile lettura, viene semplicemente eseguito un for sull'array dei file descriptor e viene ritornato il primo file descriptor disponibile.
 \\
 \\
-Una volta recuperato il file descriptor della connessione è necessario individuare un worker che la gestisca, questo compito è sempre svolto dalla funzione \emph{thread\_pool\_loop()} che esegue il seguente codice:
+Una volta recuperato il file descriptor della connessione è necessario individuare un Worker che la gestisca, questo compito è sempre svolto dalla funzione \emph{thread\_pool\_loop()} che esegue il seguente codice:
 \begin{lstlisting}
 int i, min = -1, position = -1;
 for (i = 0; i < n_prefork; ++i) {
@@ -813,9 +819,6 @@ for (i = 0; i < n_prefork; ++i) {
     }
   }
 }
-\end{lstlisting}
-Come vediamo la funzione si occupa dell'accesso all'array dei file descriptor che abbiamo inizializzato prima, facciamo notare che l'accesso all'array è gestito da un semaforo mutex, questo perché anche il main accede a questa struttura quando arrivano nuove conessioni. Infatti se ricordiamo quanto detto nel paragrafo del processo principale, quando un client si collega la funzione \emph{accept\_connection()} ritorna il file descriptor associato alla socket, questo viene poi messo all'interno dell'array dei file descriptor tramite la funzione \emph{add\_fd\_to\_array()}. Ora che abbiamo spiegato anche l'ultimo passaggio della funzione main capiamo che il thread pool è l'incaricato di verificare che ci siano nuovi file descriptor da servire. La funzione \emph{get\_fd()} è di facile lettura, viene semplicemente eseguito un \emph{for} sull'array dei file descriptor e viene ritornato il primo file descriptor disponibile.\\\\ Una volta recuperato il file descriptor della connessione è necessario individuare un worker che la gestisca, questo compito è sempre svolto dalla funzione \emph{thread\_pool\_loop()} che esegue il seguente codice:
-\begin{lstlisting}
 // Error no worker available
 if(position == -1) {
   
@@ -846,7 +849,7 @@ if(position == -1) {
   break;
 }
 \end{lstlisting}
-All'interno della variabile \emph{position} viene salvato l'indice del worker selezionato, se questo è -1 vuol dire che tutti i worker sono occupati perché stanno gestendo altre connessioni, in questo caso il ciclo di schedulazione ricomincia e continua finche non ci sarà un worker pronto a gestire la connessione. In caso di successo le strutture dati in memoria condivisa vengono aggiornate, il flag all'interno del'array worker\_busy passa a 1 per indicare che il worker non è più disponibile, dal worker\_array viene recuperato il pid del processo, il contatore delle connessioni gestite dal worker viene aggiornato nell'array worker\_counter e infine, come ultimo passaggio, richiamiamo il thread \emph{Scheduler} per richiedere di fornirci un server dove il worker andrà a eseguire le richieste del client. Sblocchiamo quindi il semaforo, visto che abbiamo terminato l'utilizzo della memoria condivisa, e ci avviamo ad eseguire le ultime linee di codice della funzione:
+All'interno della variabile \emph{position} viene salvato l'indice del worker selezionato, se questo è -1 vuol dire che tutti i worker sono occupati. In questo caso il ciclo di schedulazione ricomincia e continua finche non ci sarà un Worker pronto a gestire la connessione. In caso di successo le strutture dati in memoria condivisa vengono aggiornate, il flag all'interno del'array worker\_busy passa a 1 per indicare che il worker non è più disponibile; dal worker\_array viene recuperato il pid del processo, il contatore delle connessioni gestite dal worker viene aggiornato nell'array worker\_counter e infine, come ultimo passaggio, richiamiamo il thread \emph{Scheduler} per richiedere di fornirci un server dove il worker andrà a eseguire le richieste del client. Sblocchiamo quindi il semaforo, visto che abbiamo terminato l'utilizzo della memoria condivisa, e ci avviamo ad eseguire le ultime linee di codice della funzione:
 
 \begin{lstlisting}
 while (TRUE) {
@@ -866,12 +869,12 @@ if (throwable->is_an_error(throwable)) {
   get_log()->t(throwable);
 }
 \end{lstlisting}
-Abbiamo quindi recuperato dall'array un file descriptor associato a una socket, abbiamo selezionato il worker per servire la connessione ci manca solamente di dire al worker quale sia questo file descriptor. Per fare questo viene utilizzato un altro componente di Heimdall, il \emph{message controller}.\\\\ Il message controller non è altro che una serie di funzioni che utilizzano le socket locali AF\_UNIX per lo scambio di file descriptor. Infatti la funzione \emph{send\_fd()} che è definita all'interno del file \emph{message\_controlller.c} e \emph{message\_controller.h} non fa altro che creare un socket AF\_UNIX per l'invio del file descriptor al worker. Vengono utilizzate le socket perché non è possibile scambiare il file descriptor senza scambiare anche i permessi di lettura di su quel file, infatti al di fuori del contesto di un processo un file descriptor non è altro che un semplice intero. Facciamo notare anche che vengono eseguiti dei tentativi di invio perché nel momento dell'invio del file descriptor il worker, causa problemi di schedulazione da parte del sistema operativo, potrebbe non essere pronto a ricevere il dato. Una volta effettuato lo scambio il Pool Manger ha terminato la sua esecuzione e può tornare a schedulare altri worker, come ultima cosa non ci dimentichiamo di chiudere il file descriptor dal lato del processo padre infatti una volta inviato, un altro riferimento al file viene creato nella tabella dei file descriptor del worker e quindi quello presente nel processo principale non è più necessario.
+Abbiamo quindi recuperato dall'array un file descriptor associato a una socket, abbiamo selezionato il worker per servire la connessione ci manca solamente di dire al worker quale sia questo file descriptor. Per fare questo viene utilizzato un altro componente di Heimdall, il \emph{message controller}.\\\\ Il message controller non è altro che una serie di funzioni che utilizzano le socket locali AF\_UNIX per lo scambio di file descriptor. Infatti la funzione \emph{send\_fd()} che è definita all'interno del file \emph{message\_controlller.c} e \emph{message\_controller.h}. Vengono utilizzate le socket perché non è possibile scambiare il file descriptor senza scambiare anche i permessi di lettura di quel file, infatti al di fuori del contesto di un processo un file descriptor non è altro che un semplice intero. Facciamo notare anche che vengono eseguiti dei tentativi di invio perché nel momento dell'invio del file descriptor il worker, causa problemi di schedulazione da parte del sistema operativo, potrebbe non essere pronto a ricevere il dato. Una volta effettuato lo scambio il Pool Manger ha terminato la sua esecuzione e può tornare a schedulare altri Worker, come ultima cosa non ci dimentichiamo di chiudere il file descriptor dal lato del processo padre, infatti una volta inviato, un altro riferimento al file viene creato nella tabella dei file descriptor del Worker e quindi quello presente nel processo principale non è più necessario.
 
 \subsection{Scheduler}
 \label{ssec: sched}
 Lo scheduler è un componente fondamentale di un sistema informatico: si occupa di stabilire un ordinamento temporale per l'esecuzione di un set di richieste di accesso ad una risorsa. Nel caso di un web switch di livello 7, lo scheduler va a garantire che ognuna delle richieste in arrivo possa essere inoltrata immediatamente alla prima macchina disponibile, secondo una politica di scheduling che sia \emph{state-less}, quindi che non consideri l'attuale carico di lavoro delle macchine del cluster, oppure \emph{state-aware}, che monitori costantemente tale carico e modifichi di conseguenza l'assegnazione delle richieste (verrà spiegato nel dettaglio come lavorano e quando sono disponibili tali politiche al paragrafo \ref{sec: sched_p}). \\\\
-In questa implementazione lo scheduler, che come vedremo va a sfruttare un algoritmo di selezione \emph{Round Robin} la cui struttura verrà esplicitata più avanti, viene definito come segue.
+In questa implementazione lo scheduler, che come vedremo va a sfruttare un algoritmo di selezione \emph{Round Robin} (la cui struttura verrà esplicitata più avanti), viene definito nei file \emph{scheduler.c} e \emph{scheduler.h}, ne vediamo un estratto.
 \begin{lstlisting}
 typedef struct scheduler_args {
   RRobinPtr     rrobin;                       // Round Robin struct
@@ -880,7 +883,7 @@ typedef struct scheduler_args {
   ServerPtr (*get_server)(RRobinPtr rrobin);  // to retrieve a server
 } Scheduler, *SchedulerPtr;
 \end{lstlisting}
-In particolare la \textbf{pool dei server} altro non è che un \emph{lista collegata} formata da strutture dati elementari per la gestione dei server indicati nel file di configurazione come appartenenti al cluster, definite come segue
+In particolare la \emph{pool dei server} altro non è che un \emph{lista collegata} formata da strutture dati elementari per la gestione dei server indicati nel file di configurazione come appartenenti al cluster, definite come segue:
 \begin{lstlisting}
 typedef struct server_node {
   char *host_address;       // machine canonical name
@@ -891,10 +894,9 @@ typedef struct server_node {
   struct server_node *next; // next server_node
 } ServerNode, *ServerNodePtr;
 \end{lstlisting}
-
-mentre le strutture dati che vengono elaborate ed utilizzate come valore di ritorno della schedulazione e che sono alla base della costituzione del buffer su cui opera Round Robin, non sono altro che una versione semplificata e costituita dalletramite prefork sole informazioni di base per la connessione. \\
+Le strutture dati che vengono elaborate ed utilizzate come valore di ritorno della schedulazione e che sono alla base della costituzione del buffer su cui opera Round Robin, non sono altro che una versione semplificata e costituita dalle sole informazioni di base per la connessione. \\
 \\
-Nella \textbf{fase di inizializzazione} viene quindi popolata la pool recuperando gli indirizzi delle macchine del cluster, che vengono settate come disponibili e con peso minimo. Quindi a seconda che si sia configurato il web switch in modalità \emph{state-aware} o \emph{state-less}, rispettivamente viene o non viene istanziato un thread che si occuperà di aggiornare periodicamente, con gestione degli accessi concorrenti al buffer del Round Robin, lo stato delle macchine. Ogni volta che una connessione viene accettata viene recuperato un server valido da passare al processo che gestirà la connessione tramite memoria condivisa.
+Nella \textbf{fase di inizializzazione} viene quindi popolata la pool recuperando gli indirizzi delle macchine del cluster, che vengono settate come disponibili e con peso minimo. Quindi a seconda che si sia configurato il web switch in modalità \emph{state-aware} o \emph{state-less}, rispettivamente viene o non viene istanziato un thread che si occuperà di aggiornare periodicamente, con gestione degli accessi concorrenti al buffer del Round Robin, lo stato delle macchine. Ogni volta che una connessione viene accettata viene recuperato un server valido da passare al processo che lo recupererà tramite memoria condivisa (\ref{ssec:shm_server}).
 \\
 \\ Lo scheduler è recuperabile tramite la chiamata \emph{get\_scheduler()}.
 \begin{lstlisting}
@@ -904,27 +906,27 @@ ServerPtr server = get_scheduler()->get_server(get_scheduler()->rrobin);
 // Storing server in shared memory
 worker_pool->worker_server[position] = *server;
 \end{lstlisting}
-Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} e non \emph{READY} è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il worker (che analizzeremo in \ref{sec:worker}) non avvierà nessuna connessione di inoltro della richiesta. 
+Viene sempre selezionato un server che sia disponibile, quindi viene sempre effettuato un controllo sullo \emph{status} dello stesso server, nel caso in cui sia abilitato il controllo sullo stato della macchina: l'unico caso in cui questi risulta \emph{BROKEN} (non disponibile) e non \emph{READY} (operativo) è nella circostanza in cui ogni server del cluster risulta non disponibile per cui il Worker (che analizzeremo in \ref{sec:worker}) non avvierà nessuna connessione di inoltro della richiesta. 
 \\
 \\
-Dalla necessità progettuale di garantire uno \textbf{scheduling adattabile} a condizioni di stress da carico, quindi per soddisfare specifiche di \emph{state-awareness}, nascono i parametri relativi a status e peso nei nodi della pool di server e nasce un adattamento \emph{pesato} dell'algoritmo di Round Robin. Lo vedremo nel dettaglio al paragrafo \ref{sec: sched_p}.
+Dalla necessità progettuale di garantire uno \textbf{scheduling adattabile} a condizioni di stress da carico, quindi per soddisfare specifiche di \emph{state-awareness}, nascono i parametri relativi a status e peso nei nodi della pool di server e nasce un adattamento pesato dell'algoritmo di Round Robin. Lo vedremo nel dettaglio al paragrafo \ref{sec: sched_p}.
 \subsection{Worker}
 \label{sec:worker}
-Il \textbf{worker} è il componente principale di Heimdall: serve le richieste dei client, smistandole ai vari server presenti nel cluster e inoltrandone le risposte.
+Il \emph{Worker} serve le richieste dei client, smistandole ai vari server presenti nel cluster e inoltrandone le risposte.
 \\
-Nell'attuale implementazione, il worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
+Nell'attuale implementazione, il Worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
 \\
-Heimdall è implementato in modo tale da effettuare il \textbf{prefork} di un numero configurabile di processi (si veda \ref{sec:config}). Ciò è utile per evitare di rallentare l'esecuzione a causa del ritardo dovuto al tempo di creazione dei processi.
+Heimdall è implementato in modo tale da effettuare il \emph{prefork} di un numero configurabile di Worker (si veda \ref{sec:config}). Ciò è utile per evitare di rallentare l'esecuzione a causa del ritardo dovuto al tempo di creazione.
 \subsubsection{Gestione delle richieste}
 \label{sec:requests_management}
-L'applicazione soddisfa le specifiche \textbf{HTTP 1.1}\cite{http_1.1}, gestendo \textbf{connessioni persistenti}\cite{persistent_connections} e supportando il \textbf{pipelining}\cite{pipeling} delle richieste. Per ottenere il supporto alle connessioni persistenti, Heimdall chiude la connessione con il client allo scadere di un timer, al fine di ricevere più richieste tramite la stessa connessione. Ricevute, queste vengono inserite in una coda, per essere poi servite nello stesso ordine con cui sono state ricevute.
+L'applicazione soddisfa le specifiche \emph{HTTP 1.1}\cite{http_1.1}, gestendo \textbf{connessioni persistenti}\cite{persistent_connections} e supportando il \textbf{pipelining}\cite{pipeling} delle richieste. Per ottenere il supporto alle connessioni persistenti, Heimdall chiude la connessione con il client allo scadere di un timer, al fine di ricevere più richieste tramite la stessa connessione. Ricevute, queste vengono inserite in una coda, per essere poi servite nello stesso ordine con cui sono state ricevute.
 \\
-All'avvio di Heimdall, tramite prefork, vengono creati i vari worker che restano in attesa di essere schedulati. Ricevuta una connessione da poter servire, il worker crea i thread necessari per la ricezione, l'inoltro e la risposta alla richiesta.
+Ricevuta una connessione da poter servire, il worker crea i thread necessari per la ricezione, l'inoltro e la risposta alla richiesta.
 
 \subsubsection*{Coda delle richieste}
 \label{sec:requests_queue}
-Per poter supportare il pipeling, è stato quindi necessario creare una coda, che contenesse, in ordine, tutte le richieste effettuate da un client tramite la stessa connessione HTTP, come specificato dalla RFC: ``A server MUST send its responses to those requests in the same order that the requests were received.''\cite{pipeling}
-La coda è molto semplice e implementa le seguenti operazioni:
+Per poter supportare il pipeling, è stato quindi necessario creare una coda, che contenesse, in ordine, tutte le richieste effettuate da un client tramite la stessa connessione HTTP, come specificato dalla RFC: \emph{``A server MUST send its responses to those requests in the same order that the requests were received.''}\cite{pipeling}
+\\\\La coda è molto semplice e implementa le seguenti operazioni:
 \begin{lstlisting}
 void (*enqueue)(struct request_queue *self, RequestNodePtr node);
 struct request_node*(*dequeue)(struct request_queue *self);
@@ -933,18 +935,20 @@ struct request_node*(*get_front)(struct request_queue *self);
 int (*get_size)(struct request_queue *self);
 void (*destroy)(struct request_queue *self);
 \end{lstlisting}
-La coda contiene elementi di tipo RequestNode, cioè la struttura dati che incapsula la richiesta, la risposta, un riferimento al nodo precedente, un riferimento al nodo successivo, una struttura (il chunk) e altre variabili di supporto per il multithreading e per il watchdog.
+La coda contiene elementi di tipo RequestNode, cioè la struttura dati che incapsula: la richiesta, la risposta, un riferimento al nodo precedente, un riferimento al nodo successivo, una struttura (il chunk) e altre variabili di supporto per il multithreading e per il watchdog.
 \begin{lstlisting}
-pthread_t thread_id;
-HTTPRequestPtr request;
-HTTPResponsePtr response;
-time_t request_timeout;
-struct request_node *previous;
-struct request_node *next;
-ChunkPtr chunk;
-int *worker_status;
-pthread_mutex_t mutex;
-pthread_cond_t condition;
+typedef struct request_node {
+    pthread_t thread_id;
+    HTTPRequestPtr request;
+    HTTPResponsePtr response;
+    time_t request_timeout;
+    struct request_node *previous;
+    struct request_node *next;
+    ChunkPtr chunk;
+    int *worker_status;
+    pthread_mutex_t mutex;
+    pthread_cond_t condition;
+} RequestNode, *RequestNodePtr;
 \end{lstlisting}
 \subsubsection*{Chunk di dati}
 \label{sec:chunk}
@@ -955,11 +959,8 @@ La struttura è molto semplice e contiene un'area di memoria fissa, di dimension
 Questa scelta è finalizzata all'alleggerimento massimo del carico su Heimdall: facendo da ``passa carta'' tra server e client, la memoria avrà il minor quantitativo di risorsa possibile, in ogni istante. 
 \subsubsection{Gestione delle connessioni}
 \subsubsection*{Connessione}
-Il sistema è stato concepito per essere il più modulare possibile con valori di ritorno il più possibile uniformi. La gestione delle connessioni ne è un esempio: è stato realizzato un wrapping delle API Socket di Berkley in modo tale da gestire tutti gli errori allo stesso modo, tramite l'utilizzo dei Throwable (si veda \ref{sec:errors}). L'implementazione delle chiamate è stata resa minimale, in modo tale da concentrarsi solo sulla logica dell'applicazione e non sulla sua effettiva implementazione.
+Il sistema è stato concepito per essere il più modulare possibile con valori di ritorno il più possibile uniformi. La gestione delle connessioni ne è un esempio: è stato realizzato un wrapping delle API Socket di Berkley in modo tale da gestire tutti gli errori allo stesso modo, tramite l'utilizzo dei Throwable (si veda \ref{sec:errors}). L'implementazione delle chiamate è stata resa minimale, in modo tale da concentrarsi solo sulla logica dell'applicazione e non sulla sua effettiva implementazione. Per questo motivo le funzioni per creare una nuova connessione di tipo server e di tipo client sono definite come funzioni all'interno dei file \emph{connection.c} e \emph{connection.h}. Nel dettaglio per il server:
 \\
-Le funzioni per creare una nuova connessione di tipo server e di tipo client sono esplicative.
-\\
-Tipo server:
 \begin{lstlisting}
 ThrowablePtr create_server_socket(const int type, const int port, int *sockfd) {
 
@@ -982,7 +983,7 @@ ThrowablePtr create_server_socket(const int type, const int port, int *sockfd) {
   return get_throwable()->create(STATUS_OK, NULL, "create_server_socket");
 }
 \end{lstlisting}
-Tipo client:
+Mentre per il client:
 \begin{lstlisting}
 ThrowablePtr create_client_socket(const int type, const char *ip, const int port, int *sockfd) {
 
@@ -1008,7 +1009,7 @@ ThrowablePtr create_client_socket(const int type, const char *ip, const int port
   return get_throwable()->create(STATUS_OK, NULL, "create_client_socket");
 }
 \end{lstlisting}
-Questo espediente ha dato la possibilità, per esempio, di modificare più volte il codice che permette l'invio delle richieste e la successiva ricezione delle risposte, senza stravolgere, per quanto possibile, la logica del sistema.
+Questo espediente ha dato la possibilità, per esempio, di modificare più volte il codice che permette l'invio delle richieste e la successiva ricezione delle risposte (definite in apposite funzioni nello stesso file), senza stravolgere, per quanto possibile, la logica del sistema.
 \subsubsection*{Richieste HTTP}
 Alla base della capacità di Heimdall di inoltrare ad una macchina del cluster la richiesta che gli viene effettuata dal client, vi è la capacità di poter analizzare tale richiesta e poterne trarre le corrette informazioni. \\
 Per questo sono state definite macro degli \emph{header} più importanti come da protocollo\cite{http_1.1} per poter \emph{parsare} il pacchetto HTTP una volta che questo è correttamente giunto (completo) al web switch. È stata quindi definita la struct seguente.
@@ -1038,14 +1039,14 @@ typedef struct http_request {
 } HTTPRequest, *HTTPRequestPtr;
 
 \end{lstlisting}
-Per cui una volta inizializzata può essere utilizzata per memorizzare, attraverso la lettura degli \emph{header} e dei parametri ad essi associati le informazioni necessarie per poter inoltrare alla macchina del cluster selezionata. Sono state utilizzate le convenzioni previste del protocollo già viste nell'RFC precedentemente indicato: in particolare la corretta lettura di \emph{<carriage return><newline>} singolo e doppio rispettivamente a fine riga e come separatore fra headers e contenuto del pacchetto, per poter determinare gli estremi di lettura del \emph{parser}.
+Per cui, una volta inizializzata, può essere utilizzata per memorizzare, attraverso la lettura degli \emph{header} e dei parametri ad essi associati, le informazioni necessarie per poter inoltrare la richiesta alla macchina del cluster selezionata. Sono state utilizzate le convenzioni previste del protocollo già viste nell'RFC precedentemente indicato: in particolare la corretta lettura di \emph{<carriage return><newline>} singolo a fine riga e doppio rispettivamente come separatore fra headers e corpo, per poter determinare gli estremi di lettura del \emph{parser}.
 \\ 
 Osserviamo come non siano presenti tutti gli header definiti dal protocollo e come alcuni siano definiti per quanto riguarda la risposta HTTP (su questo aspetto torneremo fra poco). 
 \\
 \\
-Particolarmente importanti per questa implementazione sono i parametri che definiscono \emph{tipo di richiesta}, \emph{protocollo} e \emph{risorsa richiesta}. All'interno della struct è altresì presente un set di puntatori a funzione che consente di impostare i parametri per costruire una semplice richiesta HTTP, funzionalità che viene usata per inoltrare la richiesta al cluster.
+Particolarmente importanti per questa implementazione sono i parametri che definiscono tipo di richiesta, protocollo e risorsa richiesta. All'interno della struct è altresì presente un set di puntatori a funzione che consente di impostare i parametri per costruire una semplice richiesta HTTP, funzionalità che viene usata per inoltrare la richiesta al cluster.
 \subsubsection*{Risposte HTTP}
-La modularità della struct vista per quanto riguarda l'analisi della richiesta HTTP ha consentito di includere in essa anche i parametri, come il \emph{messaggio ed il codice di risposta}, nonchè la \emph{lunghezza della risorsa} contenuta nel pacchetto, necessari per la corretta lettura di un completo pacchetto HTTP di risposta. Per cui è bastato utilizzare le funzionalità già implementata ed "estendere" la struttura precedente come segue.
+La modularità della struct vista per quanto riguarda l'analisi della richiesta HTTP ha consentito di includere in essa anche i parametri, come il messaggio ed il codice di risposta, nonché la lunghezza della risorsa contenuta nel pacchetto, necessari per la corretta lettura di un completo pacchetto di risposta. Per cui è bastato utilizzare le funzionalità già implementate ed "estendere" la struttura precedente come segue.
 \begin{lstlisting}
 typedef struct http_response {
   struct http_request *response;                           
@@ -1059,7 +1060,7 @@ typedef struct http_response {
 } HTTPResponse, *HTTPResponsePtr;
 
 \end{lstlisting}
-L'unica differenza con l'implementazione già descritta è il mantenimento in un'area di memoria dell'originale contenuto del pacchetto inviato dal server, necessario per poter correttamente inoltrare al client la risposta senza dover rilavorare anche con il contenuto della risposta HTTP. Questo ha portato ad una riduzione dell'overhead soprattutto in condizioni in cui tale contenuto è un file di testo consistente od un'immagine.
+L'unica differenza con l'implementazione già descritta è il mantenimento, oltre che di un campo che specifica trattarsi di una risposta, in un'area di memoria dell'originale contenuto del pacchetto. Tale contenuto verrà reinoltrato al client che ha generato la richiesta.
 
 \subsubsection{Thread di lettura}
 \label{sec:reader}
@@ -1696,19 +1697,19 @@ L'installazione e l'utilizzo del web switch Heimdall sono progettati per essere 
 \\
 \textbf{Nota:} nel caso in cui si voglia procedere direttamente all'esecuzione del programma, il cui file binario è allegato a questa relazione, è necessario procedere dalla \ref{ssec: configuration} per modificare alcuni file di configurazione e creare alcune cartelle necessarie all'esecuzione.
 \subsection{Download}
-Il progetto può essere recuperat dalla repository pubblica ospitata su GitHub all'indirizzo:
+Il progetto può essere recuperato dalla repository pubblica ospitata su GitHub all'indirizzo:
 \\
 \url{https://github.com/HeimdallProject} 
 \\
 La repository scaricata conterrà:
 \begin{itemize}
-  \item codice sorgente
-  \item script di installazione e compilazione
-  \item File necessari alla compilazione del progetto
+  \item codice sorgente;
+  \item script di installazione e compilazione;
+  \item file necessari alla compilazione del progetto.
 \end{itemize}
 \subsection{Dipendenze}
-È incluso il \emph{binary} del progetto all'interno del file allegato alla relazione, tuttavia in caso di download del progetto dalla repository su GitHub, per procedere alla compilazione che vedremo al punto successivo, è necessario installare \textbf{CMake}.\\
-CMake\cite{cmake} è una famiglia di tool \textbf{open-source} e \textbf{cross-platform}, disegnati per poter controllare il processo di compilazione attraverso una piattaforma indipendente sia dall'architettura che dall'ambiente di compilazione prescelto sulla propria macchina. Tale obiettivo viene raggiunto tramite un file di configurazione che possiamo trovare nella cartella del progetto sotto il nome \textbf{CMakeLists.txt}. Nel nostro caso è stato utilizzato per poter far fronte, utilizzando un tool professionale, al grande numero di dipendenze e poter gestire sia la ricerca di \textbf{package e librerie} particolari sia l'utilizzo di particolari \textbf{direttive di precompilazione}, il tutto mantenendo un file di configurazione compatto e facilmente leggibile. \\\\
+È incluso il \emph{binary} del progetto all'interno del file allegato alla relazione, tuttavia in caso di download del progetto dalla repository su GitHub, per procedere alla compilazione che vedremo al punto successivo, è necessario installare \emph{CMake}.\\
+CMake\cite{cmake} è una famiglia di tool \textbf{open-source} e \textbf{cross-platform}, disegnati per poter controllare il processo di compilazione attraverso una piattaforma indipendente sia dall'architettura che dall'ambiente di compilazione prescelto sulla propria macchina. Tale obiettivo viene raggiunto tramite un file di configurazione che possiamo trovare nella cartella del progetto sotto il nome \emph{CMakeLists.txt}. Nel nostro caso è stato utilizzato per poter far fronte, utilizzando un tool professionale, al grande numero di dipendenze e poter gestire sia la ricerca di \textbf{package e librerie} particolari sia l'utilizzo di particolari \textbf{direttive di precompilazione}, il tutto mantenendo un file di configurazione compatto e facilmente leggibile. \\\\
 La versione di minima di CMake necessaria è la 3.2 e può essere scaricata sia dal sito sopra indicato che, procedendo da linea di comando. Vediamo brevemente come fare, tenendo conto che, per l'installazione di software, è necessario possedere i privilegi dell'utente \emph{root}.
 \begin{lstlisting}
 $ sudo apt-get install software-properties-common
@@ -1716,7 +1717,7 @@ $ sudo add-apt-repository ppa:george-edison55/cmake-3.x
 $ sudo apt-get update
 $ sudo apt-get install cmake
 \end{lstlisting}
-Altrimenti si può procedere alla compilazione di \textbf{cmake} stesso. Anche in questo caso è necessario disporre dei privilegi di \emph{root} (cambiare il numero della versione per scaricare la versione desiderata).
+Altrimenti si può procedere alla compilazione di cmake stesso. Anche in questo caso è necessario disporre dei privilegi di \emph{root} (cambiare il numero della versione per scaricare la versione desiderata).
 \begin{lstlisting}
 $ sudo apt-get install build-essential
 $ wget http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz
@@ -1744,14 +1745,14 @@ $ cmake ..
 $ make WebSwitch
 \end{lstlisting}
 \subsection{Modifica file di configurazione} \label{ssec: configuration}
-Nel caso si disponesse già di una copia dei file binary o si avesse compilato il programma indipendentemente dallo script illustrato al punto precedente, è possibile procedere alla configurazione delle cartelle necessarie all'esecuzione del programma, in particolare le cartelle \emph{log} e \emph{sockets}, eseguendo lo script \textbf{config.sh} fornito.
+Nel caso si disponesse già di una copia dei file binary o si avesse compilato il programma indipendentemente dallo script illustrato al punto precedente, è possibile procedere alla configurazione delle cartelle necessarie all'esecuzione del programma eseguendo lo script \textbf{config.sh} fornito.
 \begin{lstlisting}
 $ cd <installation folder>
 $ sh config.sh 
 \end{lstlisting}
 Per ulteriori necessità e in particolare per il tuning del web switch, si può fare riferimento ai file presenti nell cartella \emph{<installation folder>/code/config}. 
 \\
-Per modificare la posizione delle cartelle contenenti i file di log e le socket, necessari all'esecuzione del programma, è possibile modificare, all'interno di \emph{code/config/heimdall\_config.conf} le linee seguenti:
+Qualora si volessero modificare la posizione delle cartelle contenenti i file di log e le socket, necessari all'esecuzione del programma, è possibile modificare, all'interno di \emph{code/config/heimdall\_config.conf} le linee seguenti:
 \begin{lstlisting}
 # File for request logging
 log_file_req <absolute req log path>/heimdall_req.log
@@ -1765,7 +1766,7 @@ sockets_path <absolute socket path>/sockets/
 Per modificare la \textbf{configurazione del cluster}, si possono specificare le diverse macchine all'interno del file \emph{code/config/server\_config.conf}, scrivendo per ognuna indirizzo ip ed il nome del server.
 \\
 \subsection{Esecuzione} \label{ssec: execution}
-A questo punto si può supporre creata una cartella \emph{build} in cui sono sono presenti i file binari del progetto. Supponiamo di aver configurato il nostro web switch adeguatamente, possiamo procedere ad avviare l'applicazione da linea di comando.
+A questo punto si può supporre creata una cartella \emph{build} dov'è presente il file binario del progetto. Supponendo di aver configurato il nostro web switch adeguatamente, possiamo procedere ad avviare l'applicazione da linea di comando.
 \begin{lstlisting}
 $ cd build
 $ ./WebSwitch  
@@ -1797,12 +1798,12 @@ GNU debugger (chiamato semplicemente GDB)\cite{gdb} è il potente debbugger del 
 Il suo utilizzo è stato di fondamentale importanza per poter scovare errori difficilmente individuabili a causa dell'architettura multiprocesso di Heimdall.
 
 \subsection{htop}
-Htop\cite{htop} è un visualizzatore interattivo di processi per i sistemi Unix. APur non essendo un tool di debug, ha contribuito al ``debug'' di Heimdall, permettendo di controllare in tempo reale lo stato dei processi, dei threads e della memoria.
+Htop\cite{htop} è un visualizzatore interattivo di processi per i sistemi Unix. Pur non essendo un tool di debug, ha contribuito al ``debug'' di Heimdall, permettendo di controllare in tempo reale lo stato dei processi, dei threads e della memoria.
 
 \subsection{Valgrind}
 Valgrind\cite{valgrind} è un potente strumento di debug, che scova memory leaks e allocazioni improprie.
 \\
-Anche questo tool è stato di fondamentale importanza dato che ci ha permesso di scovare leak causati dall'errata gestione della memoria, in particolar modo dai \hyperref[sec:errors]{\emph{Throwable}}.
+Anche questo tool è stato di fondamentale importanza dato che ci ha permesso di scovare leak causati dall'errata gestione della memoria.
 
 \newpage
 \section{Tool per i test}
@@ -1821,9 +1822,9 @@ GET / HTTP/1.1
 Host: 127.0.0.1
 \end{lstlisting}
 \subsection{PostMan}
-Postman\cite{postman} è una applicazione presente nel \emph{Chrome Web Store} e che gira come plug-in del famoso browser Google Chrome. È concepita come tool per testare le API, in particolare permette di specificare una richiesta HTTP con focus su quelli che sono i parametri ed i metodi specifici del protocollo. Nel nostro caso ha permesso di costruire un pacchetto base HTTP e verificare la corretta risposta del web switch al variare dei parametri. Potendo, inoltre, concentrarci su un singolo file da richiedere al server remoto, si è potuto sfruttare PostMan per analizzare i tempi di risposta, soprattutto in condizioni di file di grandi dimensioni.
+Postman\cite{postman} è una applicazione presente nel \emph{Chrome Web Store} che gira come plug-in del famoso browser Google Chrome. È concepita come tool per testare le API, in particolare permette di specificare una richiesta HTTP con focus su quelli che sono i parametri ed i metodi specifici del protocollo. Nel nostro caso ha permesso di costruire un pacchetto base HTTP e verificare la corretta risposta del web switch al variare dei parametri. Potendo, inoltre, concentrarci su un singolo file da richiedere al server remoto, si è potuto sfruttare PostMan per analizzare i tempi di risposta, soprattutto in condizioni di file di grandi dimensioni.
 \subsection{HttPerf} \label{ssec: httperf}
-È un tool per misurare le performance di un server web, svilupatto dai laboratori della HP\cite{httperf}. È stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il \emph{numero di connessioni}, il \emph{numero di richiesto}, il \emph{rate} con cui effettuare tali connessioni, la \emph{risorsa} da richiedere, nonchè la possibilità di aprire un numero necessario di porte TCP per verificare la risposta di un certo carico di lavoro durante una sessione.
+È un tool per misurare le performance di un server web, svilupatto dai laboratori della HP\cite{httperf}. È stato usato per generare diversi set di carico di lavoro da sottoporre al web switch per analizzarne le performance. Questo strumento è particolarmente versatile e permette di specificare tutta una serie di parametri come il numero di connessioni, il numero di richieste, il rate con cui effettuare tali connessioni, la risorsa da richiedere, nonchè la possibilità di aprire un numero di porte TCP elevato per verificare la risposta di un certo carico di lavoro durante una sessione.
 \begin{lstlisting}
 $ httperf --server=localhost --uri=/index.html --port=8080 
           --num-conns=3000 --num-calls=2 --rate=500 --hog
@@ -1837,9 +1838,8 @@ $ httperf --server=localhost --uri=/index.html --port=8080
 \end{figure}
 Questo è il tool principe per quanto riguarda il test "finale" del web switch: ci permette di verificare che l'esperienza utente nell'utilizzo di Heimdall nell'inoltrare le richieste ad un cluster è confrontabile con una richiesta diretta ad una delle macchine del cluster stesso. Tuttavia in fase di sviluppo ci si è scontrati con le caratteristiche proprie di ciascun browser, per poterne valutare le performance. \\
 Ci si è imbattuti innanzitutto nella funzionalità di \emph{pipelining} disabilitata di default su \textbf{Firefox}\cite{firefox} ma che è possibile abilitare, oppure l'apertura di diverse connessioni con il server entro le quali vengono effettuate molteplici richieste come \emph{Chrome}\cite{chrome} o \emph{Safari}\cite{apple} o, generalmente, un qualsiasi browser moderno. \\\\
-È possibile osservare tali peculiarità, durante la richiesta verso un sito mediamente complesso, come quello utilizzato durante i test, dal listato sottostante, preso dai \emph{file di log durante una navigazione verso l'homepage con Chrome Web Browser}.
+È possibile osservare tali peculiarità, durante la richiesta verso un sito mediamente complesso, come quello utilizzato durante i test, dal listato sottostante, preso dai file di log durante una navigazione verso l'homepage con Chrome Web Browser.
 \begin{lstlisting}[basicstyle=\fontsize{4}{7}\selectfont\ttfamily]
-
 Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.5 - worker: 6882 - GET /font-awesome/css/font-awesome.min.css HTTP/1.1
 [Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.6 - worker: 6881 - GET /css/animate.min.css HTTP/1.1
 [Wed Feb 10 12:10:58 2016] - 192.168.1.3:8080 to: 192.168.1.4 - worker: 6883 - GET /js/bootstrap.min.js HTTP/1.1

@@ -18,7 +18,7 @@ ServerPtr get_ready_server(RRobinPtr rrobin) {
 }
 
 ThrowablePtr apache_score(ServerNodePtr server) {
-    /*get_log()->d(TAG_SCHEDULER, "scoring routine...");*/
+    get_log()->d(TAG_SCHEDULER, "scoring routine...");
     // throwable aux variable
     ThrowablePtr throwable;
 
@@ -34,11 +34,11 @@ ThrowablePtr apache_score(ServerNodePtr server) {
     if (throwable->is_an_error(throwable)) {
         server->weight = WEIGHT_DEFAULT;
         server->status = SERVER_STATUS_BROKEN;
-        get_log()->d(TAG_SCHEDULER, "SERVER %s is DOWN", server->host_ip);
+        get_log()->i(TAG_SCHEDULER, "server %s is DOWN", server->host_ip);
         return throwable->thrown(throwable, "apache_score");
     } else {
         server->status = SERVER_STATUS_READY;
-        get_log()->d(TAG_SCHEDULER, "SERVER %s is UP", server->host_ip);
+        get_log()->i(TAG_SCHEDULER, "server %s is UP", server->host_ip);
     }
     
     // ... and parsing result
@@ -63,14 +63,14 @@ ThrowablePtr apache_score(ServerNodePtr server) {
             (WEIGHT_MAXIMUM - WEIGHT_DEFAULT)   /
             (TOTAL_WORKERS  - WEIGHT_DEFAULT)   +   WEIGHT_DEFAULT;
     server->weight = score;
-    /*get_log()->d(TAG_SCHEDULER, "[SCORE: %d (%s)]", score, server->host_ip);*/
+    get_log()->i(TAG_SCHEDULER, "[score: %d (%s)]", score, server->host_ip);
 
     return get_throwable()->create(STATUS_OK, NULL, "apache_score");
 }
 
 void *update_server_routine(void *arg) {
 
-    /*get_log()->d(TAG_SCHEDULER, "Scheduler update routine init...");*/
+    get_log()->d(TAG_SCHEDULER, "Scheduler update routine init...");
 
     // initiliazing throwable
     ThrowablePtr throwable;
@@ -95,7 +95,6 @@ void *update_server_routine(void *arg) {
     ServerNodePtr node;
     for(;;)
         if (time(NULL) - up_since > up_time) {
-            /*get_log()->d(TAG_SCHEDULER, "Scheduler update routine [UPDATING]");*/
             // initializing flag
             proceed = 0;
             // scanning across the serverpool
@@ -105,7 +104,6 @@ void *update_server_routine(void *arg) {
                 throwable = apache_score(node);
                 if (throwable->is_an_error(throwable)) {
                     get_log()->t(throwable);
-                    get_log()->d(TAG_SCHEDULER, "NODE STATUS %d", node->status);
                     if (node->status != SERVER_STATUS_BROKEN)
                         proceed -= 1;
                 }
@@ -118,7 +116,6 @@ void *update_server_routine(void *arg) {
 
             // if routine is not failed...
             if (proceed == 0) {
-                get_log()->d(TAG_SCHEDULER, "SCHEDULING...");
                 throwable = scheduler->rrobin->reset(scheduler->rrobin, scheduler->server_pool, scheduler->server_pool->num_servers);
                 if (throwable->is_an_error(throwable)) {
                     get_log()->t(throwable);
@@ -163,8 +160,6 @@ SchedulerPtr init_scheduler(int awareness_level) {
             get_throwable()->create(STATUS_ERROR, "Memory allocation error!", "init_scheduler");
             return NULL;
         }
-
-        get_log()->d(TAG_SCHEDULER, "Server n° %d Name %s, IP %s", i, server_config->servers_names[i], server_config->servers_ip[i]);
 
         node->host_address = server_config->servers_names[i];
         node->host_ip      = server_config->servers_ip[i];

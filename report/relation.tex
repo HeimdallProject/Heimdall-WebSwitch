@@ -1657,21 +1657,9 @@ Nel caso si disponesse già di una copia dei file binary o si avesse compilato i
 $ cd <installation folder>
 $ sh config.sh 
 \end{lstlisting}
-Per ulteriori necessità e in particolare per il tuning del web switch, si può fare riferimento ai file presenti nell cartella \emph{<installation folder>/code/config}. 
-\\
-Qualora si volessero modificare la posizione delle cartelle contenenti i file di log e le socket, necessari all'esecuzione del programma, è possibile modificare, all'interno di \emph{code/config/heimdall\_config.conf} le linee seguenti:
-\begin{lstlisting}
-# File for request logging
-log_file_req <absolute req log path>/heimdall_req.log
-
-# File for response logging
-log_file_resp <absolute resp log path>/heimdall_resp.log
-
-# Unix sockets path
-sockets_path <absolute socket path>/sockets/  
-\end{lstlisting}
-Per modificare la \textbf{configurazione del cluster}, si possono specificare le diverse macchine all'interno del file \emph{code/config/server\_config.conf}, scrivendo per ognuna indirizzo ip ed il nome del server.
-\\
+Per eseguire un test bisogna modificare la configurazione del cluster, specificando almeno una macchina all'interno del file \emph{code/config/server\_config.conf}, scrivendo indirizzo ip e nome del server.
+\\\\
+Per ulteriori necessità e in particolare per il tuning del web switch, si può fare riferimento ai file presenti nell cartella \emph{<installation folder>/code/config} e al paragrafo sui file di configurazione (\ref{ssec:config}) . 
 \subsection{Esecuzione} \label{ssec: execution}
 A questo punto si può supporre creata una cartella \emph{build} dov'è presente il file binario del progetto. Supponendo di aver configurato il nostro web switch adeguatamente, possiamo procedere ad avviare l'applicazione da linea di comando.
 \begin{lstlisting}

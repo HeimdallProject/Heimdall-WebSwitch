@@ -177,7 +177,7 @@ int init_config(const char *path, int config_handler(char *key, char *value, voi
             return -1;
         }
 
-        printf("%s (%d) + %s (%d) \n", key, (int)strlen(key), value, (int)strlen(value));
+        // printf("%s (%d) + %s (%d) \n", key, (int)strlen(key), value, (int)strlen(value));
 
         if(config_handler(key, value, ptr_config) == -1) {
             fprintf(stderr, "Error config parser, no key '%s' found in Config. \n", key);

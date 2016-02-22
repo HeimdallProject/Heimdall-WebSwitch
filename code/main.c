@@ -217,7 +217,7 @@ int main() {
         exit(EXIT_FAILURE);
     } 
 
-    log->i(TAG_MAIN, "Created new server that is listening on port %d", port);
+    log->i(TAG_MAIN, "Heimdall WebSwitch is listening on port %d", port);
 
     // Starts listening for the clients
     int backlog = 0;

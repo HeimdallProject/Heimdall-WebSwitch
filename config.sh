@@ -16,8 +16,8 @@ mkdir build
 echo "[OK] creating build folders... "
 
 download_path=$(pwd)
-socket_path=$download_path"sockets/"
-log_path=$download_path"log/"
+socket_path=$download_path"/sockets/"
+log_path=$download_path"/log/"
 
 cd ${download_path}
 echo "[OK] creating working directory"
@@ -27,18 +27,20 @@ echo "[OK] creating socket folder... "
 mkdir ${log_path};
 echo "[OK] creating log folder..."
 
+echo "" >> ./code/config/heimdall_config.conf
+
 echo "# Unix sockets path" >> ./code/config/heimdall_config.conf
 echo "sockets_path "$socket_path >> ./code/config/heimdall_config.conf
 echo "[OK] socket initialization completed"
-
+echo "" >> ./code/config/heimdall_config.conf
 echo "# File for request logging" >> ./code/config/heimdall_config.conf
 echo "log_file_req "$log_path"heimdall_req.log" >> ./code/config/heimdall_config.conf
 echo "" >> ./code/config/heimdall_config.conf
 echo "# File for response logging" >> ./code/config/heimdall_config.conf
-echo "log_file_req "$log_path"heimdall_resp.log" >> ./code/config/heimdall_config.conf
+echo "log_file_resp "$log_path"heimdall_resp.log" >> ./code/config/heimdall_config.conf
 echo "[OK] log files initialization completed"
 
-echo "[OK] configuration completed!"
+echo "[OK] init completed!"
 
 echo ""
 echo ""

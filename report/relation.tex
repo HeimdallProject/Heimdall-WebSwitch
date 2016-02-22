@@ -125,7 +125,7 @@ Il cuore di Heimdall è codificato nel \emph{main.c} da cui inizia l'esecuzione 
 Il processo, una volta avviato, inizializzerà i componenti principali, tra questi abbiamo:
 
 \begin{itemize}
-  \item Config (paragrafo \ref{sec:config});
+  \item Config (paragrafo \ref{ssec:config});
   \item Log (paragrafo \ref{ssec:logging});
   \item Scheduler (paragrafo \ref{ssec: sched});
   \item Pool Manager (paragrafo \ref{ssec:pool}).
@@ -660,9 +660,13 @@ La variabile \emph{message} contiene la descrizione del problema.
 La variabile \emph{stack\_trace} contiene la lista delle funzioni che il Throwable ha attraversato ed è di fondamentale importanza per comprendere la dinamica dell'errore.
 \\\\
 Riportiamo qui un esempio di stampa:
-% TODO ESEMPIO di stampa
-/* ESEMPIO */
-\\\\
+\begin{lstlisting}
+Mon Feb 22 07:35:16 2016: E/Throwable: 
+Status: -1 
+Message: Operation not permitted 
+Stack Trace: 
+ bind->unix_passive_socket->unix_listen
+\end{lstlisting}
 Avendo reso omogenee il valore di ritorno di tutte le funzioni, risulta semplificato il controllo, l'inoltro o la stampa degli errori.
 \\
 Per esempio, all'interno della funzione \emph{get\_data()}, utile per il parsing delle risposte ricevute dal modulo di Apache Status (si veda \ref{sssec:apachestatus}), abbiamo:
@@ -764,7 +768,7 @@ static void *init_pool(void *arg) {
   return arg;
 }
 \end{lstlisting}
-Queste sono le prime linee di codice che vengono eseguite dal thread \emph{Pool Manager}. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione \ref{sec:config} questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.
+Queste sono le prime linee di codice che vengono eseguite dal thread \emph{Pool Manager}. La prima cosa che viene fatta è quella di recuperare dal file di configurazione il numero massimo impostato di file descriptor disponibili per Heimdall, come già spiegato nel paragrafo del file di configurazione \ref{ssec:config} questo parametro indica sostanzialmente il numero massimo di connessioni che Heimdall può gestire concorrentemente. Infatti ogni volta che un client si collega viene generato un file descriptor per la socket di comunicazione, questi file descriptor sono però un numero limitato che dipende dalla configurazione del sistema operativo, quando Heimdall raggiungerà questo limite non accetterà più connessioni finche non verrà liberato spazio. Una volta inizializzato questo array il thread si mette in loop chiamando la funzione \emph{thread\_pool\_loop()}. Per non annoiare la lettura con troppo codice evidenziamo solamente i tratti principali della funzione.
 \begin{lstlisting}
 for (;;) {
   int fd = 0;
@@ -924,7 +928,7 @@ Il \emph{Worker} serve le richieste dei client, smistandole ai vari server prese
 \\
 Nell'attuale implementazione, il Worker è un processo composto da quattro thread: il \hyperref[sec:reader]{\emph{thread di lettura}}, il \hyperref[sec:writer]{\emph{thread di scrittura}}, il \hyperref[sec:request]{\emph{thread di richiesta}} e il \hyperref[sec:watchdog]{\emph{thread di watchdog}}.
 \\
-Heimdall è implementato in modo tale da effettuare il \emph{prefork} di un numero configurabile di Worker (si veda \ref{sec:config}). Ciò è utile per evitare di rallentare l'esecuzione a causa del ritardo dovuto al tempo di creazione.
+Heimdall è implementato in modo tale da effettuare il \emph{prefork} di un numero configurabile di Worker (si veda \ref{ssec:config}). Ciò è utile per evitare di rallentare l'esecuzione a causa del ritardo dovuto al tempo di creazione.
 \\\\
 Descriviamo ora il lavoro del worker, il codice dei seguenti paragrafi è presente nel file \emph{worker.c} e \emph{worker.h}.
 \subsubsection{Gestione delle richieste}
@@ -1074,7 +1078,7 @@ L'unica differenza con l'implementazione già descritta è il mantenimento, oltr
 
 \subsubsection{Thread di lettura}
 \label{sec:reader}
-Appena il worker riceve una nuova connesione da gestire, il thread di lettura ha il compito di leggere le richieste dalla socket, tramite una \emph{read()} bloccante. Successivamente, il thread accoda le richieste del client, per un numero massimo di richieste configurabile (si veda \ref{sec:config}), creando, per ognuna di esse un thread di richiesta che, dialogando con il server schedulato, si occuperà di gestirla. Il thread di lettura sarà bloccato costantemente in attesa di nuove richieste, aggiornando la variabile adibita alla verifica dello stato di esecuzione del worker (si veda il paragrafo \ref{sec:watchdog}), alla ricezione di ogni nuova richiesta. 
+Appena il worker riceve una nuova connesione da gestire, il thread di lettura ha il compito di leggere le richieste dalla socket, tramite una \emph{read()} bloccante. Successivamente, il thread accoda le richieste del client, per un numero massimo di richieste configurabile (si veda \ref{ssec:config}), creando, per ognuna di esse un thread di richiesta che, dialogando con il server schedulato, si occuperà di gestirla. Il thread di lettura sarà bloccato costantemente in attesa di nuove richieste, aggiornando la variabile adibita alla verifica dello stato di esecuzione del worker (si veda il paragrafo \ref{sec:watchdog}), alla ricezione di ogni nuova richiesta. 
 \begin{lstlisting}
 // Gets queue
 RequestQueuePtr queue = worker->requests_queue;

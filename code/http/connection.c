@@ -566,7 +566,7 @@ ThrowablePtr receive_http_chunks(int sockfd, HTTPResponsePtr http_response, Chun
             return get_throwable()->create(STATUS_ERROR, get_error_by_errno(errno), "receive_http_chunks");
         }
 
-        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d lock mutex, (long) getpid(), sockfd);
+        get_log()->d(TAG_CONNECTION, "%ld - receive_http_chunks socket %d lock mutex", (long) getpid(), sockfd);
 
         // Waits until wrote is TRUE with condition
         while (chunk->wrote == FALSE) { 

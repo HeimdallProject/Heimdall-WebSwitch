@@ -1635,7 +1635,7 @@ $ make
 $ sudo make install
 \end{lstlisting}
 \subsection{Compilazione}
-Una volta installato il programma utilizzato per la compilazione del progetto, si può procedere alla fase finale di preparazione per l'esecuzione del programma eseguendo lo script \textbf{install.sh} presente all'interno della cartella di installazione.
+Una volta installato il programma utilizzato per la compilazione del progetto, si può procedere alla fase finale di preparazione per l'esecuzione del programma eseguendo lo script \emph{install.sh} presente all'interno della cartella di installazione.
 \begin{lstlisting}
 $ cd <installation folder>
 $ sh install.sh 
@@ -1652,12 +1652,12 @@ $ cmake ..
 $ make WebSwitch
 \end{lstlisting}
 \subsection{Modifica file di configurazione} \label{ssec: configuration}
-Nel caso si disponesse già di una copia dei file binary o si avesse compilato il programma indipendentemente dallo script illustrato al punto precedente, è possibile procedere alla configurazione delle cartelle necessarie all'esecuzione del programma eseguendo lo script \textbf{config.sh} fornito.
+Nel caso si disponga già di una copia dei file binary o si avesse compilato il programma indipendentemente dallo script illustrato al punto precedente, è possibile procedere alla configurazione delle cartelle necessarie all'esecuzione del programma eseguendo lo script \emph{config.sh} fornito.
 \begin{lstlisting}
 $ cd <installation folder>
 $ sh config.sh 
 \end{lstlisting}
-Per eseguire un test bisogna modificare la configurazione del cluster, specificando almeno una macchina all'interno del file \emph{code/config/server\_config.conf}, scrivendo indirizzo ip e nome del server.
+Per eseguire un test bisogna modificare la \textbf{configurazione del cluster}, specificando almeno una macchina all'interno del file \emph{code/config/server\_config.conf}, scrivendo indirizzo ip e nome del server.
 \\\\
 Per ulteriori necessità e in particolare per il tuning del web switch, si può fare riferimento ai file presenti nell cartella \emph{<installation folder>/code/config} e al paragrafo sui file di configurazione (\ref{ssec:config}) . 
 \subsection{Esecuzione} \label{ssec: execution}

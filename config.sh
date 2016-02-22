@@ -28,6 +28,7 @@ mkdir ${log_path};
 echo "[OK] creating log folder..."
 
 echo "" >> ./code/config/heimdall_config.conf
+echo "" >> ./code/config/heimdall_config.conf
 
 echo "# Unix sockets path" >> ./code/config/heimdall_config.conf
 echo "sockets_path "$socket_path >> ./code/config/heimdall_config.conf
